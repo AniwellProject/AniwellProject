@@ -110,21 +110,21 @@
 						data: {city, district},
 						success: function (response) {
 							console.log("✅ 동 리스트:", response);
-
+							const dongs = response.data1.dongs;
 							// 🔸 동 배열을 localStorage에 저장 (JSON.stringify)
 							localStorage.setItem("userCity", city);
 							localStorage.setItem("userDistrict", district);
-							localStorage.setItem("userDongs", JSON.stringify(response)); // 배열 저장
+							localStorage.setItem("userDongs", JSON.stringify(dongs)); // 배열 저장
 
 							// 🔻 동적 HTML 생성
 							const asideHTML = `
-							  <aside class="bg-white p-6 shadow mx-auto h-[90%]]>
+							  <aside class="bg-white p-6 shadow mx-auto h-[90%]>
 							    <h2 class="text-lg font-semibold mb-4">${city || '로딩중'}</h2>
 								<div class="text-xl font-semibold mb-4 border-b border-gray-300 pb-2">
 								  ${district || '로딩중'}
 								</div>
 							    <ul class="grid grid-cols-2 gap-2 text-sm text-gray-700">
-							      ${response.map((dong) => `
+							      ${dongs.map((dong) => `
 							        <li>
 							          <button
 							            class="w-full px-1 py-2 text-left bg-gray-100 hover:bg-yellow-200 rounded-lg transition duration-200 ease-in-out shadow-sm hover:shadow-md"
@@ -172,7 +172,7 @@
 						return;
 					}
 
-					const crewList = response.data1;
+					const crewList = response.data1.crews;
 					const container = $('#crewListContainer');
 					container.empty();
 

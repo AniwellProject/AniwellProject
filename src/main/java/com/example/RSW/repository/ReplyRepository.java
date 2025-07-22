@@ -20,4 +20,16 @@ public interface ReplyRepository {
     public void modifyReply(int id, String body);
 
     void deleteReply(int id);
+
+    int getGoodRP(int replyId);
+
+    int getBadRP(int replyId);
+
+    void increaseGoodReactionPoint(int replyId);
+
+    void decreaseGoodReactionPoint(int replyId);
+
+    void increaseBadReactionPoint(int replyId);
+
+    void decreaseBadReactionPoint(int replyId);
 }

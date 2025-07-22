@@ -1,200 +1,247 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Login</title>
-	<link rel="stylesheet" th:href="@{/resource/css/login_join.css}">
-	<script src="https://cdn.tailwindcss.com"></script>
-	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<style>
-		.form-panel-slide {
-			display: flex;
-			transition: transform 0.3s ease;
-		}
-		.form-step {
-			width: 100%;
-			padding: 1rem;
-		}
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" th:href="@{/resource/css/login_join.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .form-panel-slide {
+            display: flex;
+            transition: transform 0.3s ease;
+        }
+        .form-step {
+            width: 100%;
+            padding: 1rem;
+        }
+    </style>
+    <!-- firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+    </script>
+
 </head>
 <body class="bg-white">
 
 <div class="form-wrapper flex-row overflow-hidden relative" id="form-wrapper">
-	<div class="form-slider w-[200%] flex transition-transform duration-300">
-		<!-- 로그인 화면 -->
-		<div class="sign-in flex w-full relative">
-			<!-- 로그인 폼 -->
-			<form class="left-panel h-full w-3/5 p-6" th:action="@{/usr/member/doLogin}" method="post">
-				<h1>LOGIN</h1>
-				<input type="text" name="loginId" placeholder="ID" required th:value="${param.loginId}" />
-				<input type="password" name="loginPw" placeholder="PW" required />
-				<button class="sign-in-button" type="submit">sign in</button>
-				<img class="logo-img mt-4" th:src="@{/img/logo.png}" alt="Aniwell Logo">
-			</form>
 
-			<!-- 회원가입 버튼 -->
-			<div class="right-panel h-full w-2/5 flex items-center justify-center bg-yellow-100">
-				<span class="sign-up-button cursor-pointer text-lg font-semibold text-gray-700" id="show-sign-up">회원가입</span>
-			</div>
-		</div>
+    <div class="form-slider w-[200%] flex transition-transform duration-300">
+        <!-- 로그인 화면 -->
+        <div class="sign-in flex w-full relative">
+            <!-- 로그인 폼 -->
+            <form class="left-panel h-full w-3/5 p-6" th:action="@{/usr/member/doLogin}" method="post">
+                <h1>LOGIN</h1>
+                <input type="text" name="loginId" placeholder="ID" required th:value="${param.loginId}" />
+                <input type="password" name="loginPw" placeholder="PW" required />
+                <button class="sign-in-button" type="submit">sign in</button>
 
-		<!-- 회원가입 화면 -->
-		<div class="sign-up flex w-full relative">
-			<!-- 왼쪽 로그인으로 돌아가기 -->
-			<div class="left-panel w-2/5 flex items-center justify-center bg-yellow-100">
-				<span class="sign-in-button cursor-pointer text-lg font-semibold text-gray-700" id="show-sign-in">로그인</span>
-			</div>
+                <!-- 소셜 로그인 버튼 영역 -->
+                <div class="social-login-buttons flex flex-col gap-2 mt-4">
+                    <!-- 구글 -->
+                    <a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=291458660034-978ksq36uneqg2hk830718s98turccbp.apps.googleusercontent.com&redirect_uri=http://localhost:8080/usr/member/google&response_type=code&scope=email%20profile&access_type=offline&prompt=select_account">
+                        <img th:src="@{/img.socialLogin/web_light_sq_SI@3x.png}" alt="구글 로그인" class="h-10"/>
+                    </a>
 
-			<!-- 오른쪽 회원가입 -->
-			<form class="form-panel w-3/5 relative overflow-hidden"
-				  th:action="@{/usr/member/doJoin}" method="post"
-				  onsubmit="return validateForm()">
+                    <!-- 카카오 (팝업 방식) -->
+                    <a href="javascript:openKakaoPopup()">
+                        <img th:src="@{/img.socialLogin/kakao_login_medium_narrow.png}" alt="카카오 로그인" class="h-10"/>
+                    </a>
 
-				<div class="form-panel-slide h-full flex relative" id="slide-panel">
-					<!-- STEP 1 -->
-					<div class="form-step flex flex-col justify-around" id="step1">
-						<h2>Create Account</h2>
-						<input type="text" name="loginId" placeholder="ID" required th:value="${param.loginId}" />
-						<input type="password" name="loginPw" placeholder="PW" required />
-						<input type="text" name="name" placeholder="NAME" required th:value="${param.name}" />
-						<input type="text" name="nickname" placeholder="NICKNAME" required th:value="${param.nickname}" />
-						<button type="button" class="next-button bg-yellow-400 p-2 rounded" onclick="goToStep(2)">다음</button>
-					</div>
+                    <!-- 네이버  -->
+                    <a href="https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=ZdyW5GGtNSgCCaduup7_&redirect_uri=http://localhost:8080/usr/member/naver&state=randomString&auth_type=reprompt">
+                        <img th:src="@{/img.socialLogin/btnG_완성형.png}" alt="네이버 로그인" class="h-10"/>
+                    </a>
+                </div>
 
-					<!-- STEP 2 -->
-					<div class="form-step flex flex-col justify-around" id="step2">
-						<h2>Contact Info</h2>
-						<input type="text" name="cellphone" placeholder="PHONE NUMBER" required th:value="${param.cellphone}">
-						<input type="email" name="email" placeholder="EMAIL" required th:value="${param.email}" />
-						<input type="text" name="address" placeholder="ADDRESS" required th:value="${param.address}" />
+                <img class="logo-img mt-4" th:src="@{/img/logo.png}" alt="Aniwell Logo">
+            </form>
 
-						<select name="authName" onchange="updateAuthLevel()" required>
-							<option value="일반" th:selected="${param.authName == '일반'}">일반</option>
-							<option value="수의사" th:selected="${param.authName == '수의사'}">수의사</option>
-						</select>
+            <!-- 회원가입 버튼 -->
+            <div class="right-panel h-full w-2/5 flex items-center justify-center bg-yellow-100">
+                <span class="sign-up-button cursor-pointer text-lg font-semibold text-gray-700" id="show-sign-up">회원가입</span>
+            </div>
+        </div>
 
-						<input type="hidden" id="authLevel" name="authLevel" th:value="${param.authLevel ?: 1}" />
-						<button type="button" class="prev-button" onclick="goToStep(1)">뒤로가기</button>
-						<button type="submit" class="submit-button bg-green-400 p-2 rounded text-white">sign up</button>
-					</div>
-				</div>
+        <!-- 회원가입 화면 -->
+        <div class="sign-up flex w-full relative">
+            <!-- 왼쪽 로그인으로 돌아가기 -->
+            <div class="left-panel w-2/5 flex items-center justify-center bg-yellow-100">
+                <span class="sign-in-button cursor-pointer text-lg font-semibold text-gray-700" id="show-sign-in">로그인</span>
+            </div>
 
-				<!-- 🐾 발바닥 타임라인 -->
-				<div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
-					<img id="paw1" src="/img/paw_active.png" class="w-10 h-10 transition-transform duration-300" />
-					<img id="paw2" src="/img/paw_inactive.png" class="w-10 h-10 transition-transform duration-300" />
-				</div>
-			</form>
-		</div>
-	</div>
+            <!-- 오른쪽 회원가입 -->
+            <form class="form-panel w-3/5 relative overflow-hidden"
+                  th:action="@{/usr/member/doJoin}" method="post"
+                  onsubmit="return validateForm()">
+
+                <div class="form-panel-slide h-full flex relative" id="slide-panel">
+                    <!-- STEP 1 -->
+                    <div class="form-step flex flex-col justify-around" id="step1">
+                        <h2>Create Account</h2>
+                        <input type="text" name="loginId" placeholder="ID" required th:value="${param.loginId}" />
+                        <input type="password" name="loginPw" placeholder="PW" required />
+                        <input type="text" name="name" placeholder="NAME" required th:value="${param.name}" />
+                        <input type="text" name="nickname" placeholder="NICKNAME" required th:value="${param.nickname}" />
+                        <button type="button" class="next-button bg-yellow-400 p-2 rounded" onclick="goToStep(2)">다음</button>
+                    </div>
+
+                    <!-- STEP 2 -->
+                    <div class="form-step flex flex-col justify-around" id="step2">
+                        <h2>Contact Info</h2>
+                        <input type="text" name="cellphone" placeholder="PHONE NUMBER" required th:value="${param.cellphone}">
+                        <input type="email" name="email" placeholder="EMAIL" required th:value="${param.email}" />
+                        <input type="text" name="address" id="address" placeholder="ADDRESS" required th:value="${param.address}" />
+
+                        <select name="authName" onchange="updateAuthLevel()" required>
+                            <option value="일반" th:selected="${param.authName == '일반'}">일반</option>
+                            <option value="수의사" th:selected="${param.authName == '수의사'}">수의사</option>
+                        </select>
+
+                        <input type="hidden" id="authLevel" name="authLevel" th:value="${param.authLevel ?: 1}" />
+                        <button type="button" class="prev-button" onclick="goToStep(1)">뒤로가기</button>
+                        <button type="submit" class="submit-button bg-green-400 p-2 rounded text-white">sign up</button>
+                    </div>
+                </div>
+
+                <!-- 🐾 발바닥 타임라인 -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
+                    <img id="paw1" src="/img/paw_active.png" class="w-10 h-10 transition-transform duration-300" />
+                    <img id="paw2" src="/img/paw_inactive.png" class="w-10 h-10 transition-transform duration-300" />
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-	// 로그인 ↔ 회원가입 전환
-	$(document).ready(function () {
-		$('#show-sign-up').on('click', function () {
-			$('.form-slider').css('transform', 'translateX(-50%)');
-		});
-		$('#show-sign-in').on('click', function () {
-			$('.form-slider').css('transform', 'translateX(0)');
-		});
-	});
+    // 로그인 ↔ 회원가입 전환
+    $(document).ready(function () {
+        $('#show-sign-up').on('click', function () {
+            $('.form-slider').css('transform', 'translateX(-50%)');
+        });
+        $('#show-sign-in').on('click', function () {
+            $('.form-slider').css('transform', 'translateX(0)');
+        });
+    });
 
-	let currentStep = 1;
+    let currentStep = 1;
 
-	function goToStep(step) {
-		currentStep = step;
-		const slide = document.querySelector('.form-panel-slide');
-		slide.style.transform = `translateX(${step === 1 ? '0' : '-100%'})`;
+    function goToStep(step) {
+        currentStep = step;
+        const slide = document.querySelector('.form-panel-slide');
+        slide.style.transform = `translateX(${step === 1 ? '0' : '-100%'})`;
 
-		// 발바닥 이미지 변경
-		document.getElementById('paw1').src = step === 1 ? '/img/paw_active.png' : '/img/paw_inactive.png';
-		document.getElementById('paw2').src = step === 2 ? '/img/paw_active.png' : '/img/paw_inactive.png';
-	}
+        // 발바닥 이미지 변경
+        document.getElementById('paw1').src = step === 1 ? '/img/paw_active.png' : '/img/paw_inactive.png';
+        document.getElementById('paw2').src = step === 2 ? '/img/paw_active.png' : '/img/paw_inactive.png';
+    }
 
-	// 드래그 이벤트
-	const panel = document.getElementById('slide-panel');
-	let startX = 0, isDragging = false;
+    // 드래그 이벤트
+    const panel = document.getElementById('slide-panel');
+    let startX = 0, isDragging = false;
 
-	panel.addEventListener('mousedown', (e) => {
-		startX = e.clientX;
-		isDragging = true;
-	});
+    panel.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        isDragging = true;
+    });
 
-	panel.addEventListener('mouseup', (e) => {
-		if (!isDragging) return;
-		const deltaX = e.clientX - startX;
-		if (deltaX < -50 && currentStep === 1) goToStep(2);
-		else if (deltaX > 50 && currentStep === 2) goToStep(1);
-		isDragging = false;
-	});
+    panel.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        if (deltaX < -50 && currentStep === 1) goToStep(2);
+        else if (deltaX > 50 && currentStep === 2) goToStep(1);
+        isDragging = false;
+    });
 
-	// 모바일 터치
-	panel.addEventListener('touchstart', (e) => {
-		startX = e.touches[0].clientX;
-		isDragging = true;
-	});
+    // 모바일 터치
+    panel.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+    });
 
-	panel.addEventListener('touchend', (e) => {
-		if (!isDragging) return;
-		const endX = e.changedTouches[0].clientX;
-		const deltaX = endX - startX;
-		if (deltaX < -50 && currentStep === 1) goToStep(2);
-		else if (deltaX > 50 && currentStep === 2) goToStep(1);
-		isDragging = false;
-	});
+    panel.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        const endX = e.changedTouches[0].clientX;
+        const deltaX = endX - startX;
+        if (deltaX < -50 && currentStep === 1) goToStep(2);
+        else if (deltaX > 50 && currentStep === 2) goToStep(1);
+        isDragging = false;
+    });
 
-	function updateAuthLevel() {
-		const auth = document.querySelector('[name="authName"]').value;
-		document.getElementById('authLevel').value = auth === '수의사' ? 9 : 1;
-	}
+    function updateAuthLevel() {
+        const auth = document.querySelector('[name="authName"]').value;
+        document.getElementById('authLevel').value = auth === '수의사' ? 9 : 1;
+    }
 
-	function validateForm() {
-		const phone = document.querySelector('[name="cellphone"]');
-		const phonePattern = /^\d{3}-\d{3,4}-\d{4}$/;
-		if (!phonePattern.test(phone.value)) {
-			alert("전화번호 형식이 올바르지 않습니다. 예: 000-0000-0000");
-			return false;
-		}
+    function validateForm() {
+        const phone = document.querySelector('[name="cellphone"]');
+        const phonePattern = /^\d{3}-\d{3,4}-\d{4}$/;
+        if (!phonePattern.test(phone.value)) {
+            alert("전화번호 형식이 올바르지 않습니다. 예: 000-0000-0000");
+            return false;
+        }
 
-		const addressInput = document.getElementById("address");
-		console.log("🚨 address.value:", addressInput?.value);
+        const addressInput = document.getElementById("address");
+        console.log("🚨 address.value:", addressInput?.value);
 
-		if (!addressInput || addressInput.value.trim() === "") {
-			alert("주소를 입력해주세요. 우편번호 찾기를 사용하세요.");
-			return false;
-		}
-		return true;
-	}
+        if (!addressInput || addressInput.value.trim() === "") {
+            alert("주소를 입력해주세요. 우편번호 찾기를 사용하세요.");
+            return false;
+        }
+        return true;
+    }
 
-	// step1에서 Enter 키로 다음 단계 이동
-	document.addEventListener('DOMContentLoaded', function () {
-		document.querySelectorAll('#step1 input').forEach(input => {
-			input.addEventListener('keydown', function (e) {
-				if (e.key === 'Enter') {
-					e.preventDefault();
-					goToStep(2);
-				}
-			});
-		});
+    // step1에서 Enter 키로 다음 단계 이동
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('#step1 input').forEach(input => {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    goToStep(2);
+                }
+            });
+        });
 
-		const phoneInput = document.querySelector('[name="cellphone"]');
-		phoneInput.addEventListener('input', function (e) {
-			let value = e.target.value.replace(/\D/g, '');
-			let result = '';
-			if (value.length < 4) {
-				result = value;
-			} else if (value.length < 7) {
-				result = value.slice(0, 3) + '-' + value.slice(3);
-			} else if (value.length < 11) {
-				result = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6);
-			} else {
-				result = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
-			}
-			e.target.value = result;
-		});
-	});
+        const phoneInput = document.querySelector('[name="cellphone"]');
+        phoneInput.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            let result = '';
+            if (value.length < 4) {
+                result = value;
+            } else if (value.length < 7) {
+                result = value.slice(0, 3) + '-' + value.slice(3);
+            } else if (value.length < 11) {
+                result = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6);
+            } else {
+                result = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+            }
+            e.target.value = result;
+        });
+    });
+</script>
+
+<script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script>
+    function openKakaoPopup() {
+        const popup = window.open(
+            "/usr/member/kakao-popup-login",
+            "kakaoLoginPopup",
+            "width=500,height=600"
+        );
+        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
+        }
+    }
 </script>
 
 </body>

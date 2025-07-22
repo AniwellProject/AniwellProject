@@ -26,6 +26,11 @@ public class ReactionPointService {
     @Autowired
     private NotificationService notificationService;
 
+
+    public int getReactionPoint(String relTypeCode, int relId, int point) {
+        return reactionPointRepository.getReactionPoint(relTypeCode, relId, point);
+    }
+
     public ReactionPointService(ReactionPointRepository reactionPointRepository) {
         this.reactionPointRepository = reactionPointRepository;
     }

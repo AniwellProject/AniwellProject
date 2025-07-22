@@ -106,7 +106,6 @@ public class WalkCrewService {
 		return walkCrewRepository.findByLeaderId(leaderId);
 	}
 
-
 	// 크루장만 공지사항쓸수 있다.
 	public boolean isCrewLeader(int crewId, int memberId) {
 		WalkCrew crew = getCrewById(crewId);

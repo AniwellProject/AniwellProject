@@ -49,4 +49,10 @@ public class WalkCrewMemberService {
 		return walkCrewMemberRepository.countByMemberIdAndCrewId(memberId, crewId) > 0;
 	}
 
+	// ✅ 강퇴 & 탈퇴 공통 처리
+	public boolean expelMemberFromCrew(int crewId, int memberId) {
+		int affectedRows = walkCrewMemberRepository.deleteMemberFromCrew(crewId, memberId);
+		return affectedRows > 0;
+	}
+
 }

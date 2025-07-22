@@ -1,5 +1,6 @@
 package com.example.RSW.service;
 
+import com.example.RSW.repository.MemberRepository;
 import com.example.RSW.repository.NotificationRepository;
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.Notification;
@@ -20,6 +21,9 @@ public class NotificationService {
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private MemberRepository memberRepository;
 
     @Autowired
     public NotificationService(NotificationRepository notificationRepository) {
@@ -80,10 +84,15 @@ public class NotificationService {
             return false;
         }
 
+        if (notification.isRead()) {
+            return true; // 이미 읽음 처리된 경우는 무시
+        }
+
         notification.setRead(true);
-        notificationRepository.insert(notification); // 또는 update()가 있다면 그걸로
-        return true;
+        int affectedRows = notificationRepository.update(notification);
+        return affectedRows == 1; // ← 실제로 DB 반영되었는지 확인
     }
+
 
     public List<Notification> getRecentNotifications(int memberId) {
         return notificationRepository.findByMemberIdOrderByRegDateDesc(memberId);
@@ -165,4 +174,14 @@ public class NotificationService {
         notificationRepository.deleteByMemberId(memberId);
     }
 
+    public void sendNotificationToAll(String title, String link, String type, Integer senderId) {
+        List<Integer> memberIds = memberRepository.getAllMemberIds();
+        for (Integer memberId : memberIds) {
+            notificationRepository.insert(new Notification(0, memberId, title, link, new Date(), false, null, type, senderId));
+        }
+    }
+
+    public void deleteAllByMemberId(int loginedMemberId) {
+        notificationRepository.deleteAllByMemberId(loginedMemberId);
+    }
 }

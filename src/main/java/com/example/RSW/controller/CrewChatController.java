@@ -44,6 +44,7 @@ public class CrewChatController {
         WalkCrewMember crewMember = crewMemerService.getCrewMemberById(crewId, loginedMemberId);
         Pet pet = petService.getPetsById(crewMember.getPetId());
 
+
         // 크루 참여 여부 확인
         boolean isMember = crewMemerService.isCrewMember(crewId, loginedMemberId);
         if (!isMember) {

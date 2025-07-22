@@ -36,6 +36,7 @@ public class Member {
 	private String socialId;       // 소셜 플랫폼 제공 고유 ID
 
 	public boolean isSocialMember() {
+
 		return this.socialProvider != null && !this.socialProvider.isBlank();
 	}
 

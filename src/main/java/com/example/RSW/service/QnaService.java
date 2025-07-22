@@ -106,4 +106,8 @@ public class QnaService {
     public List<Qna> findWithoutAnswer() {
         return qnaRepository.findWithoutAnswer();
     }
+
+    public void setFalse(int qnaId) {
+        qnaRepository.setFalse(qnaId);
+    }
 }

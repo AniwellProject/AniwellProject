@@ -137,6 +137,7 @@
 		INNER JOIN member m ON wcm.memberId = m.id
 		WHERE
 		wcm.crewId = #{crewId}
+		AND wcm.status = 'pending' <!-- ✅ 이 조건 추가 -->
 	</select>
 
 
@@ -178,7 +179,8 @@
 		SELECT *
 		FROM walk_crew
 		WHERE leaderId = #{leaderId}
-		ORDER BY createdAt DESC
+		ORDER BY
+		createdAt DESC
 		LIMIT 1
 	</select>
 </mapper>

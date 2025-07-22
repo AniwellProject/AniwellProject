@@ -95,6 +95,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="setFalse" parameterType="int">
+        UPDATE Qna
+        SET isAnswered   = FALSE,
+            updateDate = NOW()
+        WHERE id = #{qnaId}
+    </update>
+
     <update id="updateQna" parameterType="map">
         UPDATE Qna
         SET title      = #{title},

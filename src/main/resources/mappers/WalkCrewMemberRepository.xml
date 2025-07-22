@@ -56,10 +56,17 @@
 		SELECT COUNT(*)
 		FROM walk_crew_member
 		WHERE crewId = #{crewId}
-		AND memberId = #{memberId}
+		AND
+		memberId = #{memberId}
 		AND status = 'approved'         <!-- ✅ 승인 상태 -->
 	</select>
 
+	<!-- ✅ 강퇴 & 탈퇴 처리 -->
+	<delete id="deleteMemberFromCrew" parameterType="map">
+		DELETE FROM
+		walk_crew_member
+		WHERE crew_id = #{crewId} AND member_id = #{memberId}
+	</delete>
 
 
 </mapper>

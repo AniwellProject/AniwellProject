@@ -18,4 +18,8 @@ public interface ReactionPointRepository {
     void delete(int memberId, String relTypeCode, int relId);
 
     void insert(int memberId, String relTypeCode, int relId);
+
+    int getReactionPoint(String relTypeCode, int relId, int point);
+
+
 }

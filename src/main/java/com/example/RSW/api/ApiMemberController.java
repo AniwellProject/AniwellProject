@@ -26,5 +26,7 @@ public class ApiMemberController {
 
         return ResponseEntity.ok(loginedMember);
     }
-}
+}    
+
+
 

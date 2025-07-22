@@ -50,7 +50,7 @@ public class AdmMemberController {
 
         String title = (approved == 1) ? "수의사 인증이 승인되었습니다." : "수의사 인증이 거절되었습니다.";
         String type = (approved == 1) ? "VET_APPROVED" : "VET_REJECTED";
-        String link = "/usr/member/myPage";
+        String link = "";
 
         int adminId = rq.getLoginedMemberId();
         notificationService.addNotification(memberId, adminId, type, title, link);
@@ -85,6 +85,13 @@ public class AdmMemberController {
             Member updated = memberService.getMemberById(memberId);
             rq.login(updated);
         }
+
+        String title = (promote) ? "관리자 권한이 부여되었습니다." : "관리자 권한이 해제되었습니다..";
+        String type = (promote) ? "PROMOTE_APPROVED" : "PROMOTE_REJECTED";
+        String link = "/adm/article/list";
+
+        int adminId = rq.getLoginedMemberId();
+        notificationService.addNotification(memberId, adminId, type, title, link);
 
         // 6. 응답 메시지 전송
         String msg = promote ? "✅ 관리자 권한이 부여되었습니다." : "❌ 관리자 권한이 해제되었습니다.";

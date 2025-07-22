@@ -12,6 +12,12 @@ spring:
           auth: true
           starttls:
             enable: true
+  oauth2:
+    google:
+      client-id: ""
+      client-secret: ""
+      redirect-uri: "http://localhost:8080/usr/member/google"
+
   thymeleaf:
    prefix: classpath:/templates/        # HTML 파일의 기본 경로
    suffix: .html                        # HTML 확장자
@@ -45,3 +51,9 @@ cloudinary:
     cloud_name: dfiqktimk
     api_key: 145284189636895
     api_secret: 4TS23PL5HMWPolljcIRqitpWwU0
+
+naver:
+  client-id: "ZdyW5GGtNSgCCaduup7_"
+  client-secret: "pJh4IlGi2_"
+  redirect-uri: "http://localhost:8080/usr/member/naver"
+

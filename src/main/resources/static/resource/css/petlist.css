@@ -1,27 +1,29 @@
 .swiper {
-	z-index: 5;
+	z-index: 1;
 }
 
 .swiper-slide {
-	transition: transform 0.5s ease, filter 0.5s ease;
-	position: relative;
+	transform-origin: center;
+	transition: transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease;
+	z-index: 1;
+	/* 기본 */
 }
+
 .swiper-slide-active {
 	transform: scale(1);
 	filter: none;
-	z-index: 10;
+	z-index: 1;
 }
 
 .swiper-slide-prev,
 .swiper-slide-next {
 	transform: scale(0.9);
 	filter: blur(2px) brightness(0.9);
-	/* 흐림 + 어둡게 */
-	z-index: 1;
+	z-index: 2;
 }
 
 .swiper-slide::after {
-	content: "";
+	padding-bottom: 3%;
 	position: absolute;
 	inset: 0;
 	border-radius: 0.75rem;
@@ -40,14 +42,16 @@
 .swiper-slide.is-distant {
 	transform: scale(0.85);
 	filter: blur(3px) brightness(0.7);
-	transition: transform 0.5s ease, filter 0.5s ease, opacity 0.5s ease;
-	z-index: 0;
+	opacity: 0.2;
+	z-index: 1;
 }
 
 /* 제거 중인 상태 - 트랜지션 유도 */
 .swiper-slide.is-distant-leaving {
-	transform: scale(0.9); /* prev/next랑 동일 */
+	transform: scale(0.9);
 	filter: blur(2px) brightness(0.9);
+	opacity: 1;
+	z-index: 5;
 }
 
 
@@ -57,4 +61,59 @@
 	width: 100%;
 }
 
+.is-distant {
+	filter: blur(3px);
+	opacity: 0.5;
+	transform: scale(0.95);
+	transition: all 0.3s ease;
+}
 
+.is-distant-leaving {
+	filter: none;
+	opacity: 1;
+	transform: scale(1);
+	transition: all 0.3s ease;
+}
+
+.swiper-slide.centered {
+	transform: scale(1.05);
+	filter: none;
+	opacity: 1;
+	z-index: 20;
+	/* 가장 위로 */
+}
+
+.swiper-slide {
+	transform-origin: center;
+}
+
+
+
+
+/* 흐림 효과 카드 */
+.swiper-slide.is-distant {
+	opacity: 0.2;
+	filter: blur(3px);
+	transform: scale(0.95);
+	transition: all 0.3s ease;
+	z-index: 0;
+}
+
+/* 중앙 카드 강조 */
+.swiper-slide.centered {
+	opacity: 1;
+	filter: none;
+	transform: scale(1.05);
+	transition: all 0.3s ease;
+}
+
+/* 처음에 남아있던 흔적 제거 */
+.swiper-slide.is-distant-leaving {
+	opacity: 1;
+	filter: none;
+}
+
+.ani-card {
+	position: relative;
+
+}

@@ -1,230 +1,194 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<script src="https://cdn.tailwindcss.com"></script>
-	<title>크루 등록</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<title>크루 등록</title>
 </head>
 
 <body class="min-h-screen h-auto">
 	<div class="h-[100%] w-full flex justify-center items-start p-6">
-		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" action="/usr/walkCrew/doCreate"
-			method="post" onsubmit="return validateForm()">
+		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" action="/usr/walkCrew/doCreate" method="post"
+			onsubmit="return validateForm()">
 			<div class="w-full h-[100%] max-w-[600px]">
 				<!-- 제목 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">크루 이름</label>
-					<input type="text" name="title" required
-						class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
+					<input type="text" name="title" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
 				</div>
 
 				<!-- 설명 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">소개</label>
-					<textarea name="description" rows="5" required
-						class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
+					<textarea name="description" rows="5" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
 				</div>
 
 				<!-- 동 선택 -->
 				<div>
 					<label class="font-semibold block mb-2">지역</label>
 					<div class="mb-2 text-sm text-gray-600">
-						현재 위치: <span id="currentLocation">확인 중...</span>
+						현재 위치:
+						<span id="currentLocation">확인 중...</span>
 					</div>
 
 					<!-- 드롭다운 형태 -->
-					<!-- 동 선택 -->
 					<div>
 						<details class="relative w-[250px]" id="dongDropdown">
-							<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow"
-								id="dongDropdownLabel">
-								동 선택
-							</summary>
+							<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel"> 동 선택 </summary>
 							<ul id="dongListContainer"
 								class="h-[140px] absolute z-10 w-full bg-white border rounded shadow mt-2 max-h-48 overflow-y-auto hidden divide-y divide-gray-100 text-sm">
-								<!-- 동 목록이 여기에 동적으로 채워집니다 -->
 							</ul>
 						</details>
 
 						<input type="hidden" name="selectedDong" id="selectedDong" />
 						<input type="hidden" name="districtId" id="districtIdInput" />
 					</div>
-
 				</div>
+
 				<!-- 등록 버튼 -->
 				<div class="text-right">
-					<button type="submit"
-						class="px-6 py-2 bg-gradient-to-r from-green-200 to-yellow-200 rounded-xl shadow">완료</button>
+					<button type="submit" class="px-6 py-2 bg-gradient-to-r from-green-200 to-yellow-200 rounded-xl shadow">완료</button>
 				</div>
 			</div>
+
 			<div class="flex h-[200%] flex-col">
 				<div class="w-[200px] h-[200px] bg-[#f6df85] rounded-xl overflow-hidden shadow-md">
-					<!-- 기본 이미지 -->
 					<div class="">사진미리보기</div>
-
 				</div>
-				<!-- 업로드 버튼 -->
-				<label for="imageUpload"
-					class="my-2 mr-1 bottom-2 right-2 flex items-center justify-center cursor-pointer">
-					<div class="px-4 py-1 bg-[#b4d6b4] rounded-full shadow">
-						업로드
-					</div>
+				<label for="imageUpload" class="my-2 mr-1 bottom-2 right-2 flex items-center justify-center cursor-pointer">
+					<div class="px-4 py-1 bg-[#b4d6b4] rounded-full shadow">업로드</div>
 				</label>
-
-				<!-- 실제 파일 input -->
 				<input type="file" name="imageFile" id="imageUpload" accept="image/*" class="hidden"
 					onchange="previewImageFile(event)" />
-
 			</div>
-
-
-
 		</form>
 	</div>
 
-
-
-
-	<!-- ✅ 수정: JavaScript 키 삽입 -->
+	<!-- ✅ 스크립트 -->
 	<script th:inline="javascript">
-		const kakaoJsKey = /*[[${kakaoJsKey}]]*/ "";
-		const script = document.createElement("script");
-		script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoJsKey}&autoload=false&libraries=services`;
-		script.onload = () => {
-			kakao.maps.load(initLocation);
-		};
-		document.head.appendChild(script);
-		let selecteDistrict = "";
-		let selectedDiFrict = "";
 
+    const kakaoJsKey = [[${kakaoJsKey}]];
+    const script = document.createElement("script");
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoJsKey}&autoload=false&libraries=services`;
+    script.onload = () => {
+      kakao.maps.load(initLocation);
+    };
+    document.head.appendChild(script);
 
-		function initLocation() {
-			if (navigator.geolocation) {
-				navigator.geolocation.getCurrentPosition(function (position) {
-					const lat = position.coords.latitude;
-					const lng = position.coords.longitude;
+    let currentCity = "";
+    let currentDistrict = "";
 
-					const geocoder = new kakao.maps.services.Geocoder();
-					geocoder.coord2RegionCode(lng, lat, function (result, status) {
-						if (status === kakao.maps.services.Status.OK) {
-							for (let i = 0; i < result.length; i++) {
-								if (result[i].region_type === "B") {
-									const fullAddr = result[i].address_name;
-									document.getElementById("currentLocation").innerText = fullAddr;
+    function initLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
 
-									const parts = fullAddr.split(" ");
-									if (parts.length >= 3) {
-										selectedCity = parts[0];
-										selectedDistrict = parts[1];
-										loadDongList(selectedCity, selectedDistrict);
-									}
-									break;
-								}
-							}
-						} else {
-							document.getElementById("currentLocation").innerText = "위치 정보 불러오기 실패";
-						}
-					});
-				}, function () {
-					document.getElementById("currentLocation").innerText = "위치 접근 거부됨";
-				});
-			} else {
-				document.getElementById("currentLocation").innerText = "GPS를 지원하지 않는 브라우저입니다.";
-			}
-		}
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.coord2RegionCode(lng, lat, function (result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              for (let i = 0; i < result.length; i++) {
+                if (result[i].region_type === "B") {
+                  const fullAddr = result[i].address_name;
+                  document.getElementById("currentLocation").innerText = fullAddr;
 
+                  const parts = fullAddr.split(" ");
+                  if (parts.length >= 3) {
+                    currentCity = parts[0];
+                    currentDistrict = parts[1];
+                    loadDongList(currentCity, currentDistrict);
+                  }
+                  break;
+                }
+              }
+            } else {
+              document.getElementById("currentLocation").innerText = "위치 정보 불러오기 실패";
+            }
+          });
+        }, function () {
+          document.getElementById("currentLocation").innerText = "위치 접근 거부됨";
+        });
+      } else {
+        document.getElementById("currentLocation").innerText = "GPS를 지원하지 않는 브라우저입니다.";
+      }
+    }
 
-		function loadDongList(city, district) {
-			const url = "/usr/walkCrew/getDongs?city=" + encodeURIComponent(city) + "&district=" + encodeURIComponent(district);
+    function loadDongList(city, district) {
+      const url = "/usr/walkCrew/getDongs?city=" + encodeURIComponent(city) + "&district=" + encodeURIComponent(district);
 
-			fetch(url)
-				.then(response => response.json())
-				.then(data => {
-					const container = document.getElementById("dongListContainer");
-					container.innerHTML = "";
+      fetch(url)
+        .then(response => response.json())
+        .then(result => {
+          console.log("✅ 서버 응답:", result);
+          const dongList = result?.data?.dongs;
+          const container = document.getElementById("dongListContainer");
+          container.innerHTML = "";
 
-					if (data.length === 0) {
-						container.innerText = "해당 지역의 동 정보가 없습니다.";
-						return;
-					}
+          if (!Array.isArray(dongList) || dongList.length === 0) {
+            container.innerText = "해당 지역의 동 정보가 없습니다.";
+            console.error("dongList is not array or empty:", dongList);
+            return;
+          }
 
-					data.forEach(dong => {
-						const li = document.createElement("li");
-						const btn = document.createElement("button");
+          dongList.forEach(dong => {
+            const li = document.createElement("li");
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.innerText = dong;
+            btn.className = "w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-200";
 
-						btn.type = "button";
-						btn.innerText = dong;
-						btn.className = "w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-200";
+            btn.onclick = () => {
+              document.getElementById("selectedDong").value = dong;
+              document.getElementById("dongDropdownLabel").innerText = `✅ ${dong}`;
+              document.querySelector("details").open = false;
 
-						btn.onclick = () => {
-							document.getElementById("selectedDong").value = dong;
-							document.getElementById("dongDropdownLabel").innerText = `✅ ${dong}`;
-							document.querySelector("details").open = false;
+              container.querySelectorAll("button").forEach(b => {
+                b.classList.remove("bg-gray-200", "font-bold");
+              });
+              btn.classList.add("bg-gray-200", "font-bold");
 
-							// 버튼 스타일 초기화 및 선택 강조
-							container.querySelectorAll("button").forEach(b => {
-								b.classList.remove("bg-gray-200", "font-bold");
-							});
-							btn.classList.add("bg-gray-200", "font-bold");
+              fetch("/usr/walkCrew/getDistrictId"
+                + "?city=" + encodeURIComponent(city)
+                + "&district=" + encodeURIComponent(district)
+                + "&dong=" + encodeURIComponent(dong))
+                .then(response => response.json())
+                .then(result => {
+                  const districtId = result?.data?.districtId;
+                  document.getElementById("districtIdInput").value = districtId;
+                });
+            };
 
-							// districtId fetch
-							fetch("/usr/walkCrew/getDistrictId"
-								+ "?city=" + encodeURIComponent(city)
-								+ "&district=" + encodeURIComponent(district)
-								+ "&dong=" + encodeURIComponent(dong))
-								.then(response => response.text())
-								.then(districtId => {
-									document.getElementById("districtIdInput").value = districtId;
-								});
-						};
+            li.appendChild(btn);
+            container.appendChild(li);
+          });
+        })
+        .catch(err => {
+          document.getElementById("dongListContainer").innerText = "동 정보 로딩 실패";
+          console.error("Error loading dongs:", err);
+        });
+    }
 
-						li.appendChild(btn);
-						container.appendChild(li);
-					});
-				})
-				.catch(err => {
-					document.getElementById("dongListContainer").innerText = "동 정보 로딩 실패";
-					console.error("Error loading dongs:", err);
-				});
-		}
-
-
-		function validateForm() {
-			const districtId = document.getElementById("districtIdInput").value;
-			if (!districtId || isNaN(districtId)) {
-				alert("동을 선택해주세요.");
-				return false;
-			}
-			return true;
-		}
-	</script>
-
-	<script>
-		// 등록 후 서버에서 redirect될 경우, 이 스크립트가 실행됨
-		window.addEventListener('DOMContentLoaded', () => {
-			if (window.parent && window.parent.closeModal) {
-				window.parent.loadCrewList(); // 리스트 갱신
-				window.parent.closeModal();   // 모달 닫기
-			}
-		});
-	</script>
-
+    function validateForm() {
+      const districtId = document.getElementById("districtIdInput").value;
+      if (!districtId || isNaN(districtId)) {
+        alert("동을 선택해주세요.");
+        return false;
+      }
+      return true;
+    }
+  </script>
 
 	<script>
-		document.querySelector("details").addEventListener("toggle", function () {
-			const list = this.querySelector("#dongListContainer");
-			if (this.open) {
-				list.classList.remove("hidden");
-			} else {
-				list.classList.add("hidden");
-			}
-		});
-	</script>
+    document.querySelector("details").addEventListener("toggle", function () {
+      const list = this.querySelector("#dongListContainer");
+      if (this.open) {
+        list.classList.remove("hidden");
+      } else {
+        list.classList.add("hidden");
+      }
+    });
+  </script>
 
 </body>
-
 </html>

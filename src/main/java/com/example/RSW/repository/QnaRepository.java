@@ -42,4 +42,6 @@ public interface QnaRepository {
     List<Qna> getMyAnsweredQna(int loginedMemberId);
 
     List<Qna> findWithoutAnswer();
+
+    void setFalse(int qnaId);
 }

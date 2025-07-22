@@ -7,15 +7,15 @@
 	<script src="https://cdn.tailwindcss.com"></script>
 	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
 	<script th:src="@{/resource/js/common.js}"></script>
+
 	<title>페이지 기본 틀</title>
 </head>
-
 
 <body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
 	<div th:fragment="siteHeader" class="flex h-screen">
 		<!-- Sidebar -->
 		<aside class="w-20 flex flex-col items-center p-4">
-			<img src="https://i.imgur.com/rcOcaL6.png" alt="Logo" class="w-12 mb-6">
+			<img src="https://i.imgur.com/rcOcaL6.png" alt="Logo" class="w-12 mb-6" onclick="window.location.href = 'http://localhost:8080/'">
 
 			<!-- 프로필 원형 -->
 			<div class="w-14 h-14 bg-[#2e576d] rounded-full shrink-0 overflow-hidden"></div>
@@ -69,24 +69,17 @@
 					</button>
 					<span class="tooltip group-hover:opacity-100">관리자페이지</span>
 				</div>
-
-				<div class="menu-item relative group qna_page" data-page="vet">
-					<button class="hamburger" id="hamburger-btn" aria-label="메뉴 열기">
-						<span class="bar"></span>
-						<span class="bar"></span>
-						<span class="bar"></span>
-					</button>
-					<span class="tooltip group-hover:opacity-100">답변페이지</span>
-				</div>
-
 			</div>
+
 			<!-- 추가 여백 -->
+
 			<div class="mt-auto">
 				<img src="https://i.imgur.com/OJI4yzC.png" alt="paw" class="w-8">
 			</div>
 		</aside>
 		<script th:src="@{/resource/js/common.js}"></script>
 	</div>
+
 </body>
 
 </html>

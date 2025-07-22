@@ -303,9 +303,12 @@
 				}).then(res => res.text())
 						.then(js => {
 							form.body.value = "";
-							loadReplies();
+							setTimeout(() => {
+								loadReplies();  // 잠깐 기다렸다가 다시 불러오기
+							}, 300); // 300ms 딜레이
 						});
 			}
+
 
 			function loadReplies() {
 				fetch(`/usr/reply/list?relTypeCode=article&relId=${articleId}`)
@@ -323,24 +326,31 @@
 							data.forEach(reply => {
 								const item = document.createElement("div");
 								item.className = "border-b pb-4 mb-4";
+
 								item.innerHTML =
 										'<div class="flex justify-between text-sm text-gray-600">' +
 										'<span>' + reply.extra__writer + '</span>' +
 										'<span>' + reply.regDate.substring(0, 10) + '</span>' +
 										'</div>' +
 										'<div class="mt-1 text-gray-800 reply-body" data-id="' + reply.id + '">' + reply.body + '</div>' +
-										'<div class="text-sm mt-2 flex justify-between">' +
+
+										// 👍👎 버튼 추가
+										'<div class="text-sm mt-2 flex justify-between items-center">' +
 										'<div>' +
-										'👍 <button onclick="doGoodReplyReaction(' + reply.id + ')" class="text-green-600 underline">' + reply.goodReactionPoint + '</button>' +
-										' 👎 <button onclick="doBadReplyReaction(' + reply.id + ')" class="text-red-600 underline">' + reply.badReactionPoint + '</button>' +
+										'<button onclick="doGoodReplyReaction(' + reply.id + ')" class="hover:scale-110 text-lg transition-transform">👍</button> ' +
+										'<span class="ml-1">' + reply.goodReactionPoint + '</span>' +
+										'<button onclick="doBadReplyReaction(' + reply.id + ')" class="ml-3 hover:scale-110 text-lg transition-transform">👎</button> ' +
+										'<span class="ml-1">' + reply.badReactionPoint + '</span>' +
 										'</div>' +
 										'<div>' +
-										(reply.userCanModify ? '<button onclick="editReply(' + reply.id + ', \'' + reply.body + '\')" class="text-blue-600 underline">수정</button>' : '') +
-										(reply.userCanDelete ? ' <button onclick="deleteReply(' + reply.id + ')" class="text-red-600 underline">삭제</button>' : '') +
+										(reply.userCanModify ? '<button onclick="editReply(' + reply.id + ', \'' + reply.body.replace(/'/g, "\\'") + '\')" class="text-blue-600 underline ml-2">수정</button>' : '') +
+										(reply.userCanDelete ? '<button onclick="deleteReply(' + reply.id + ')" class="text-red-600 underline ml-2">삭제</button>' : '') +
 										'</div>' +
 										'</div>';
+
 								listEl.appendChild(item);
 							});
+
 						});
 			}
 
@@ -387,42 +397,31 @@
 			// 최초 로드 시 댓글 목록 불러오기
 			loadReplies();
 
-		</script>
-
-		<script>
 			function doGoodReplyReaction(replyId) {
-				fetch('/usr/reactionPoint/doGoodReaction', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-					body: `relTypeCode=reply&relId=${replyId}`
+				$.post('/usr/reactionPoint/doGoodReaction', {relTypeCode: 'reply', relId: replyId}, function (data) {
+					if (data.resultCode.startsWith('S-')) {
+						loadReplies(); // 서버 처리 완료 후 갱신
+					} else {
+						alert(data.msg);
+					}
 				})
-						.then(res => res.json())
-						.then(data => {
-							if (data.resultCode.startsWith("S-")) {
-								loadReplies(); // 댓글 다시 로드
-							} else {
-								alert(data.msg);
-							}
-						});
 			}
 
-			function doBadReplyReaction(replyId) {
-				fetch('/usr/reactionPoint/doBadReaction', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-					body: `relTypeCode=reply&relId=${replyId}`
-				})
-						.then(res => res.json())
-						.then(data => {
-							if (data.resultCode.startsWith("S-")) {
-								loadReplies(); // 댓글 다시 로드
-							} else {
-								alert(data.msg);
-							}
-						});
-			}
+				function doBadReplyReaction(replyId) {
+					$.post('/usr/reactionPoint/doBadReaction', {relTypeCode: 'reply', relId: replyId}, function (data) {
+						if (data.resultCode.startsWith('S-')) {
+							loadReplies();
+						} else {
+							alert(data.msg);
+						}
+					});
+				}
+
+
+
+
+
 		</script>
-
 	</main>
 </div>
 </body>

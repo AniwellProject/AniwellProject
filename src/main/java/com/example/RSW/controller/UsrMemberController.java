@@ -411,18 +411,54 @@ public class UsrMemberController {
 
     @RequestMapping("/usr/member/doWithdraw")
     @ResponseBody
-    public String doWithdraw(HttpServletRequest req) {
+
+    public String doWithdraw(HttpServletRequest req, HttpServletResponse resp) {
         Rq rq = (Rq) req.getAttribute("rq");
 
         if (!rq.isLogined()) {
             return Ut.jsHistoryBack("F-1", "로그인 후 이용해주세요.");
         }
 
-        memberService.withdrawMember(rq.getLoginedMemberId());
-        rq.logout(); // 세션 종료
+
+        Member member = rq.getLoginedMember();
+
+        // 소셜회원인지 확인
+        if (member.isSocialMember() && "kakao".equals(member.getSocialProvider())) {
+            String kakaoAccessToken = (String) req.getSession().getAttribute("kakaoAccessToken");
+
+            if (kakaoAccessToken != null) {
+                try {
+                    RestTemplate restTemplate = new RestTemplate();
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.set("Authorization", "Bearer " + kakaoAccessToken);
+                    HttpEntity<?> entity = new HttpEntity<>(headers);
+
+                    ResponseEntity<Map> response = restTemplate.postForEntity(
+                            "https://kapi.kakao.com/v1/user/unlink", entity, Map.class);
+
+                    if (response.getStatusCode().is2xxSuccessful()) {
+                        System.out.println("✅ 카카오 연결 해제 성공");
+                    } else {
+                        System.out.println("⚠ 카카오 unlink 실패: " + response.getStatusCode());
+                    }
+                } catch (Exception e) {
+                    System.out.println("❌ 카카오 unlink 예외: " + e.getMessage());
+                }
+
+                req.getSession().removeAttribute("kakaoAccessToken");
+            }
+        }
+
+        // 서비스 회원 탈퇴 처리
+        memberService.withdrawMember(member.getId());
+
+        // 로그아웃
+        rq.logout();
 
         return Ut.jsReplace("S-1", "회원 탈퇴가 완료되었습니다.", "/");
     }
+
+
 
     @RequestMapping("/usr/member/vetCert")
     public String showVetCertForm(HttpServletRequest req, Model model) {
@@ -450,7 +486,8 @@ public class UsrMemberController {
             // 기존 인증서 삭제
             VetCertificate existing = vetCertificateService.getCertificateByMemberId(rq.getLoginedMemberId());
             if (existing != null) {
-                vetCertificateService.deleteCertificateWithFile(existing);
+                vetCertificateService.deleteCertificateWithFile(existing); // 기존 DB 삭제
+                // Cloudinary도 삭제하고 싶으면 이후 추가
             }
 
             String originalFilename = file.getOriginalFilename();
@@ -458,63 +495,46 @@ public class UsrMemberController {
                 return Ut.jsReplace("F-2", "파일명이 유효하지 않습니다.", "/usr/member/myPage");
             }
 
-            String uuid = UUID.randomUUID().toString();
-            String savedFileName = uuid + "_" + originalFilename;
-            String uploadDir = "C:/upload/vet_certificates";
-
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            File savedFile = new File(uploadDir + "/" + savedFileName);
-            file.transferTo(savedFile);
+            // ✅ Cloudinary 업로드
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            String secureUrl = (String) uploadResult.get("secure_url");
 
             VetCertificate cert = new VetCertificate();
             cert.setMemberId(rq.getLoginedMemberId());
             cert.setFileName(originalFilename);
-            cert.setFilePath(savedFileName);
+            cert.setFilePath(secureUrl); // 🔄 실제 저장은 Cloudinary의 URL
             cert.setUploadedAt(LocalDateTime.now());
             cert.setApproved(0);
 
-            System.out.println("📥 저장될 인증서: " + cert.toString());
+            System.out.println("📤 Cloudinary 인증서 업로드됨: " + secureUrl);
 
             vetCertificateService.registerCertificate(cert);
-            memberService.updateVetCertInfo(rq.getLoginedMemberId(), savedFileName, 0);
+            memberService.updateVetCertInfo(rq.getLoginedMemberId(), secureUrl, 0);
 
-            // 인증서 업로드 성공 후 관리자에게 알림 전송
+
+            // 관리자 알림 전송
             notificationService.sendNotificationToAdmins(rq.getLoginedMemberId());
 
-
             return """
-                    <html>
-                    <head>
-                      <meta charset="UTF-8">
-                      <script>
-                        alert('✅ 수의사 인증서가 등록되었습니다. 관리자 승인을 기다려주세요.');
-                        location.replace('myCert');
-                      </script>
-                    </head>
-                    <body></body>
-                    </html>
-                    """;
+            <html>
+            <head><meta charset="UTF-8"><script>
+            alert('✅ 수의사 인증서가 등록되었습니다. 관리자 승인을 기다려주세요.');
+            location.replace('myCert');
+            </script></head><body></body></html>
+        """;
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("❌ 업로드 예외 발생: " + e.getMessage());
-
             return """
-                    <html>
-                    <head>
-                      <meta charset="UTF-8">
-                      <script>
-                        alert('⚠ 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-                        location.replace('/usr/member/myPage');
-                      </script>
-                    </head>
-                    <body></body>
-                    </html>
-                    """;
+            <html>
+            <head><meta charset="UTF-8"><script>
+            alert('⚠ 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+            location.replace('/usr/member/myPage');
+            </script></head><body></body></html>
+        """;
         }
     }
+
 
 
     @RequestMapping("/usr/member/myCert")
@@ -716,6 +736,156 @@ public class UsrMemberController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
         }
+    }
+
+    @RequestMapping("/usr/member/google")
+    public String googleCallback(@RequestParam("code") String code, HttpServletRequest req, HttpServletResponse resp) {
+
+        try {
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            // 1. access token 요청
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("code", code);
+            params.add("client_id", "");
+            params.add("client_secret", "");
+            params.add("redirect_uri", "http://localhost:8080/usr/member/google");
+            params.add("grant_type", "authorization_code");
+
+            Map<String, Object> tokenResponse = restTemplate.postForObject(
+                    "https://oauth2.googleapis.com/token", params, Map.class
+            );
+
+            String accessToken = (String) tokenResponse.get("access_token");
+
+            // 2. 사용자 정보 요청
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> userInfoResponse = restTemplate.exchange(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> userInfo = userInfoResponse.getBody();
+
+            String email = (String) userInfo.get("email");
+            String name = (String) userInfo.get("name");
+
+
+            // 3. DB 조회 또는 생성
+            Member member = memberService.getOrCreateByEmail(email, name);
+
+            // 4. 세션 저장
+            req.getSession().setAttribute("loginedMemberId", member.getId());
+            req.getSession().setAttribute("loginedMember", member);
+
+            // ✅ JSP에서도 rq.logined 동작하도록 강제 주입
+            req.setAttribute("rq", new Rq(req, resp, memberService));
+
+
+            return "redirect:/";
+        } catch (Exception e) {
+            System.out.println("❌ Google 로그인 중 오류 발생:");
+            e.printStackTrace();
+            return "redirect:/usr/member/login?error=google";
+        }
+    }
+
+    // 네이버 로그인 콜백 처리
+    @RequestMapping("/usr/member/naver")
+    public String naverCallback(@RequestParam("code") String code,
+                                @RequestParam("state") String state,
+                                HttpServletRequest req, HttpServletResponse resp) {
+
+        try {
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            // 네이버 애플리케이션 등록 정보
+            String clientId = "ZdyW5GGtNSgCCaduup7_";          // 네이버 Client ID
+            String clientSecret = "pJh4IlGi2_";  // 네이버 Client Secret
+            String redirectUri = "http://localhost:8080/usr/member/naver";  // 콜백 URI
+
+            // 1️⃣ access_token 요청 URL 구성
+            String tokenUrl = "https://nid.naver.com/oauth2.0/token" +
+                    "?grant_type=authorization_code" +
+                    "&client_id=" + clientId +
+                    "&client_secret=" + clientSecret +
+                    "&code=" + code +
+                    "&state=" + state;
+
+
+
+            // 2️⃣ 토큰 요청 (GET 방식)
+            ResponseEntity<Map> tokenResponse = restTemplate.getForEntity(tokenUrl, Map.class);
+
+            String accessToken = (String) tokenResponse.getBody().get("access_token");
+
+            // 3️⃣ 사용자 정보 요청을 위한 헤더 설정
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + accessToken);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+
+            // 4️⃣ 네이버 사용자 정보 요청
+            ResponseEntity<Map> userInfoResponse = restTemplate.exchange(
+                    "https://openapi.naver.com/v1/nid/me",
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+
+            // 5️⃣ 응답 파싱
+            Map<String, Object> body = userInfoResponse.getBody();
+            Map<String, Object> response = (Map<String, Object>) body.get("response");
+
+            // 6️⃣ 사용자 정보 추출
+            String socialId = String.valueOf(response.get("id"));  // 네이버 고유 ID
+            String name = (String) response.get("name");           // 이름
+            String email = (String) response.get("email");         // 이메일
+
+
+            // 7️⃣ 회원 DB에 등록 또는 기존 회원 로그인 처리
+            Member member = memberService.getOrCreateSocialMember("naver", socialId, email, name);
+
+            // 8️⃣ 세션 등록 (RQ 객체를 이용한 로그인 처리)
+            Rq rq = new Rq(req, resp, memberService);
+            rq.login(member);
+            req.getSession().setAttribute("rq", rq);
+
+            // ✅ 로그인 완료 후 홈으로 리다이렉트
+            return "redirect:/";
+
+        } catch (Exception e) {
+            // ⚠ 예외 처리 (토큰 요청 실패, 사용자 정보 오류 등)
+            e.printStackTrace();
+            System.out.println("❌ [ERROR] naverCallback 예외 발생: " + e.getMessage());
+            return "redirect:/usr/member/login?error=naver";
+        }
+    }
+
+    // Firebase 토큰 생성
+    @PostMapping("/usr/member/firebase-token")
+    @ResponseBody
+    public ResultData<?> generateFirebaseToken(HttpServletRequest req) {
+        Rq rq = (Rq) req.getAttribute("rq");
+        Member member = rq.getLoginedMember();
+
+        // UID는 소셜 제공자 + 고유 ID 조합으로 구성 (예: google_123456)
+        String uid = member.getSocialProvider() + "_" + member.getSocialId();
+
+        // Firebase 토큰 생성
+        String customToken = memberService.createFirebaseCustomToken(uid);
+
+        if (customToken == null) {
+            return ResultData.from("F-1", "Firebase 토큰 생성 실패");
+        }
+
+        return ResultData.from("S-1", "토큰 생성 성공", "token", customToken);
     }
 
 

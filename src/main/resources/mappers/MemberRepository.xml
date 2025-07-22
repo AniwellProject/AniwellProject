@@ -171,17 +171,30 @@
           AND socialId = #{socialId}
     </select>
 
-    <insert id="doJoinBySocial" parameterType="map">
+
+    <insert id="doJoinBySocial">
         INSERT INTO `member`
         SET regDate = NOW(),
         updateDate = NOW(),
-        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{name}, -- 카카오 닉네임 그대로 사용
+        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{nickname}, -- 카카오 닉네임 그대로 사용
             email = #{email}, cellphone = '',                                                                                                         -- 기본값 빈 문자열
             address = '',                                                                                                                             -- 기본값 빈 문자열
             photo = '',                                                                                                                               -- 기본값 빈 문자열
             authLevel = 1, authName = '일반회원', delStatus = 0
     </insert>
 
+    <select id="findByEmail" parameterType="string" resultType="Member">
+        SELECT * FROM member WHERE email = #{email}
+    </select>
 
+    <insert id="insert" parameterType="Member">
+        INSERT INTO member
+        (regDate, updateDate, loginId, loginPw, name, email, authLevel, delStatus, socialProvider, socialId)
+        VALUES
+            (#{regDate}, #{updateDate}, #{loginId}, #{loginPw}, #{name}, #{email}, #{authLevel}, #{delStatus}, #{socialProvider}, #{socialId})
+    </insert>
 
+    <select id="getAllMemberIds" resultType="int">
+        SELECT id FROM member WHERE delStatus = 0
+    </select>
 </mapper>

@@ -1,4 +1,3 @@
-
 package com.example.RSW.controller;
 
 import java.util.List;
@@ -11,9 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.RSW.vo.Rq;
 import com.example.RSW.vo.WalkCrew;
@@ -21,6 +23,8 @@ import com.example.RSW.vo.District;
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.ResultData;
 import com.example.RSW.util.Ut;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.example.RSW.config.AppConfig;
 import com.example.RSW.repository.DistrictRepository;
 import com.example.RSW.service.DistrictService;
@@ -29,12 +33,15 @@ import com.example.RSW.service.WalkCrewMemberService;
 import com.example.RSW.service.WalkCrewService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+
 import java.time.ZoneId;
 import java.util.Date;
-
+import java.util.HashMap;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+@RequiredArgsConstructor
 @Controller
 @RequestMapping("/usr/walkCrew")
 public class UsrWalkCrewController {
@@ -48,78 +55,86 @@ public class UsrWalkCrewController {
 	@Autowired
 	private WalkCrewMemberService walkCrewMemberService;
 
+	@Autowired
+	private Cloudinary cloudinary;
+
 	private final WalkCrewService walkCrewService;
 
 	// ✅ AppConfig에서 Kakao Key 가져오기 위한 DI
 	@Autowired
 	private AppConfig appConfig; // @Value 주입된 클래스
 
-	@Autowired
-	public UsrWalkCrewController(WalkCrewService walkCrewService) {
-		this.walkCrewService = walkCrewService;
-	}
-
-	// 크루 목록 페이지 이동 (예: /usr/walkCrew/list)
+	// 크루 목록 페이지 이동
 	@GetMapping("/list")
 	public String showCrewList(HttpServletRequest req, Model model) {
-		Rq rq = (Rq) req.getAttribute("rq"); // 필터 또는 인터셉터에서 세팅된 Rq
-		model.addAttribute("rq", rq); // JSP에서 사용 가능하게 전달
+		Rq rq = (Rq) req.getAttribute("rq");
 
-		List<WalkCrew> crews = walkCrewService.getAllCrews();// 전체 크루 리스트 조회
+		List<WalkCrew> crews = walkCrewService.getAllCrews(); // 전체 크루 목록 조회
+
 		model.addAttribute("crews", crews);
-		model.addAttribute("kakaoJsKey", appConfig.getKakaoRestApiKey()); // 리스트에서 사용할 카카오apikey REST용 써야
-		return "usr/walkCrew/list";
-	}
+		model.addAttribute("loginMemberId", (rq != null && rq.isLogined()) ? rq.getLoginedMemberId() : "");
 
-	@GetMapping("/api/list")
-	@ResponseBody
-	public ResultData showCrewList(HttpServletRequest req) {
-		Rq rq = (Rq) req.getAttribute("rq"); // 필터 또는 인터셉터에서 세팅된 Rq
-
-		List<WalkCrew> crews = walkCrewService.getAllCrews();// 전체 크루 리스트 조회
-
-		return ResultData.from("S-1", "crewlist", "crews", crews);
+		return "usr/walkCrew/list"; // JSP 뷰 경로
 	}
 
 	// ✅ 크루 등록 폼 페이지 출력
 	@GetMapping("/create")
-	public String showCreateForm(Model model) {
-		model.addAttribute("kakaoJsKey", appConfig.getKakaoJavascriptKey()); // JSP에서 사용될 키
-		return "usr/walkCrew/create";
+	public String showCreateForm(HttpServletRequest req, Model model) {
+		model.addAttribute("kakaoJsKey", appConfig.getKakaoJavascriptKey());
+		return "usr/walkCrew/create"; // JSP 경로
 	}
 
-	// 크루 등록 처리
 	@PostMapping("/doCreate")
-	public String doCreate(WalkCrew walkCrew, HttpServletRequest req) {
+	@ResponseBody
+	public ResultData doCreateCrew(@RequestParam("title") String title, @RequestParam("description") String description,
+			@RequestParam("districtId") int districtId, @RequestParam("selectedDong") String dong,
+			@RequestParam(value = "imageFile", required = false) MultipartFile imageFile, HttpServletRequest req) {
 		Rq rq = (Rq) req.getAttribute("rq");
-
-		if (!rq.isLogined()) {
-			return "redirect:/usr/member/login?msg=로그인 후 이용해주세요.";
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
 		}
 
-		// ✅ 디버깅용 로그 출력
-		System.out.println("city = " + walkCrew.getCity());
-		System.out.println("district = " + walkCrew.getDistrict());
-		System.out.println("dong = " + walkCrew.getDong());
+		WalkCrew walkCrew = new WalkCrew();
+		walkCrew.setTitle(title);
+		walkCrew.setDescription(description);
+		walkCrew.setDistrictId(districtId);
+		walkCrew.setDong(dong);
+		walkCrew.setLeaderId(rq.getLoginedMemberId());
 
-		walkCrew.setLeaderId(rq.getLoginedMemberId()); // ✅ 로그인된 사용자 ID 주입
-		walkCrewService.createCrew(walkCrew);// 서비스 호출하여 DB에 저장
+		// ✅ 이미지 업로드 - Cloudinary
+		if (imageFile != null && !imageFile.isEmpty()) {
+			try {
+				Map uploadResult = cloudinary.uploader().upload(imageFile.getBytes(), ObjectUtils.emptyMap());
+				String imageUrl = (String) uploadResult.get("secure_url");
+				walkCrew.setImageUrl(imageUrl); // VO에 필드가 있어야 함
+			} catch (Exception e) {
+				return ResultData.from("F-2", "이미지 업로드 중 오류 발생");
+			}
+		}
 
-		return "usr/walkCrew/closeModal";
+		// ✅ 크루 등록
+		walkCrewService.createCrew(walkCrew);
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("crewId", walkCrew.getId());
+
+		return ResultData.from("S-1", "크루 생성 완료", data);
 	}
 
 	// 크루 상세보기 페이지
-
+	// ✅ 크루 상세보기 페이지 (JSP 반환)
 	@GetMapping("/detail/{id}")
-	public String showDetail(@PathVariable int id, Model model, HttpServletRequest req) {
+	public String showCrewDetail(@PathVariable int id, HttpServletRequest req, Model model) {
 		Rq rq = (Rq) req.getAttribute("rq");
 
 		WalkCrew crew = walkCrewService.getCrewById(id);
+		if (crew == null) {
+			model.addAttribute("errorMsg", "해당 크루를 찾을 수 없습니다.");
+			return "common/error"; // 에러 페이지
+		}
 
-		// ✅ createdAt → Date 변환
 		Date createdDate = Date.from(crew.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
 
-		// ✅ 지역 이름 조회
 		String crewLocation = "";
 		if (crew.getDistrictId() != 0) {
 			District district = districtService.findById(crew.getDistrictId());
@@ -128,55 +143,72 @@ public class UsrWalkCrewController {
 			}
 		}
 
-		// ✅ 크루 가입 여부 체크 후 JSP로 넘기기
-		if (rq.isLogined()) {
-			boolean isJoined = walkCrewMemberService.isJoinedCrew(rq.getLoginedMemberId(), crew.getId());
-			model.addAttribute("isJoined", isJoined);
+		boolean isJoined = false;
+		if (rq != null && rq.isLogined()) {
+			isJoined = walkCrewMemberService.isJoinedCrew(rq.getLoginedMemberId(), crew.getId());
 		}
 
 		model.addAttribute("crew", crew);
 		model.addAttribute("createdDate", createdDate);
 		model.addAttribute("crewLocation", crewLocation);
+		model.addAttribute("isJoined", isJoined);
+		model.addAttribute("rq", rq);
 
-		return "usr/walkCrew/detail";
+		return "usr/walkCrew/detail"; // JSP 경로
 	}
 
 	// ✅ 크루 참가 처리
 	@PostMapping("/join")
-	public String joinCrew(@RequestParam("crewId") int crewId, HttpServletRequest req) {
+	@ResponseBody
+	public ResultData joinCrew(@RequestParam("crewId") int crewId, HttpServletRequest req) {
 		Rq rq = (Rq) req.getAttribute("rq");
 
-		if (!rq.isLogined()) {
-			String encodedMsg = URLEncoder.encode("로그인 후 이용해주세요.", StandardCharsets.UTF_8);
-			return "redirect:/usr/member/login?msg=" + encodedMsg;
+		// ✅ 로그인 여부 체크
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
 		}
 
 		int memberId = rq.getLoginedMemberId();
 
-		// 이미 참가했는지 확인
-		if (!walkCrewService.hasAlreadyJoined(crewId, memberId)) {
-			walkCrewService.addMemberToCrew(crewId, memberId);
-			String encodedMsg = URLEncoder.encode("참가 신청이 완료되었습니다.", StandardCharsets.UTF_8);
-			return "redirect:/usr/walkCrew/detail/" + crewId + "?msg=" + encodedMsg;
-		} else {
-			String encodedMsg = URLEncoder.encode("이미 참가한 크루입니다.", StandardCharsets.UTF_8);
-			return "redirect:/usr/walkCrew/detail/" + crewId + "?msg=" + encodedMsg;
+		// ✅ 이미 참가했는지 여부 체크
+		if (walkCrewService.hasAlreadyJoined(crewId, memberId)) {
+			return ResultData.from("F-2", "이미 참가한 크루입니다.");
 		}
+
+		// ✅ 참가 처리
+		walkCrewService.addMemberToCrew(crewId, memberId);
+
+		// ✅ Java 8 호환: Map.of(...) 대신 HashMap 사용
+		Map<String, Object> data = new HashMap<>();
+		data.put("crewId", crewId);
+
+		// ✅ 성공 응답 반환
+		return ResultData.from("S-1", "참가 신청이 완료되었습니다.", data);
 	}
 
 	// ✅ 특정 시, 구에 해당하는 동 목록 반환 (Ajax)
 	@GetMapping("/getDongs")
 	@ResponseBody
-	public List<String> getDongs(@RequestParam String city, @RequestParam String district) {
-		return districtService.findDongsByCityAndDistrict(city, district);// 동 리스트 반환
+	public ResultData getDongs(@RequestParam String city, @RequestParam String district) {
+		List<String> dongs = districtService.findDongsByCityAndDistrict(city, district);
+		
+		Map<String, Object> data = new HashMap<>();
+		data.put("dongs", dongs);
+
+		return ResultData.from("S-1", "동 목록 조회 성공", data);
 	}
 
 	// ✅ 선택된 시/구/동에 해당하는 districtId 반환 (Ajax)
 	@GetMapping("/getDistrictId")
 	@ResponseBody
-	public String getDistrictId(@RequestParam String city, @RequestParam String district, @RequestParam String dong) {
+	public ResultData getDistrictId(@RequestParam String city, @RequestParam String district,
+			@RequestParam String dong) {
 		int id = districtRepository.getDistrictIdByFullAddress(city, district, dong);
-		return String.valueOf(id);// 정수 → 문자열 변환 후 반환
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("districtId", id);
+
+		return ResultData.from("S-1", "지역 ID 조회 성공", data);
 	}
 
 	// 참가 요청 권한
@@ -184,7 +216,27 @@ public class UsrWalkCrewController {
 	@ResponseBody
 	public ResultData approveApplicant(@RequestParam int crewId, @RequestParam int memberId) {
 		walkCrewService.approveMember(crewId, memberId);
-		return ResultData.from("S-1", "참가 요청을 수락했습니다.");
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("crewId", crewId);
+		data.put("memberId", memberId);
+
+		return ResultData.from("S-1", "참가 요청을 수락했습니다.", data);
+	}
+
+	@GetMapping("/api/list")
+	@ResponseBody
+	public ResultData getCrewListAsJson(HttpServletRequest req) {
+		Rq rq = (Rq) req.getAttribute("rq");
+
+		List<WalkCrew> crews = walkCrewService.getAllCrews();
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("crews", crews);
+		data.put("loginMemberId", (rq != null && rq.isLogined()) ? rq.getLoginedMemberId() : "");
+
+		return ResultData.from("S-1", "크루 목록 불러오기 성공", data);
+
 	}
 
 }

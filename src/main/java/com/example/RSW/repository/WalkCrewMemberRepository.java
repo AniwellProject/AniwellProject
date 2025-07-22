@@ -27,4 +27,7 @@ public interface WalkCrewMemberRepository {
 	int countByMemberIdAndCrewId(@Param("memberId") int memberId, @Param("crewId") int crewId);
 
 	int countApprovedMember(int crewId, int memberId);
+
+	// 강퇴 & 탈퇴
+	int deleteMemberFromCrew(int crewId, int memberId);
 }

@@ -58,17 +58,21 @@ public class UsrNotificationController {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            return null; // JSP 렌더링 안 하고 종료
+            return null;
         }
+
         int memberId = rq.getLoginedMemberId();
 
         List<Notification> notifications = notificationService.getNotificationsByMemberId(memberId);
 
-        // 변환 없이 바로 JSP에 전달
         model.addAttribute("notifications", notifications);
+
+        // 🔥 contextPath 명시적으로 전달
+        model.addAttribute("contextPath", request.getContextPath());
 
         return "usr/notification/list";
     }
+
 
 
 //    개별 알림 읽음 처리
@@ -163,5 +167,17 @@ public class UsrNotificationController {
                 ? ResultData.from("S-1", "이전 알림을 삭제했습니다.")
                 : ResultData.from("F-1", "삭제 실패 또는 권한 없음.");
     }
+
+    @PostMapping("/deleteAll")
+    @ResponseBody
+    public ResultData deleteAllNotifications() {
+        if (!rq.isLogined()) {
+            return ResultData.from("F-1", "로그인이 필요합니다.");
+        }
+
+        notificationService.deleteAllByMemberId(rq.getLoginedMemberId());
+        return ResultData.from("S-1", "모든 알림을 삭제했습니다.");
+    }
+
 
 }

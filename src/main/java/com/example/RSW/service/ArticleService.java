@@ -1,5 +1,6 @@
 package com.example.RSW.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,16 +23,23 @@ public class ArticleService {
 		this.articleRepository = articleRepository;
 	}
 
-	public ResultData writeArticle(int memberId, String title, String body, String imageUrl, String boardId) {
-		articleRepository.writeArticle(memberId, title, body, imageUrl, boardId);
+	public ResultData writeArticle(int loginedMemberId, String title, String body, String boardId, String imageUrl) {
+		Map<String, Object> param = new HashMap<>();
+		param.put("memberId", loginedMemberId); // 사용자 ID
+		param.put("title", title); // 제목
+		param.put("body", body); // 본문
+		param.put("boardId", boardId); // 게시판 ID
+		param.put("imageUrl", imageUrl); // 이미지 URL
 
-		int id = articleRepository.getLastInsertId();
+		// ✅ Mapper에 Map 전달
+		articleRepository.writeArticle(param);
 
-		return ResultData.from("S-1", Ut.f("%d번 글이 등록되었습니다", id), "등록 된 게시글 id", id);
+		// ✅ auto_increment ID 가져오기 (useGeneratedKeys, keyProperty="id" 필요)
+		Object idObj = param.get("id");
+		int id = ((Number) idObj).intValue();
+
+		return ResultData.from("S-1", "게시글이 성공적으로 작성되었습니다.", id);
 	}
-
-
-
 
 	public void deleteArticle(int id) {
 		articleRepository.deleteArticle(id);
@@ -88,7 +96,7 @@ public class ArticleService {
 	}
 
 	public List<Article> getForPrintArticles(int boardId, int itemsInAPage, int page, String searchKeywordTypeCode,
-											 String searchKeyword) {
+			String searchKeyword) {
 		// SELECT * FROM article WHERE boardId = 1 ORDER BY id DESC LIMIT 0, 10;
 		// --> 1page
 		// SELECT * FROM article WHERE boardId = 1 ORDER BY id DESC LIMIT 10, 10;
@@ -172,11 +180,9 @@ public class ArticleService {
 		return articleRepository.findByCrewId(crewId);
 	}
 
-
 	public ResultData writeCrewArticle(Integer boardId, int crewId, int loginedMemberId, String title, String body,
-									   String imageUrl) {
+			String imageUrl) {
 		articleRepository.insertCrewArticle(boardId, crewId, loginedMemberId, title, body, imageUrl);
-
 
 		int id = articleRepository.getLastInsertId();
 		return ResultData.from("S-1", "작성 완료", "id", id);
@@ -201,7 +207,7 @@ public class ArticleService {
 
 	// 일정등록하기
 	public void writeSchedule(int crewId, int loginedMemberId, String scheduleDate, String scheduleTitle,
-							  String scheduleBody) {
+			String scheduleBody) {
 		articleRepository.writeSchedule(crewId, loginedMemberId, scheduleDate, scheduleTitle, scheduleBody);
 	}
 
@@ -211,7 +217,7 @@ public class ArticleService {
 	}
 
 	public List<Article> getAdminOnlyArticles(Integer boardId, int limitStart, int itemsInAPage,
-											  String searchKeywordTypeCode, String searchKeyword) {
+			String searchKeywordTypeCode, String searchKeyword) {
 		return articleRepository.getAdminOnlyArticles(boardId, limitStart, itemsInAPage, searchKeywordTypeCode,
 				searchKeyword);
 	}
@@ -220,6 +226,5 @@ public class ArticleService {
 	public List<Map<String, Object>> getSchedulesByCrewId(int crewId) {
 		return articleRepository.getSchedulesByCrewId(crewId);
 	}
-
 
 }

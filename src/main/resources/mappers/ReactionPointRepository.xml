@@ -6,24 +6,26 @@
 <mapper
         namespace="com.example.RSW.repository.ReactionPointRepository">
 
-    <insert id="increaseReactionPoint">
+    <insert id="addGoodReactionPoint">
         INSERT INTO reactionPoint
         SET
             regDate = NOW(),
 		updateDate = NOW(),
-		memberId = #{loginedMemberId},
-            relTypeCode = #{relTypeCode},
+		memberId = #{memberId},
+            relTypeCode =
+            #{relTypeCode},
             relId = #{relId},
             `point` = 1;
     </insert>
 
-    <insert id="decreaseReactionPoint">
+    <insert id="addBadReactionPoint">
         INSERT INTO reactionPoint
         SET
             regDate = NOW(),
 		updateDate = NOW(),
-		memberId = #{loginedMemberId},
-            relTypeCode = #{relTypeCode},
+		memberId = #{memberId},
+            relTypeCode =
+            #{relTypeCode},
             relId = #{relId},
             `point` = -1;
     </insert>
@@ -35,43 +37,22 @@
         WHERE RP.relTypeCode = #{relTypeCode}
           AND RP.relId = #{relId}
           AND
-            RP.memberId = #{loginedMemberId};
+            RP.memberId = #{memberId};
     </select>
 
-    <select id="getSumlikeReactionPoint">
-        SELECT IFNULL(SUM(RP.point),0)
-        FROM reactionPoint AS
-                 RP
-        WHERE RP.relTypeCode = #{relTypeCode}
-          AND RP.relId = #{relId}
-          AND
-            RP.memberId = #{loginedMemberId}
-          AND `point` = 1;
+    <select id="getReactionPoint" resultType="int">
+        SELECT IFNULL(SUM(point), 0)
+        FROM reactionPoint
+        WHERE relTypeCode = #{relTypeCode}
+          AND relId = #{relId}
+          AND point = #{point}
     </select>
 
-    <select id="getSumDislikeReactionPoint">
-        SELECT IFNULL(SUM(RP.point),0)
-        FROM reactionPoint AS
-                 RP
-        WHERE RP.relTypeCode = #{relTypeCode}
-          AND RP.relId = #{relId}
-          AND
-            RP.memberId = #{loginedMemberId}
-          AND `point` = -1;
-    </select>
-
-    <delete id="deleteLikeReactionPoint" parameterType="int">
+    <delete id="deleteReactionPoint">
         DELETE FROM reactionPoint
-        WHERE relId = #{relId}
-          AND memberID = #{loginedMemberId}
-          AND `point` = 1;
-    </delete>
-
-    <delete id="deleteDislikeReactionPoint" parameterType="int">
-        DELETE FROM reactionPoint
-        WHERE relId = #{relId}
-          AND memberID = #{loginedMemberId}
-          AND `point` = -1;
+        WHERE memberId = #{memberId}
+          AND relTypeCode = #{relTypeCode}
+          AND relId = #{relId}
     </delete>
 
 </mapper>

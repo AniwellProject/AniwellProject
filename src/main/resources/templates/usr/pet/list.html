@@ -26,12 +26,12 @@
 		<div th:replace="common :: siteHeader"></div>
 
 		<!-- Main content -->
-		<main class="main_page min-h-screen flex-1 p-6 grid grid-rows-5 gap-2 overflow-hidden">
+		<main class="main_page min-h-screen flex-1 p-1 grid grid-rows-10 gap-2 overflow-hidden">
 
-			<div class="row-span-2">
-				<div class="h-[250px]" id="root"></div>
-				<div class="line mx-auto text-center">
-					<div class="mb-1 p-1">
+			<div class="row-span-5 line ">
+				<div class="mx-auto py-8">
+					<div class="h-[250px] flex justify-center" id="root"></div>
+					<div class="py-6 p-1 text-center">
 						<a th:href="@{/usr/pet/join}"
 							class="bg-yellow-200 hover:bg-yellow-300 text-black px-4 py-2 rounded-md shadow inline-block text-center">
 							등록하기
@@ -39,12 +39,11 @@
 					</div>
 				</div>
 			</div>
-			<div class="privat_page row-span-3 w-full p-1 content-end">
-
+			<div class="privat_page row-span-5 w-full p-1 content-end">
 				<!-- 오른쪽 콘텐츠 영역 (3열) -->
 				<section class="bg-white p-2">
 					<!-- 동적으로 바뀌는 콘텐츠 영역 -->
-					<div id="contentArea" class="p-6">
+					<div id="contentArea" class="p-1">
 						<iframe src="http://localhost:3001/my-page" width="100%" height="380" frameborder="0"></iframe>
 					</div>
 				</section>
@@ -54,8 +53,9 @@
 
 
 
-
 		<script type="text/babel">
+			const { createPortal } = ReactDOM;
+
 			// ✅ PetCard 컴포넌트 정의
 			function PetCard({pet}) {
 				const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -69,67 +69,63 @@
 							<h2 className="text-2xl font-bold flex items-center gap-1 mb-4 justify-center">
 								<span className="text-3xl">🐾</span> 반려동물등록증
 							</h2>
-							<div className="grid grid-cols-3">
-								<div>
-									<div className="space-y-1 text-sm">
+							<div className="grid grid-cols-3 ">
+								<div className="grid-rows-2">
+									<div className="row-auto text-start space-y-1 text-sm">
 										<div><span className="font-semibold mr-2">이름:</span> {pet.name}</div>
 										<div><span className="font-semibold mr-2">번호:</span> {pet.id}</div>
 										<div><span className="font-semibold mr-2">품종:</span> {pet.breed}</div>
-										<div><span className="font-semibold mr-2">성별:</span> {pet.gender}</div>
+									</div>
+									<div className="row-auto text-sm text-start pt-1">
+										<span className=" font-semibold mr-2">특징:</span> {pet.species}
 									</div>
 								</div>
-								<div className="space-y-1 text-sm">
+								<div className="row-auto text-start space-y-1 text-sm">
+									<div><span className="font-semibold mr-2">성별:</span> {pet.gender}</div>
 									<div><span className="font-semibold mr-2">생일:</span> {pet.birthDate}</div>
 									<div><span className="font-semibold mr-2">중성화:</span> 완료</div>
 								</div>
-								<div className="flex justify-center items-start">
+								<div className="space-y-1 flex justify-center items-start">
 									<img src={pet.photo} alt="cat" className="w-[100px] h-[100px] object-cover rounded-xl border" />
 								</div>
 							</div>
-							<div className="text-sm ">
-								<span className="font-semibold mr-2">특징:</span> {pet.species}
-							</div>
 							<div className="createdAt text-right text-xs text-gray-500 mt-2">{pet.createdAt}</div>
+							{isModalOpen && <Modal pet={pet} onClose={closeModal} />}
 						</div>
-						{/* ✅ 모달 */}
-						{isModalOpen && (
-							<div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-								<div className="bg-white p-6 rounded-lg w-[400px]">
-									<h2 className="text-lg font-bold mb-4">반려동물 정보 수정</h2>
-
-									{/* 수정 form */}
-									<form className="space-y-3">
-										<input className="w-full border p-2 rounded" defaultValue={pet.name} placeholder="이름" />
-										<input className="w-full border p-2 rounded" defaultValue={pet.breed} placeholder="품종" />
-										<input className="w-full border p-2 rounded" defaultValue={pet.gender} placeholder="성별" />
-										<input className="w-full border p-2 rounded" defaultValue={pet.birthDate} placeholder="생일" />
-										<textarea className="w-full border p-2 rounded" defaultValue={pet.species} placeholder="특징" />
-										<div className="flex justify-end gap-2">
-											<button
-												type="button"
-												onClick={closeModal}
-												className="bg-gray-300 px-3 py-1 rounded"
-											>
-												닫기
-											</button>
-											<button type="submit" className="bg-blue-500 text-white px-3 py-1 rounded">
-												저장
-											</button>
-										</div>
-									</form>
-								</div>
-							</div>
-						)}
+						
 					</React.Fragment>
 				);
 			}
+			// Modal.js
+			const Modal = ({ pet, onClose }) => {
+				return ReactDOM.createPortal(
+					<div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+						<div className="bg-white p-6 rounded-lg w-[400px]">
+							<h2 className="text-lg font-bold mb-4">반려동물 정보 수정</h2>
+							<form className="space-y-3">
+								<input className="w-full border p-2 rounded" defaultValue={pet.name} placeholder="이름" />
+								<input className="w-full border p-2 rounded" defaultValue={pet.breed} placeholder="품종" />
+								<input className="w-full border p-2 rounded" defaultValue={pet.gender} placeholder="성별" />
+								<input className="w-full border p-2 rounded" defaultValue={pet.birthDate} placeholder="생일" />
+								<textarea className="w-full border p-2 rounded" defaultValue={pet.species} placeholder="특징" />
+								<div className="flex justify-end gap-2">
+									<button type="button" onClick={onClose} className="bg-gray-300 px-3 py-1 rounded">닫기</button>
+									<button type="submit" className="bg-blue-500 text-white px-3 py-1 rounded">저장</button>
+								</div>
+							</form>
+						</div>
+					</div>,
+					document.body // 💡 전체 페이지 body에 직접 렌더링
+				);
+			};
+
 
 			function App() {
 				const [pets, setPets] = React.useState([]);
 				const [loginedMember, setLoginedMember] = React.useState(null);
 
 				React.useEffect(() => {
-					fetch('/usr/member/myPage')
+					fetch('/api/member/myPage')
 						.then(res => res.json())
 						.then((data) => {
 							console.log(data);
@@ -151,17 +147,41 @@
 					}
 				}, [loginedMember]);
 
-				const TOTAL_CARD_COUNT = 5;
-				const petList = [...pets, ...Array(TOTAL_CARD_COUNT - pets.length).fill(null)];
+				const TOTAL_CARD_COUNT = 3;
+				const petList = pets.length >= TOTAL_CARD_COUNT
+					? pets
+					: [...pets, ...Array(TOTAL_CARD_COUNT - pets.length).fill(null)];
+
+
+
+
 
 				React.useEffect(() => {
 					const swiper = new Swiper('.mySwiper', {
 						slidesPerView: 'auto',
 						centeredSlides: true,
-						spaceBetween: -160,
+						spaceBetween: -30,
+						effect: 'fade',
+						fadeEffect: { crossFade: true },
 						loop: false,
 						grabCursor: true,
+						effect: 'slide',
+						speed: 1000,
 						on: {
+
+							progress(swiper) {
+							  swiper.slides.forEach(slide => {
+							    const progress = slide.progress;
+							    const scale = 1 - Math.abs(progress) * 0.1;
+							    const blur = Math.min(Math.abs(progress) * 5, 5);
+							    const opacity = 1 - Math.abs(progress) * 0.5;
+
+							    slide.style.transform = `scale(${scale})`;
+							    slide.style.filter = `blur(${blur}px) brightness(${1 - Math.abs(progress) * 0.2})`;
+							    slide.style.opacity = opacity;
+							    slide.style.zIndex = `${100 - Math.floor(Math.abs(progress) * 100)}`;
+							  });
+							},
 							slideChangeTransitionEnd() {
 								const allSlides = document.querySelectorAll('.swiper-slide');
 								const browserCenterX = window.innerWidth / 2;
@@ -185,13 +205,14 @@
 								// 👉 중앙 슬라이드의 petId를 찾기 위해 data-속성 활용 추천
 								const petId = closestSlide.getAttribute("data-pet-id");
 								const pet = pets.find(p => p.id.toString() === petId);
-
+								if (!petId) {
+									console.log("❗ 중앙 카드가 비어있습니다.");
+									localStorage.removeItem('selectedPetId');
+									return;
+								}
 								if (pet) {
 									console.log("✅ 현재 중앙에 있는 펫:", pet.id, pet.name);
 									window.localStorage.setItem('selectedPetId', pet.id);
-								} else {
-									console.log("❗ 중앙 카드가 비어있습니다.");
-									localStorage.removeItem('selectedPetId')
 								}
 
 								const distantIndices = [];
@@ -222,6 +243,11 @@
 										}
 									});
 								});
+								// 이전에 있던 중앙 카드 클래스 제거
+								document.querySelectorAll('.swiper-slide.centered').forEach(s => s.classList.remove('centered'));
+
+								// 새 중앙 카드에 강조 클래스 부여
+								closestSlide.classList.add('centered');
 							},
 						}
 					});
@@ -230,45 +256,72 @@
 						swiper.emit('slideChangeTransitionEnd');
 						console.log('초기 흐림효과 적용');
 					}, 10);
+					return () => swiper.destroy(); // cleanup
 				}, [pets]);
 
 				return (
-					<div className="w-[1000px] mx-auto flex justify-center overflow-visible">
-						<div className="swiper mySwiper max-w-[1000px] overflow-visible">
-							<div className="swiper-wrapper">
-								{petList.map((pet, idx) =>
-									pet ? (
-										<div className="swiper-slide w-[30vw] max-w-[1000px]"
-											key={pet.id}
-											data-pet-id={pet.id}>
-											<PetCard pet={pet} />
-										</div>
-									) : (
-										<div className="swiper-slide w-[30vw] max-w-[1000px] opacity-30 flex justify-center" key={`empty-${idx}`}>
-											<div className="ani-card bg-gray-100 aspect-[1/1.6] w-[400px] rounded-xl p-6 shadow flex items-center justify-center text-gray-500">
-												등록된 펫이 없습니다
-											</div>
-										</div>
-									)
-								)}
-							</div>
-						</div>
+					<div className="w-full flex justify-center overflow-visible">
+					  <div className="swiper mySwiper max-w-[800px] overflow-visible">
+					    <div className="swiper-wrapper">
+					      {petList.map((pet, idx) =>
+					        pet ? (
+					          <div
+					            className="swiper-slide w-[420px]"
+					            key={pet.id}
+					            data-pet-id={pet.id}
+					          >
+					            <PetCard pet={pet} />
+					          </div>
+					        ) : (
+					          <div
+					            className="swiper-slide w-[420px] opacity-30 flex justify-center"
+					            key={`empty-${idx}`}
+					          >
+					            <div className="ani-card bg-gray-100 aspect-[1/1.6] w-[400px] rounded-xl p-6 shadow flex items-center justify-center text-gray-500">
+					              등록된 펫이 없습니다
+					            </div>
+					          </div>
+					        )
+					      )}
+					    </div>
+					  </div>
 					</div>
+
 				);
 			}
+			
+			const swiper = new Swiper('.mySwiper', {
+			  slidesPerView: 'auto',
+			  centeredSlides: true,
+			  spaceBetween: -30,
+			  loop: false,
+			  grabCursor: true,
+			  speed: 800,
+
+			  // ✅ 실시간 진행률 감지를 위한 옵션
+			  watchSlidesProgress: true,
+
+			  on: {
+			    progress() {
+			      // 아래에 정의할 progress 기반 스타일 적용
+			    },
+			  },
+			});
+
+			
 
 			const root = ReactDOM.createRoot(document.getElementById("root"));
 			root.render(<App />);
-		
+
 		</script>
 
 		<script>
-		  window.addEventListener('message', function(event) {
-		    if (event.data.type === 'CREW_CLICKED') {
-		      const crewId = event.data.data.crewId;
-		      location.href = `/usr/crewCafe/cafeHome?crewId=${crewId}`;
-		    }
-		  });
+			window.addEventListener('message', function (event) {
+				if (event.data.type === 'CREW_CLICKED') {
+					const crewId = event.data.data.crewId;
+					location.href = `/usr/crewCafe/cafeHome?crewId=${crewId}`;
+				}
+			});
 		</script>
 
 

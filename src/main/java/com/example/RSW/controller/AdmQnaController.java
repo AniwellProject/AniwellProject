@@ -3,10 +3,7 @@ package com.example.RSW.controller;
 import com.example.RSW.service.NotificationService;
 import com.example.RSW.service.QnaService;
 import com.example.RSW.service.VetAnswerService;
-import com.example.RSW.vo.Member;
-import com.example.RSW.vo.Qna;
-import com.example.RSW.vo.ResultData;
-import com.example.RSW.vo.Rq;
+import com.example.RSW.vo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -57,7 +54,10 @@ public class AdmQnaController {
     @PostMapping("/doDeleteAnswer")
     @ResponseBody
     public Map<String, Object> doDeleteAnswer(@RequestParam int id) {
-        long qnaId = vetAnswerService.getQnaIdByAnswerId(id);
+        int qnaId = vetAnswerService.getQnaIdByAnswerId(id);
+
+        Qna qna = qnaService.getQnaById(qnaId);
+        qnaService.setFalse(qnaId);
         vetAnswerService.delete(id);
         return Map.of(
                 "resultCode", "S-1",

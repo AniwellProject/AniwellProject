@@ -11,7 +11,7 @@ import com.example.RSW.vo.Article;
 @Mapper
 public interface ArticleRepository {
 
-	public int writeArticle(int memberId, String title, String body, String imageUrl, String boardId);
+	public int writeArticle(Map<String, Object> param); // ✅ 수정
 
 	public void deleteArticle(int id);
 
@@ -26,7 +26,7 @@ public interface ArticleRepository {
 	public Article getForPrintArticle(int loginedMemberId);
 
 	public List<Article> getForPrintArticles(int boardId, int limitFrom, int limitTake, String searchKeywordTypeCode,
-											 String searchKeyword);
+			String searchKeyword);
 
 	public int getArticleCount(int boardId, String searchKeywordTypeCode, String searchKeyword);
 
@@ -52,14 +52,13 @@ public interface ArticleRepository {
 
 	// 크루용 리포지터리
 	void insertCrewArticle(@Param("boardId") Integer boardId, @Param("crewId") Integer crewId,
-						   @Param("memberId") int memberId, @Param("title") String title, @Param("body") String body,
-						   @Param("imageUrl") String imageUrl);
+			@Param("memberId") int memberId, @Param("title") String title, @Param("body") String body,
+			@Param("imageUrl") String imageUrl);
 
 	List<Article> findRecentArticlesByCrewAndType(@Param("crewId") int crewId, @Param("typeCode") String typeCode,
-												  @Param("limit") int limit);
+			@Param("limit") int limit);
 
 	public List<Article> getRecentArticlesByCrewAndBoardId(int crewId, int boardId, int limit);
-
 
 	public List<Article> getArticlesByCrewIdAndBoardId(Integer crewId, Integer boardId);
 
@@ -69,14 +68,13 @@ public interface ArticleRepository {
 	public int getAdminOnlyArticleCount(Integer boardId, String searchKeywordTypeCode, String searchKeyword);
 
 	public List<Article> getAdminOnlyArticles(Integer boardId, int limitStart, int itemsInAPage,
-											  String searchKeywordTypeCode, String searchKeyword);;
+			String searchKeywordTypeCode, String searchKeyword);;
 
 	// 일정등록하기
 	public void writeSchedule(@Param("crewId") int crewId, @Param("loginedMemberId") int loginedMemberId,
-							  @Param("scheduleDate") String scheduleDate, @Param("scheduleTitle") String scheduleTitle,
-							  String scheduleBody);
+			@Param("scheduleDate") String scheduleDate, @Param("scheduleTitle") String scheduleTitle,
+			String scheduleBody);
 
 	public List<Map<String, Object>> getSchedulesByCrewId(int crewId);
-
 
 }

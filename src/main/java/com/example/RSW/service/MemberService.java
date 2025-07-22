@@ -1,5 +1,7 @@
 package com.example.RSW.service;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ public class MemberService {
 
 	@Value("${custom.siteMainUri}")
 	private String siteMainUri;
+
 	@Value("${custom.siteName}")
 	private String siteName;
 
@@ -155,6 +158,36 @@ public class MemberService {
 		}
 
 		return member;
+	}
+
+
+
+	public Member getOrCreateByEmail(String email, String name) {
+		Member member = memberRepository.findByEmail(email);
+
+		if (member == null) {
+			String loginId = email.split("@")[0];
+			String loginPw = Ut.sha256("google_temp_pw");
+			String nickname = name;
+
+			memberRepository.doJoinBySocial(
+					loginId, loginPw, "google", email, name, nickname, email
+			);
+
+			member = memberRepository.findByEmail(email);
+		}
+
+		return member;
+	}
+
+	// ✅ Firebase 커스텀 토큰 생성
+	public String createFirebaseCustomToken(String uid) {
+		try {
+			return FirebaseAuth.getInstance().createCustomToken(uid);
+		} catch (Exception e) {
+			System.out.println("❌ Firebase custom token 생성 실패: " + e.getMessage());
+			return null;
+		}
 	}
 
 }

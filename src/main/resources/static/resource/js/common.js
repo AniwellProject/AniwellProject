@@ -69,9 +69,6 @@ document.querySelectorAll('.menu-item').forEach((item) => {
 			case 'admin':
 				url = `/adm/article/list`
 				break
-			case 'vet':
-				url = `/usr/vetAnswer/vetList`
-				break
 		}
 
 		window.parent.location.href = url

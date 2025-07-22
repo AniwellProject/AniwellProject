@@ -28,6 +28,7 @@ public class ReplyService {
     @Autowired
     private NotificationService notificationService;
 
+
     public ReplyService(ReplyRepository replyRepository) {
         this.replyRepository = replyRepository;
     }
@@ -106,4 +107,24 @@ public class ReplyService {
     }
 
 
+    public void increaseGoodRP(int replyId) {
+        replyRepository.increaseGoodReactionPoint(replyId);
+    }
+    public void decreaseGoodRP(int replyId) {
+        replyRepository.decreaseGoodReactionPoint(replyId);
+    }
+    public void increaseBadRP(int replyId) {
+        replyRepository.increaseBadReactionPoint(replyId);
+    }
+    public void decreaseBadRP(int replyId) {
+        replyRepository.decreaseBadReactionPoint(replyId);
+    }
+
+    public int getGoodRP(int replyId) {
+        return replyRepository.getGoodRP(replyId);
+    }
+
+    public int getBadRP(int replyId) {
+        return replyRepository.getBadRP(replyId);
+    }
 }
