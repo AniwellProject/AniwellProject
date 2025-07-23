@@ -18,5 +18,7 @@ public class WalkCrewMember {
     private LocalDateTime joinedAt;  // 가입 일시
     private int petId;
 
+    private String role; // 권한부여
+    
     private Member member; // 가입된 멤버 객체
 }

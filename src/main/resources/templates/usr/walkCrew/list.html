@@ -2,11 +2,11 @@
 <html>
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<script src="https://cdn.tailwindcss.com"></script>
-	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
-	<title>크루 모집 목록</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+<title>크루 모집 목록</title>
 </head>
 
 <body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans ">
@@ -19,44 +19,36 @@
 			<div class="h-full w-full overflow-hidden">
 				<div class="p-3 flex justify-around text-gray-800 grid grid-cols-12">
 					<div class="col-span-3 p-3">
-						<div id="crewAside">
-						</div>
+						<div id="crewAside"></div>
 					</div>
 					<div class="p-2 col-span-9 w-full flex flex-col mx-auto">
 						<div class="h-[97%]">
 							<div class="stickypb">
 								<div class="w-full max-w-xl mx-auto">
-									<div
-										class="flex items-center bg-white border border-gray-200 shadow-sm rounded-full px-4 py-2">
+									<div class="flex items-center bg-white border border-gray-200 shadow-sm rounded-full px-4 py-2">
 										<form method="get" th:action="@{/usr/walkCrew/list}" class="flex w-full">
-											<input type="text" name="query" placeholder="검색어를 입력하세요"
-												th:value="${param.query}"
+											<input type="text" name="query" placeholder="검색어를 입력하세요" th:value="${param.query}"
 												class="flex-1 text-sm text-gray-800 bg-transparent outline-none placeholder:text-gray-400" />
-											<button type="submit" class="ml-2 text-gray-500 hover:text-black">
-												🔍
-											</button>
+											<button type="submit" class="ml-2 text-gray-500 hover:text-black">🔍</button>
 										</form>
 									</div>
 								</div>
 								<div class="text-center">
 									<button onclick="openModal()"
 										class="my-6 mb-3 px-7 py-2 rounded-xl text-center font-semibold shadow bg-[#e4f0b9] hover:bg-[#FEEEA4]">
-										등록하기
-									</button>
+										등록하기</button>
 								</div>
 							</div>
 
 							<!-- 모달 -->
-							<div id="modal"
-								class="hidden fixed inset-0 z-50 flex items-center justify-around bg-black bg-opacity-50">
+							<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-around bg-black bg-opacity-50">
 								<div
 									class="relative w-[90%] max-w-[1000px] h-[700px] bg-transparent flex rounded-2xl overflow-hidden shadow-2xl">
 
 									<!-- 왼쪽 연노랑 배경 -->
 									<div class="w-full h-full flex bg-gradient-to-b from-[#FCE9A3] to-[#E0C878]">
 										<div class="w-[5%] text-center">
-											<button onclick="closeModal()"
-												class="text-3xl font-light text-gray-600 hover:text-black">&times;</button>
+											<button onclick="closeModal()" class="text-3xl font-light text-gray-600 hover:text-black">&times;</button>
 										</div>
 										<!-- 오른쪽 내용 -->
 										<div class="relative flex-1 bg-white rounded-l-3xl">
@@ -68,8 +60,7 @@
 
 											<!-- iframe 내용 -->
 											<div class="p-4 h-[calc(100%-4rem)] w-[100%]">
-												<iframe src="/usr/walkCrew/create"
-													class="h-[100%] w-[100%] p-1 border-none"></iframe>
+												<iframe src="/usr/walkCrew/create" class="h-[100%] w-[100%] p-1 border-none"></iframe>
 											</div>
 										</div>
 									</div>
@@ -78,8 +69,7 @@
 
 
 							<div class="overflow-y-auto w-full h-[80vh] pb-1 shadow">
-								<div id="crewListContainer" class="p-4 space-y-4">
-								</div>
+								<div id="crewListContainer" class="p-4 space-y-4"></div>
 							</div>
 						</div>
 					</div>
@@ -111,6 +101,7 @@
 						success: function (response) {
 							console.log("✅ 동 리스트:", response);
 							const dongs = response.data1.dongs;
+
 							// 🔸 동 배열을 localStorage에 저장 (JSON.stringify)
 							localStorage.setItem("userCity", city);
 							localStorage.setItem("userDistrict", district);
@@ -118,7 +109,7 @@
 
 							// 🔻 동적 HTML 생성
 							const asideHTML = `
-							  <aside class="bg-white p-6 shadow mx-auto h-[90%]>
+							  <aside class="bg-white p-6 shadow mx-auto h-[90%]]>
 							    <h2 class="text-lg font-semibold mb-4">${city || '로딩중'}</h2>
 								<div class="text-xl font-semibold mb-4 border-b border-gray-300 pb-2">
 								  ${district || '로딩중'}
@@ -159,65 +150,78 @@
 	</script>
 
 	<script>
-		function loadCrewList() {
-			const query = $('#searchInput').val();
+	function loadCrewList() {
+		const query = $('#searchInput').val();
 
-			$.ajax({
-				url: '/usr/walkCrew/api/list',
-				method: 'GET',
-				dataType: 'json',
-				success: function (response) {
-					if (response.resultCode !== 'S-1') {
-						alert('❌ 불러오기 실패: ' + response.msg);
-						return;
-					}
-
-					const crewList = response.data1.crews;
-					const container = $('#crewListContainer');
-					container.empty();
-
-					if (crewList.length === 0) {
-						container.append('<p class="text-center text-gray-400">등록된 크루가 없습니다.</p>');
-						return;
-					}
-
-					crewList.forEach(crew => {
-						if (query && !crew.title.includes(query) && !crew.description.includes(query)) return;
-
-						const formattedDate = new Date(crew.createdAt).toLocaleDateString('ko-KR');
-
-						const html = `
-		          <div class="bg-white rounded-lg shadow p-4 flex gap-4 items-start cursor-pointer"
-		               onclick="location.href='/usr/crewCafe/cafeHome?crewId=${crew.id}'">
-		            <div class="w-20 h-20 bg-gray-300 rounded-md shrink-0"></div>
-		            <div class="flex-1 space-y-2">
-		              <h3 class="text-lg font-bold">${crew.title}</h3>
-		              <p class="text-sm text-gray-700">${crew.description || '설명이 없습니다.'}</p>
-		              <div class="flex justify-between items-center gap-1 text-sm text-gray-600">
-		                <div>${crew.city || ''} ${crew.district || ''} ${crew.dong || ''}</div>
-						<div class="text-xs text-gray-400">
-							                작성자: ${crew.nickname || '익명'} · ${formattedDate}
-							              </div>
-		              </div>
-		             
-		            </div>
-		          </div>
-		        `;
-						container.append(html);
-					});
-				},
-				error: function (err) {
-					console.error('❌ Ajax 에러:', err);
-					alert('서버 연결 실패');
+		$.ajax({
+			url: '/usr/walkCrew/api/list',
+			method: 'GET',
+			dataType: 'json',
+			success: function (response) {
+				if (response.resultCode !== 'S-1') {
+					alert('❌ 불러오기 실패: ' + response.msg);
+					return;
 				}
-			});
-		}
 
-		$(document).ready(function () {
-			loadCrewList();
+				const crewList = response.data1.crews;
+				const container = $('#crewListContainer');
+				container.empty();
+
+				if (crewList.length === 0) {
+					container.append('<p class="text-center text-gray-400">등록된 크루가 없습니다.</p>');
+					return;
+				}
+
+				crewList.forEach(crew => {
+					if (query && !crew.title.includes(query) && !crew.description.includes(query)) return;
+
+					const formattedDate = new Date(crew.createdAt).toLocaleDateString('ko-KR');
+
+					// ✅ 이미지가 있는 경우엔 <img>로 출력, 없으면 회색박스
+					const thumbnail = crew.imageUrl
+						? `<img src="${crew.imageUrl}" alt="크루 이미지" class="w-20 h-20 object-cover rounded-md shrink-0">`
+						: `<div class="w-20 h-20 bg-gray-200 rounded-md shrink-0"></div>`;
+
+					const html = `
+						<div class="bg-white rounded-lg shadow p-4 flex gap-4 items-start cursor-pointer"
+						     onclick="location.href='/usr/crewCafe/cafeHome?crewId=${crew.id}'">
+
+						  <!-- ✅ 이미지 or 회색박스 -->
+						  ${thumbnail}
+
+						  <div class="flex-1 space-y-2">
+						    <h3 class="text-lg font-bold">${crew.title}</h3>
+						    <p class="text-sm text-gray-700">${crew.description || '설명이 없습니다.'}</p>
+
+						    <div class="flex justify-between items-center gap-1 text-sm text-gray-600">
+						      <div>${crew.city || ''} ${crew.district || ''} ${crew.dong || ''}</div>
+							  <div class="text-xs text-gray-400">
+							    작성자: ${crew.nickname || '익명'} · ${formattedDate}
+							  </div>
+						    </div>
+						  </div>
+						</div>
+					`;
+					container.append(html);
+				});
+			},
+			error: function (err) {
+				console.error('❌ Ajax 에러:', err);
+				alert('서버 연결 실패');
+			}
 		});
+	}
 
+	$(document).ready(function () {
+		loadCrewList();
+	});
+</script>
+
+	<script>
+		window.parent.closeModal(); // 모달 닫기
+		window.parent.loadCrewList(); // 모달 닫고 목록 갱신
 	</script>
+
 
 </body>
 

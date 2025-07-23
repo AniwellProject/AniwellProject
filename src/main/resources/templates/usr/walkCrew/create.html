@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,22 +10,25 @@
 
 <body class="min-h-screen h-auto">
 	<div class="h-[100%] w-full flex justify-center items-start p-6">
-		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" action="/usr/walkCrew/doCreate" method="post"
-			onsubmit="return validateForm()">
+		<!-- ✅ 크루 등록 폼 -->
+		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" method="post" enctype="multipart/form-data"
+			onsubmit="handleSubmit(event)">
+			<!-- ✅ JS로 등록 후 이동 처리 -->
+
 			<div class="w-full h-[100%] max-w-[600px]">
-				<!-- 제목 -->
+				<!-- 제목 입력 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">크루 이름</label>
 					<input type="text" name="title" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
 				</div>
 
-				<!-- 설명 -->
+				<!-- 소개 입력 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">소개</label>
 					<textarea name="description" rows="5" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
 				</div>
 
-				<!-- 동 선택 -->
+				<!-- 지역(동네) 선택 -->
 				<div>
 					<label class="font-semibold block mb-2">지역</label>
 					<div class="mb-2 text-sm text-gray-600">
@@ -32,18 +36,17 @@
 						<span id="currentLocation">확인 중...</span>
 					</div>
 
-					<!-- 드롭다운 형태 -->
-					<div>
-						<details class="relative w-[250px]" id="dongDropdown">
-							<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel"> 동 선택 </summary>
-							<ul id="dongListContainer"
-								class="h-[140px] absolute z-10 w-full bg-white border rounded shadow mt-2 max-h-48 overflow-y-auto hidden divide-y divide-gray-100 text-sm">
-							</ul>
-						</details>
+					<!-- 동 선택 드롭다운 -->
+					<details class="relative w-[250px]" id="dongDropdown">
+						<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel"> 동 선택 </summary>
+						<ul id="dongListContainer"
+							class="h-[140px] absolute z-10 w-full bg-white border rounded shadow mt-2 max-h-48 overflow-y-auto hidden divide-y divide-gray-100 text-sm">
+						</ul>
+					</details>
 
-						<input type="hidden" name="selectedDong" id="selectedDong" />
-						<input type="hidden" name="districtId" id="districtIdInput" />
-					</div>
+					<!-- 선택된 동/구 ID 저장용 -->
+					<input type="hidden" name="selectedDong" id="selectedDong" />
+					<input type="hidden" name="districtId" id="districtIdInput" />
 				</div>
 
 				<!-- 등록 버튼 -->
@@ -52,11 +55,16 @@
 				</div>
 			</div>
 
-			<div class="flex h-[200%] flex-col">
-				<div class="w-[200px] h-[200px] bg-[#f6df85] rounded-xl overflow-hidden shadow-md">
-					<div class="">사진미리보기</div>
+			<!-- 이미지 미리보기 및 업로드 -->
+			<div class="flex h-[200%] flex-col items-center gap-2">
+				<!-- ✅ 노란 미리보기 박스 -->
+				<div class="w-[200px] h-[200px] bg-[#f6df85] rounded-xl overflow-hidden shadow-md relative">
+					<div class="absolute top-1 left-2 text-sm text-black z-10">사진미리보기</div>
+					<img id="preview" class="w-full h-full object-cover" style="display: none;" />
 				</div>
-				<label for="imageUpload" class="my-2 mr-1 bottom-2 right-2 flex items-center justify-center cursor-pointer">
+
+				<!-- ✅ 업로드 버튼 -->
+				<label for="imageUpload" class="my-2 mr-1 flex items-center justify-center cursor-pointer">
 					<div class="px-4 py-1 bg-[#b4d6b4] rounded-full shadow">업로드</div>
 				</label>
 				<input type="file" name="imageFile" id="imageUpload" accept="image/*" class="hidden"
@@ -65,130 +73,143 @@
 		</form>
 	</div>
 
-	<!-- ✅ 스크립트 -->
+	<!-- ✅ 동 리스트 불러오기 (로컬스토리지 위치 기반) -->
 	<script th:inline="javascript">
+		let city = localStorage.getItem("userCity");
+		let district = localStorage.getItem("userDistrict");
+		loadDongList(city, district);
 
-    const kakaoJsKey = [[${kakaoJsKey}]];
-    const script = document.createElement("script");
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoJsKey}&autoload=false&libraries=services`;
-    script.onload = () => {
-      kakao.maps.load(initLocation);
-    };
-    document.head.appendChild(script);
+		if (city && district) {
+			document.getElementById("currentLocation").textContent = `${city} ${district}`;
+		} else {
+			document.getElementById("currentLocation").textContent = "위치 정보를 불러올 수 없습니다.";
+		}
 
-    let currentCity = "";
-    let currentDistrict = "";
+		// ✅ 시/구 기준으로 동 리스트 불러오기
+		function loadDongList(city, district) {
+			const url = "/usr/walkCrew/getDongs?city=" + encodeURIComponent(city) + "&district=" + encodeURIComponent(district);
 
-    function initLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
+			fetch(url)
+				.then(response => response.json())
+				.then(result => {
+					const dongList = result?.data1?.dongs;
+					const container = document.getElementById("dongListContainer");
+					container.innerHTML = "";
 
-          const geocoder = new kakao.maps.services.Geocoder();
-          geocoder.coord2RegionCode(lng, lat, function (result, status) {
-            if (status === kakao.maps.services.Status.OK) {
-              for (let i = 0; i < result.length; i++) {
-                if (result[i].region_type === "B") {
-                  const fullAddr = result[i].address_name;
-                  document.getElementById("currentLocation").innerText = fullAddr;
+					if (!Array.isArray(dongList) || dongList.length === 0) {
+						container.innerText = "해당 지역의 동 정보가 없습니다.";
+						return;
+					}
 
-                  const parts = fullAddr.split(" ");
-                  if (parts.length >= 3) {
-                    currentCity = parts[0];
-                    currentDistrict = parts[1];
-                    loadDongList(currentCity, currentDistrict);
-                  }
-                  break;
-                }
-              }
-            } else {
-              document.getElementById("currentLocation").innerText = "위치 정보 불러오기 실패";
-            }
-          });
-        }, function () {
-          document.getElementById("currentLocation").innerText = "위치 접근 거부됨";
-        });
-      } else {
-        document.getElementById("currentLocation").innerText = "GPS를 지원하지 않는 브라우저입니다.";
-      }
-    }
+					dongList.forEach(dong => {
+						const li = document.createElement("li");
+						const btn = document.createElement("button");
+						btn.type = "button";
+						btn.innerText = dong;
+						btn.className = "w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-200";
 
-    function loadDongList(city, district) {
-      const url = "/usr/walkCrew/getDongs?city=" + encodeURIComponent(city) + "&district=" + encodeURIComponent(district);
+						btn.onclick = () => {
+							document.getElementById("selectedDong").value = dong;
+							document.getElementById("dongDropdownLabel").innerText = `${dong}`;
+							document.querySelector("details").open = false;
 
-      fetch(url)
-        .then(response => response.json())
-        .then(result => {
-          console.log("✅ 서버 응답:", result);
-          const dongList = result?.data?.dongs;
-          const container = document.getElementById("dongListContainer");
-          container.innerHTML = "";
+							container.querySelectorAll("button").forEach(b => {
+								b.classList.remove("bg-gray-200", "font-bold");
+							});
+							btn.classList.add("bg-gray-200", "font-bold");
 
-          if (!Array.isArray(dongList) || dongList.length === 0) {
-            container.innerText = "해당 지역의 동 정보가 없습니다.";
-            console.error("dongList is not array or empty:", dongList);
-            return;
-          }
+							// ✅ 해당 동네의 districtId 조회
+							fetch("/usr/walkCrew/getDistrictId"
+								+ "?city=" + encodeURIComponent(city)
+								+ "&district=" + encodeURIComponent(district)
+								+ "&dong=" + encodeURIComponent(dong))
+								.then(response => response.json())
+								.then(result => {
+									const districtId = result?.data1?.districtId;
+									document.getElementById("districtIdInput").value = districtId;
+								});
+						};
 
-          dongList.forEach(dong => {
-            const li = document.createElement("li");
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.innerText = dong;
-            btn.className = "w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-200";
+						li.appendChild(btn);
+						container.appendChild(li);
+					});
+				})
+				.catch(err => {
+					document.getElementById("dongListContainer").innerText = "동 정보 로딩 실패";
+					console.error("Error loading dongs:", err);
+				});
+		}
 
-            btn.onclick = () => {
-              document.getElementById("selectedDong").value = dong;
-              document.getElementById("dongDropdownLabel").innerText = `✅ ${dong}`;
-              document.querySelector("details").open = false;
+		// ✅ 동 선택 유효성 검사
+		function validateForm() {
+			const districtId = document.getElementById("districtIdInput").value;
+			if (!districtId || isNaN(districtId)) {
+				alert("동을 선택해주세요.");
+				return false;
+			}
+			return true;
+		}
+	</script>
 
-              container.querySelectorAll("button").forEach(b => {
-                b.classList.remove("bg-gray-200", "font-bold");
-              });
-              btn.classList.add("bg-gray-200", "font-bold");
-
-              fetch("/usr/walkCrew/getDistrictId"
-                + "?city=" + encodeURIComponent(city)
-                + "&district=" + encodeURIComponent(district)
-                + "&dong=" + encodeURIComponent(dong))
-                .then(response => response.json())
-                .then(result => {
-                  const districtId = result?.data?.districtId;
-                  document.getElementById("districtIdInput").value = districtId;
-                });
-            };
-
-            li.appendChild(btn);
-            container.appendChild(li);
-          });
-        })
-        .catch(err => {
-          document.getElementById("dongListContainer").innerText = "동 정보 로딩 실패";
-          console.error("Error loading dongs:", err);
-        });
-    }
-
-    function validateForm() {
-      const districtId = document.getElementById("districtIdInput").value;
-      if (!districtId || isNaN(districtId)) {
-        alert("동을 선택해주세요.");
-        return false;
-      }
-      return true;
-    }
-  </script>
-
+	<!-- ✅ 드롭다운 열기/닫기 -->
 	<script>
-    document.querySelector("details").addEventListener("toggle", function () {
-      const list = this.querySelector("#dongListContainer");
-      if (this.open) {
-        list.classList.remove("hidden");
-      } else {
-        list.classList.add("hidden");
-      }
-    });
-  </script>
+		document.querySelector("details").addEventListener("toggle", function () {
+			const list = this.querySelector("#dongListContainer");
+			list.classList.toggle("hidden", !this.open);
+		});
+	</script>
 
+	<!-- ✅ 이미지 미리보기 -->
+	<script>
+		function previewImageFile(event) {
+			const file = event.target.files[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = function (e) {
+					const previewImg = document.getElementById("preview");
+					previewImg.src = e.target.result;
+					previewImg.style.display = "block";
+				};
+				reader.readAsDataURL(file);
+			}
+		}
+	</script>
+
+	<!-- ✅ 크루 등록 후 JSON 응답 처리 및 카페홈 이동 -->
+	<script>
+		function handleSubmit(e) {
+			e.preventDefault(); // ✅ 기본 form 제출 막고 fetch 사용
+
+			if (!validateForm()) return;
+
+			const form = e.target;
+			const formData = new FormData(form);
+
+			fetch("/usr/walkCrew/doCreate", {
+				method: "POST",
+				body: formData
+			})
+				.then(response => response.json())
+				.then(result => {
+					if (result.resultCode === "S-1") {
+						alert("✅ 등록 완료: " + result.msg);
+
+						const crewId = result.data1?.crewId;
+						if (crewId) {
+							// ✅ ✅ ✅ 여기 수정됨: 크루 카페 홈으로 이동
+							window.parent.closeModal();
+							window.parent.location.href = `/usr/crewCafe/cafeHome?crewId=${crewId}`;
+						}
+					} else {
+						alert("❌ 등록 실패: " + result.msg);
+					}
+				})
+				.catch(error => {
+					console.error("크루 등록 실패:", error);
+					alert("❌ 네트워크 오류로 등록 실패");
+				});
+		}
+	</script>
 </body>
+
 </html>

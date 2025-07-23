@@ -12,12 +12,6 @@ spring:
           auth: true
           starttls:
             enable: true
-  oauth2:
-    google:
-      client-id: ""
-      client-secret: ""
-      redirect-uri: "http://localhost:8080/usr/member/google"
-
   thymeleaf:
    prefix: classpath:/templates/        # HTML 파일의 기본 경로
    suffix: .html                        # HTML 확장자

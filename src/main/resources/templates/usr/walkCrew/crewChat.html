@@ -1,91 +1,125 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>산책 크루 채팅</title>
-  <script src="/webjars/sockjs-client/1.5.1/sockjs.min.js"></script>
-  <script src="/webjars/stomp-websocket/2.3.4/stomp.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" th:href="@{/resource/css/common.css}">
-  <style>
+<meta charset="UTF-8">
+<title>산책 크루 채팅</title>
+<script src="/webjars/sockjs-client/1.5.1/sockjs.min.js"></script>
+<script src="/webjars/stomp-websocket/2.3.4/stomp.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+<style>
+#chatBox {
+	width: 90%;
+	max-width: 500px;
+	height: 500px;
+	margin: auto;
+	padding: 20px;
+	background: #ffffffcc;
+	border-radius: 30px;
+	overflow-y: auto;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-    #chatBox {
-      width: 90%; max-width: 500px; height: 500px;
-      margin: auto; padding: 20px;
-      background: #ffffffcc;
-      border-radius: 30px;
-      overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+.msg {
+	display: flex;
+	margin: 12px 0;
+	align-items: flex-end;
+}
 
-    .msg { display: flex; margin: 12px 0; align-items: flex-end; }
-    .msg.me { justify-content: flex-end; }
+.msg.me {
+	justify-content: flex-end;
+}
 
-    .profile {
-      width: 36px; height: 36px; border-radius: 50%;
-      margin-right: 8px; object-fit: cover;
-      border: 2px solid #eee4c1;
-    }
+.profile {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	margin-right: 8px;
+	object-fit: cover;
+	border: 2px solid #eee4c1;
+}
 
-    .profile-placeholder { width: 36px; height: 36px; margin-right: 8px; }
+.profile-placeholder {
+	width: 36px;
+	height: 36px;
+	margin-right: 8px;
+}
 
-    .bubble-wrap { max-width: 70%; }
-    .bubble {
-      padding: 10px; background-color: #fff9d4;
-      border-radius: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      white-space: pre-wrap;
-    }
+.bubble-wrap {
+	max-width: 70%;
+}
 
-    .msg.me .bubble { background-color: #d0f4e1; }
+.bubble {
+	padding: 10px;
+	background-color: #fff9d4;
+	border-radius: 18px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+	white-space: pre-wrap;
+}
 
-    .nickname {
-      font-size: 13px; font-weight: bold;
-      margin-bottom: 4px; color: #585858;
-    }
+.msg.me .bubble {
+	background-color: #d0f4e1;
+}
 
-    .time {
-      font-size: 11px; color: #aaa;
-      text-align: right; margin-top: 4px;
-    }
+.nickname {
+	font-size: 13px;
+	font-weight: bold;
+	margin-bottom: 4px;
+	color: #585858;
+}
 
-    .date-divider {
-      text-align: center; color: #888;
-      margin: 20px 0 10px; font-size: 13px;
-    }
+.time {
+	font-size: 11px;
+	color: #aaa;
+	text-align: right;
+	margin-top: 4px;
+}
 
-    #chatInput {
-      width: 80%; max-width: 400px;
-      padding: 10px; border-radius: 20px;
-      border: none; outline: none;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+.date-divider {
+	text-align: center;
+	color: #888;
+	margin: 20px 0 10px;
+	font-size: 13px;
+}
 
-    #sendBtn {
-      padding: 10px 16px;
-      background-color: #A7CFB3;
-      color: white; border: none;
-      border-radius: 20px;
-      cursor: pointer; margin-left: 8px;
-    }
-  </style>
+#chatInput {
+	width: 80%;
+	max-width: 400px;
+	padding: 10px;
+	border-radius: 20px;
+	border: none;
+	outline: none;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#sendBtn {
+	padding: 10px 16px;
+	background-color: #A7CFB3;
+	color: white;
+	border: none;
+	border-radius: 20px;
+	cursor: pointer;
+	margin-left: 8px;
+}
+</style>
 </head>
 <body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
-<div class="flex h-screen">
-  <!-- Sidebar -->
-  <div th:replace="common :: siteHeader"></div>
+	<div class="flex h-screen">
+		<!-- Sidebar -->
+		<div th:replace="common :: siteHeader"></div>
 
-  <!-- Main content -->
-  <main class="main_page min-h-screen flex-1 p-6 space-y-6">
+		<!-- Main content -->
+		<main class="main_page min-h-screen flex-1 p-6 space-y-6">
 
-<h2 style="text-align:center; margin-bottom:20px;">🗨️ 산책 크루 채팅</h2>
-<div id="chatBox"></div>
+			<h2 style="text-align: center; margin-bottom: 20px;">🗨️ 산책 크루 채팅</h2>
+			<div id="chatBox"></div>
 
-<div style="text-align:center; margin-top:20px;">
-  <input type="text" id="chatInput" placeholder="메시지를 입력하세요">
-  <button id="sendBtn">전송</button>
-</div>
+			<div style="text-align: center; margin-top: 20px;">
+				<input type="text" id="chatInput" placeholder="메시지를 입력하세요">
+				<button id="sendBtn">전송</button>
+			</div>
 
-<script th:inline="javascript">
+			<script th:inline="javascript">
   const crewId = [[${crewId} ?: -1]];
   const senderId = [[${loginedMember.id} ?: -1]];
   const senderNickname = [[${'"' + #strings.escapeJavaScript(loginedMember.nickname ?: '익명') + '"'}]];
@@ -288,7 +322,7 @@
     loadPreviousMessages();
   });
 </script>
-  </main>
-</div>
+		</main>
+	</div>
 </body>
 </html>

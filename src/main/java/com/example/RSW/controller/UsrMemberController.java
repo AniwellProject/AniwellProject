@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.RSW.service.NotificationService;
 import com.example.RSW.service.VetCertificateService;
 import com.example.RSW.vo.VetCertificate;
+import com.google.firebase.auth.FirebaseAuth;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -171,9 +173,16 @@ public class UsrMemberController {
         // 로그인 후 rq 객체를 세션에 저장하여 이후 요청에서도 사용
         req.getSession().setAttribute("rq", rq);  // 세션에 rq 객체 저장
 
+        // ✅ Firebase 연동 - uid는 이메일 기반으로 구성
+        String uid = member.getLoginId() + "@aniwell.com";
+        String firebaseToken = memberService.createFirebaseCustomToken(uid);
+        req.getSession().setAttribute("firebaseToken", firebaseToken);
 
-        return Ut.jsReplace("S-1", Ut.f("%s님 환영합니다", member.getNickname()), afterLoginUri);
+        return Ut.jsReplace("S-1", Ut.f("%s님 환영합니다", member.getNickname()),
+                afterLoginUri + "?firebaseToken=" + firebaseToken);
+
     }
+
 
 
     @RequestMapping("/usr/member/join")
@@ -459,7 +468,6 @@ public class UsrMemberController {
     }
 
 
-
     @RequestMapping("/usr/member/vetCert")
     public String showVetCertForm(HttpServletRequest req, Model model) {
         Rq rq = (Rq) req.getAttribute("rq");
@@ -615,6 +623,10 @@ public class UsrMemberController {
         req.getSession().setAttribute("rq", rq);
         req.getSession().setAttribute("kakaoAccessToken", accessToken); // 자동 로그인용 저장
 
+        // ✅ Firebase 토큰 생성 및 세션 저장
+        String uid = member.getSocialProvider() + "_" + member.getSocialId();
+        String firebaseToken = memberService.createFirebaseCustomToken(uid);
+        req.getSession().setAttribute("firebaseToken", firebaseToken);
 
         // ✅ 팝업 닫고 부모 창 새로고침
         resp.setContentType("text/html; charset=UTF-8");
@@ -747,9 +759,7 @@ public class UsrMemberController {
 
             // 1. access token 요청
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("code", code);
-            params.add("client_id", "");
-            params.add("client_secret", "");
+            params.add("code", code);  
             params.add("redirect_uri", "http://localhost:8080/usr/member/google");
             params.add("grant_type", "authorization_code");
 
@@ -787,6 +797,10 @@ public class UsrMemberController {
             // ✅ JSP에서도 rq.logined 동작하도록 강제 주입
             req.setAttribute("rq", new Rq(req, resp, memberService));
 
+            // 🔥 Firebase 토큰 추가
+            String uid = member.getSocialProvider() + "_" + member.getSocialId();
+            String firebaseToken = memberService.createFirebaseCustomToken(uid);
+            req.getSession().setAttribute("firebaseToken", firebaseToken);
 
             return "redirect:/";
         } catch (Exception e) {
@@ -818,7 +832,6 @@ public class UsrMemberController {
                     "&client_secret=" + clientSecret +
                     "&code=" + code +
                     "&state=" + state;
-
 
 
             // 2️⃣ 토큰 요청 (GET 방식)
@@ -857,6 +870,11 @@ public class UsrMemberController {
             rq.login(member);
             req.getSession().setAttribute("rq", rq);
 
+            // 🔥 Firebase 토큰 추가
+            String uid = member.getSocialProvider() + "_" + member.getSocialId();
+            String firebaseToken = memberService.createFirebaseCustomToken(uid);
+            req.getSession().setAttribute("firebaseToken", firebaseToken);
+
             // ✅ 로그인 완료 후 홈으로 리다이렉트
             return "redirect:/";
 
@@ -868,25 +886,31 @@ public class UsrMemberController {
         }
     }
 
-    // Firebase 토큰 생성
-    @PostMapping("/usr/member/firebase-token")
+    // ✅ Firebase Custom Token 발급용 엔드포인트
+    @RequestMapping("/usr/member/firebase-token")
     @ResponseBody
-    public ResultData<?> generateFirebaseToken(HttpServletRequest req) {
+    public ResultData<Map<String, String>> generateFirebaseToken(HttpServletRequest req) {
         Rq rq = (Rq) req.getAttribute("rq");
-        Member member = rq.getLoginedMember();
+        Member loginedMember = rq.getLoginedMember();
 
-        // UID는 소셜 제공자 + 고유 ID 조합으로 구성 (예: google_123456)
-        String uid = member.getSocialProvider() + "_" + member.getSocialId();
-
-        // Firebase 토큰 생성
-        String customToken = memberService.createFirebaseCustomToken(uid);
-
-        if (customToken == null) {
-            return ResultData.from("F-1", "Firebase 토큰 생성 실패");
+        if (loginedMember == null) {
+            return ResultData.from("F-1", "로그인 후 이용 가능합니다.");
         }
 
-        return ResultData.from("S-1", "토큰 생성 성공", "token", customToken);
-    }
+        try {
+            // UID는 고유 식별자 (이메일이나 회원번호 사용 가능)
+            String uid = "user_" + loginedMember.getId();
 
+            // Firebase Custom Token 생성
+            String customToken = FirebaseAuth.getInstance().createCustomToken(uid);
+
+            Map<String, String> data = new HashMap<>();
+            data.put("token", customToken);
+
+            return ResultData.from("S-1", "토큰 생성 성공", data);
+        } catch (Exception e) {
+            return ResultData.from("F-2", "Firebase 토큰 생성 실패: " + e.getMessage());
+        }
+    }
 
 }

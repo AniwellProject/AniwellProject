@@ -6,13 +6,16 @@
 <mapper namespace="com.example.RSW.repository.WalkCrewRepository">
 
 	<!-- 크루 등록 (SET 방식) -->
-	<insert id="insert">
-		INSERT INTO walk_crew
+	<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+		INSERT
+		INTO walk_crew
 		SET title = #{title},
 		description = #{description},
 		district_id = #{districtId},
 		leaderId =
 		#{leaderId},
+		imageUrl =
+		#{imageUrl},
 		createdAt = NOW()
 	</insert>
 
@@ -44,6 +47,7 @@
 		wc.id,
 		wc.title,
 		wc.description,
+		wc.imageUrl AS imageUrl,
 		wc.district_id AS districtId,
 		wc.leaderId,
 		wc.createdAt,
@@ -51,10 +55,12 @@
 		d.city,
 		d.district,
 		d.dong
-		FROM walk_crew wc
+		FROM
+		walk_crew wc
 		LEFT JOIN member m
 		ON wc.leaderId = m.id
-		LEFT JOIN district d ON wc.district_id = d.id
+		LEFT JOIN district
+		d ON wc.district_id = d.id
 		ORDER BY wc.createdAt DESC
 	</select>
 
@@ -92,17 +98,21 @@
 		wc.district_id AS
 		districtId,
 		wc.leaderId,
+		wc.imageUrl,
 		wc.createdAt,
 		m.nickname,
 		d.city,
 		d.district,
 		d.dong
 		FROM walk_crew wc
-		INNER JOIN member m ON wc.leaderId = m.id
+		INNER JOIN member
+		m ON wc.leaderId =
+		m.id
 		INNER
 		JOIN
 		district d ON wc.district_id = d.id
-		ORDER BY wc.createdAt DESC
+		ORDER BY wc.createdAt
+		DESC
 	</select>
 
 

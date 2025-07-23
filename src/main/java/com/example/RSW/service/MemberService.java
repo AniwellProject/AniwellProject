@@ -183,11 +183,16 @@ public class MemberService {
 	// ✅ Firebase 커스텀 토큰 생성
 	public String createFirebaseCustomToken(String uid) {
 		try {
+			System.out.println("📌 [DEBUG] createFirebaseCustomToken() 진입, uid = " + uid);
 			return FirebaseAuth.getInstance().createCustomToken(uid);
+		} catch (FirebaseAuthException e) {
+			System.out.println("⚠️ FirebaseAuthException: " + e.getMessage());
+			return null;
 		} catch (Exception e) {
-			System.out.println("❌ Firebase custom token 생성 실패: " + e.getMessage());
+			System.out.println("❌ 기타 예외: " + e.getMessage());
 			return null;
 		}
 	}
+
 
 }

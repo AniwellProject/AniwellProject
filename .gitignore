@@ -1,10 +1,7 @@
 HELP.md
 target/
-<<<<<<< HEAD
-.mvn/wrapper/maven-wrapper.jar
-=======
+
 ../.mvn/wrapper/maven-wrapper.jar
->>>>>>> 72b89f2 (병합 후 구글, 네이버 로그인 연동 추가 / 네이버 로그인 버튼 클릭 시 오류 해결해야 함(1))
 !**/src/main/**/target/
 !**/src/test/**/target/
 

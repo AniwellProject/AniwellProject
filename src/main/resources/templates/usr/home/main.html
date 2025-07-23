@@ -1,128 +1,66 @@
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<script src="https://cdn.tailwindcss.com"></script>
-	<link rel="stylesheet" th:href="@{/resource/css/main.css}">
-	<title>MAIN</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/resource/css/main.css}">
+    <title>MAIN</title>
 </head>
 <body class="bg-gradient-to-b from-[#E4F0B9] to-[#FCDCA9] font-sans">
-<script src="https://cdn.tailwindcss.com"></script>
 <div class="section section-top mx-auto">
-	<img class="logo mx-auto" src="https://imgur.com/rcOcaL6.png" alt="d">
-	<div class="bg-logo">
-		<img class="b-logo mx-auto" src="https://imgur.com/qYhSSXR.png" alt="aniwell_큰_로고">
-		<div class="char">
-			<img class="mx-auto" src="https://imgur.com/OJI4yzC.png" alt="dig_cat">
-		</div>
-		<div class="icon">
-			<div>
-				<!-- 로그인 안 했을 때만 보이는 로그인 버튼 -->
-				<button type="button" class="in-icon" th:if="${!rq.isLogined}"
-						onclick="location.href='/usr/member/login'">
-					로그인
-					<img src="https://imgur.com/vTaaRnh.png" alt="d">
-				</button>
-				<!-- 로그인 했을 때만 보이는 로그아웃 버튼 -->
-				<button type="button" class="in-icon" th:if="${rq.isLogined}"
-						onclick="location.href='/usr/member/doLogout'">
-					로그아웃
-					<img src="https://imgur.com/vTaaRnh.png" alt="d">
-				</button>
-			</div>
-			<div type="button" class="up-icon">
-				<!-- 로그인 안 했을 때만 보이는 로그인 버튼 -->
-				<button type="button" class="in-icon" th:if="${!rq.isLogined}"
-						onclick="location.href='/usr/member/join'">
-					join
-					<img src="https://imgur.com/2ZJPrGR.png" alt="d">
-				</button>
-				<!-- 로그인 했을 때만 보이는 로그아웃 버튼 -->
-				<button type="button" class="in-icon" th:if="${rq.isLogined}"
-						th:onclick="'location.href=\'/usr/pet/list?memberId=' + ${rq.loginedMemberId} + '\';'">
-					petlist
-					<img src="https://imgur.com/2ZJPrGR.png" alt="d">
-				</button>
-			</div>
-		</div>
-	</div>
-</div>
-<div class="section section-middle mx-auto">메인 세션2
-	<div class="wave"></div>
-	<div class="container">
-		<div class="top-section">1</div>
-		<div class="bottom-section">
-			<div class="box box_2">2</div>
-			<div class="box box_3">3</div>
-			<div class="box box_4">4</div>
-		</div>
-	</div>
-</div>
-<div class="section section-bottom mx-auto">메인 세션3</div>
-=======
+    <img class="logo mx-auto" src="https://imgur.com/rcOcaL6.png" alt="d">
+    <div class="bg-logo">
+        <img class="b-logo mx-auto" src="https://imgur.com/qYhSSXR.png" alt="aniwell_큰_로고">
+        <div class="char">
+            <img class="mx-auto" src="https://imgur.com/OJI4yzC.png" alt="dig_cat">
+        </div>
+        <div class="icon">
+            <div>
+                <!-- 로그인/로그아웃 버튼 -->
+                <button type="button" class="in-icon" th:if="${!rq.isLogined}"
+                        onclick="location.href='/usr/member/login'">
+                    로그인
+                    <img src="https://imgur.com/vTaaRnh.png" alt="login">
+                </button>
+                <button type="button" class="in-icon" th:if="${rq.isLogined}"
+                        onclick="location.href='/usr/member/doLogout'">
+                    로그아웃
+                    <img src="https://imgur.com/vTaaRnh.png" alt="logout">
+                </button>
+            </div>
 
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" th:href="@{/resource/css/main.css}">
-<title>MAIN</title>
-</head>
-<body class="bg-gradient-to-b from-[#E4F0B9] to-[#FCDCA9] font-sans">
-	<script src="https://cdn.tailwindcss.com"></script>
-	<div class="section section-top mx-auto">
-		<img class="logo mx-auto" src="https://imgur.com/rcOcaL6.png" alt="d">
-		<div class="bg-logo">
-			<img class="b-logo mx-auto" src="https://imgur.com/qYhSSXR.png" alt="aniwell_큰_로고">
-			<div class="char">
-				<img class="mx-auto" src="https://imgur.com/OJI4yzC.png" alt="dig_cat">
-			</div>
-			<div class="icon">
-				<div>
-					<!-- 로그인 안 했을 때만 보이는 로그인 버튼 -->
-					<button type="button" class="in-icon" th:if="${!rq.isLogined}" onclick="location.href='/usr/member/login'">
-						로그인
-						<img src="https://imgur.com/vTaaRnh.png" alt="d">
-					</button>
-					<!-- 로그인 했을 때만 보이는 로그아웃 버튼 -->
-					<button type="button" class="in-icon" th:if="${rq.isLogined}" onclick="location.href='/usr/member/doLogout'">
-						로그아웃
-						<img src="https://imgur.com/vTaaRnh.png" alt="d">
-					</button>
-				</div>
-				<div type="button" class="up-icon">
-					<!-- 로그인 안 했을 때만 보이는 로그인 버튼 -->
-					<button type="button" class="in-icon" th:if="${!rq.isLogined}" onclick="location.href='/usr/member/join'">
-						join
-						<img src="https://imgur.com/2ZJPrGR.png" alt="d">
-					</button>
-					<!-- 로그인 했을 때만 보이는 로그아웃 버튼 -->
-					<button type="button" class="in-icon" th:if="${rq.isLogined}"
-						th:onclick="'location.href=\'/usr/pet/list?memberId=' + ${rq.loginedMemberId} + '\';'">
-						petlist
-						<img src="https://imgur.com/2ZJPrGR.png" alt="d">
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="section section-middle mx-auto">
-		메인 세션2
-		<div class="wave"></div>
-		<div class="container">
-			<div class="top-section">1</div>
-			<div class="bottom-section">
-				<div class="box box_2">2</div>
-				<div class="box box_3">3</div>
-				<div class="box box_4">4</div>
-			</div>
-		</div>
-	</div>
-	<div class="section section-bottom mx-auto">메인 세션3</div>
+            <div class="up-icon">
+                <!-- 회원가입 / 펫 리스트 버튼 -->
+                <button type="button" class="in-icon" th:if="${!rq.isLogined}"
+                        onclick="location.href='/usr/member/join'">
+                    join
+                    <img src="https://imgur.com/2ZJPrGR.png" alt="join">
+                </button>
+                <button type="button" class="in-icon" th:if="${rq.isLogined}"
+                        th:onclick="'location.href=\'/usr/pet/list?memberId=' + ${rq.loginedMemberId} + '\';'">
+                    petlist
+                    <img src="https://imgur.com/2ZJPrGR.png" alt="petlist">
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section section-middle mx-auto">
+    메인 세션2
+    <div class="wave"></div>
+    <div class="container">
+        <div class="top-section">1</div>
+        <div class="bottom-section">
+            <div class="box box_2">2</div>
+            <div class="box box_3">3</div>
+            <div class="box box_4">4</div>
+        </div>
+    </div>
+</div>
+
+<div class="section section-bottom mx-auto">메인 세션3</div>
 
 </body>
 </html>

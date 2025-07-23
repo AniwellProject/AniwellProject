@@ -110,7 +110,7 @@ public class UsrCrewCafeController {
 		model.addAttribute("galleryArticles", galleryArticles);
 		model.addAttribute("scheduleArticles", scheduleArticles);
 
-		return "usr/crewCafe/cafeHome";
+		return "usr/walkCrew/cafeHome";
 	}
 
 	// ✅ 내가 가입한 크루의 카페로 이동
