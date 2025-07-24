@@ -22,13 +22,7 @@
 
 	<!-- 크루 단건 조회 -->
 	<select id="findById" resultType="com.example.RSW.vo.WalkCrew">
-		SELECT
-		id,
-		title,
-		description,
-		district_id AS districtId,
-		leaderId,
-		createdAt
+		SELECT *
 		FROM walk_crew
 		WHERE id =
 		#{id}
@@ -193,4 +187,55 @@
 		createdAt DESC
 		LIMIT 1
 	</select>
+
+	<!-- ✅ 조건에 맞는 크루 리스트 조회 (검색 + 동 필터 + 페이징 포함) -->
+	<!-- WalkCrewRepository.xml -->
+	<select id="findPagedFilteredCrews" resultType="WalkCrew">
+		SELECT ...
+		FROM walk_crew
+		WHERE 1=1
+		<if test="searchKeyword != null and searchKeyword != ''">
+			AND ${searchKeywordTypeCode} LIKE CONCAT('%', #{searchKeyword}, '%')
+		</if>
+		<if test="dong != null and dong != ''">
+			AND dong LIKE CONCAT('%', #{dong}, '%') <!-- 여기 -->
+		</if>
+		ORDER BY createdAt DESC
+		LIMIT #{pageSize} OFFSET #{offset}
+	</select>
+
+
+	<!-- ✅ 조건에 맞는 전체 크루 수 조회 (페이징 계산용) -->
+	<select id="countFilteredCrews" parameterType="map"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM walk_crew wc
+		LEFT JOIN member m ON wc.leaderId =
+		m.id
+		LEFT JOIN district d ON wc.district_id = d.id
+		WHERE 1 = 1
+		<if test="dong != null and dong != ''">
+			AND d.dong = #{dong}
+		</if>
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchKeywordTypeCode == 'title'">
+					AND wc.title LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test="searchKeywordTypeCode == 'nickname'">
+					AND m.nickname LIKE CONCAT('%', #{searchKeyword},
+					'%')
+				</when>
+				<otherwise>
+					AND (
+					wc.title LIKE CONCAT('%', #{searchKeyword}, '%')
+					OR
+					m.nickname
+					LIKE CONCAT('%', #{searchKeyword}, '%')
+					)
+				</otherwise>
+			</choose>
+		</if>
+	</select>
+
 </mapper>

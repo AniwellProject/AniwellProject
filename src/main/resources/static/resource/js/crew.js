@@ -29,13 +29,22 @@ function closeCommentModal() {
 	modal.classList.add("translate-y-full");  // 아래로 다시 내려감
 }
 
-// 📝 게시글 작성 모달
-function articleModal() {
+// 📝 게시글 상세보기모달
+function detailModal(e) {
+	const free = {
+		title: e.dataset.title,
+		body: e.dataset.body,
+		imageUrl: e.dataset.imageUrl,
+		writer: e.dataset.extra__writer,
+		regDate: e.dataset.regDate
+	};
+
+
 	const html = `
 	<div class="flex h-full">
 		  <!-- 왼쪽 이미지 영역 -->
 		  <div class="w-1/2 bg-gray-100">
-		    <img src="https://via.placeholder.com/500" alt="product" class="object-cover w-full h-full" />
+		    <img src=${free.imageUrl} alt="product" class="object-cover w-full h-full" />
 		  </div>
 
 		  <!-- 오른쪽 텍스트 영역 -->
@@ -43,17 +52,17 @@ function articleModal() {
 		    <!-- 게시글 본문 -->
 		    <div class="flex-1 flex flex-col justify-between shadow p-4 overflow-auto">
 		      <div class="overflow-y-auto h-[300px] text-sm leading-relaxed mb-4">
-		        <p>게시글</p>
+					${free.body}
 		      </div>
 		      <div class="flex justify-between text-xs text-gray-500 mt-2">
-		        <span class="font-bold">admin</span>
-		        <span>2025.07.20</span>
+		        <span class="font-bold>${free.writer}</span>
+		        <span>${free.regDate}</span>
 		      </div>
 		    </div>
 
 		    <!-- 댓글 버튼 -->
-		    <div class="shadow p-4 text-sm rounded cursor-pointer hover:bg-gray-100" onclick="openCommentModal()">
-		      <p class="text-gray-500">여기누르기기</p>
+		    <div class="shadow w-[100%] p-4 text-sm rounded cursor-pointer hover:bg-gray-100" onclick="openCommentModal()">
+		      <p class="flex text-gray-500">여기누르기기</p>
 		    </div>
 
 		    <!-- ✅ 오른쪽 영역 내부에서 슬라이드되는 댓글 모달 -->
@@ -150,7 +159,7 @@ function scModal() {
 }
 
 // 📸 사진 추가 모달
-function photoModal() {
+function photoModal(photo) {
 	const html = `
 	<div class="w-full max-w-xl mx-auto flex">
 
@@ -162,7 +171,9 @@ function photoModal() {
 	  
 	  <!-- 이미지 -->
 	  <div class="flex-1 overflow-hidden rounded-lg">
-	  	<div class="w-full object-cover h-96 transition duration-300"></div>
+	  	<div class="w-full object-cover h-96 transition duration-300">
+		<img th:src="${photo.imageUrl}" alt="사진" class="object-cover w-full h-full rounded-lg" />
+		</div>
 	  </div>
 
 	  <!-- 우측 화살표 -->
@@ -339,7 +350,7 @@ function nextMonth() {
 }
 
 
-// sideModal
+// sideModal////////////////////////////////////////////////
 
 function modal_btn() {
 	const modal = document.getElementById("sideModal");
@@ -386,6 +397,10 @@ function modal_btn() {
 	modal.innerHTML = contentHtml;
 	modal.classList.remove("translate-x-full");
 	modal.classList.add("translate-x-0");
+	
+	requestAnimationFrame(() => {
+		renderMemberList();
+	});
 }
 
 
@@ -425,53 +440,129 @@ function crewjoy() {
 
     `;
 	openModal(html);
-	
-setTimeout(() => renderRequestList(), 0);
-	
+
+	setTimeout(() => renderRequestList(), 0);
+
 }
 function handleCrewJoin() {
-  closeSideModal(); // 사이드바 닫기
-  crewjoy();        // 참가 신청 로직 실행
+	closeSideModal(); // 사이드바 닫기
+	crewjoy();        // 참가 신청 로직 실행
 }
 
-const sampleRequests = [
-  { id: 1, name: "김철수", age: 28, comment: "산책이 좋아요!" },
-  { id: 2, name: "박영희", age: 32, comment: "강아지를 좋아해요!" }
-];
+// 신청자 정보 전역변수
+let applicants = [];
 
-// 왼쪽 리스트 렌더링
+// 신청자 리스트 보기
 function renderRequestList() {
-  const list = document.getElementById("requestList");
-  list.innerHTML = sampleRequests.map(r =>
-    `<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showDetail(${r.id})">${r.name}</li>`
-  ).join('');
+	$.ajax({
+		url: "/usr/walkCrewMember/requestList",
+		type: "GET",
+		data: { crewId },
+		success: function(response) {
+			console.log(response);
+			// 응답 결과는 response.data 형태로 가정
+			applicants = response.data1;
+
+			const list = document.getElementById("requestList");
+			list.innerHTML = applicants.map(r =>
+				`<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showDetail(${r.memberId})">${r.memberName}</li>`
+			).join('');
+		},
+		error: function(xhr, status, error) {
+			console.error("🚨 요청 실패:", status, error);
+			alert("요청 목록 불러오기에 실패했습니다.");
+		}
+	});
+}
+
+function acceptRequest() {
+	const slelctMemberId = document.getElementById("requestDetail").dataset.userId;
+
+	$.ajax({
+		url: "/usr/walkCrewMember/approve",
+		type: "POST",
+		data: {
+			crewId: crewId,
+			memberId: slelctMemberId
+		},
+		success: function(res) {
+			console.log("✅ 요청 성공:", res);
+			// ✅ 1. applicants 배열에서 삭제
+			applicants = applicants.filter(app => app.memberId != slelctMemberId);
+
+			// ✅ 2. 리스트 다시 렌더링
+			const list = document.getElementById("requestList");
+			list.innerHTML = applicants.map(r =>
+				`<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showDetail(${r.memberId})">${r.memberName}</li>`
+			).join('');
+
+			// ✅ 3. 디테일 초기화
+			const detail = document.getElementById("requestDetail");
+			const buttons = document.getElementById("actionButtons");
+			detail.innerHTML = `<p>좌측에서 신청자를 선택하세요.</p>`;
+			delete detail.dataset.userId;
+			buttons.style.display = "none";
+		},
+		error: function(xhr, status, error) {
+			console.error("🚨 요청 실패:", status, error);
+			alert("요청 처리에 실패했습니다.");
+		}
+	});
 }
 
 // 클릭 시 상세 정보 표시
 function showDetail(id) {
-  const user = sampleRequests.find(u => u.id === id);
-  const detail = document.getElementById("requestDetail");
-  const buttons = document.getElementById("actionButtons");
+	const user = applicants.find(u => u.memberId === id);
+	const detail = document.getElementById("requestDetail");
+	const buttons = document.getElementById("actionButtons");
+	const memberId = user.memberId;
+	$.ajax({
+		url: "/usr/walkCrewMember/requestDetail",
+		type: "GET",
+		data: {
+			crewId: crewId,
+			memberId: memberId
+		},
+		success: function(res) {
+			console.log("✅ 요청 성공:", res);
+			const selectusr = res.data1.applicant;
 
-  detail.innerHTML = `
-    <p><strong>이름:</strong> ${user.name}</p>
-    <p><strong>나이:</strong> ${user.age}</p>
-    <p><strong>소개:</strong> ${user.comment}</p>
-  `;
-  buttons.style.display = "block";
-  detail.dataset.userId = user.id; // 다음 처리를 위한 저장
+			detail.innerHTML = `
+			    <p><strong>닉네:</strong> ${selectusr.memberNickname}</p>
+			    <p><strong>주소:</strong> ${selectusr.memberAddress}</p>
+			  `;
+		},
+		error: function(xhr, status, error) {
+			console.error("🚨 요청 실패:", status, error);
+			alert("요청 처리에 실패했습니다.");
+		}
+	});
+
+	buttons.style.display = "block";
+	detail.dataset.userId = user.memberId; // 다음 처리를 위한 저장
 }
 
-function acceptRequest() {
-  const id = document.getElementById("requestDetail").dataset.userId;
-  alert(`✅ ID ${id} 수락 처리`);
-  // 여기서 실제 처리 로직 추가
-}
+
 
 function rejectRequest() {
-  const id = document.getElementById("requestDetail").dataset.userId;
-  alert(`❌ ID ${id} 거절 처리`);
-  // 여기서 실제 처리 로직 추가
+	const selectedMemberId = document.getElementById("requestDetail").dataset.userId;
+	consol.log(`❌ ID ${selectedMemberId} 거절 처리`);
+
+	// 1. applicants 배열에서 해당 멤버 삭제
+	applicants = applicants.filter(app => app.memberId != selectedMemberId);
+
+	// 2. 리스트 다시 렌더링
+	const list = document.getElementById("requestList");
+	list.innerHTML = applicants.map(r =>
+		`<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showDetail(${r.memberId})">${r.memberName}</li>`
+	).join('');
+
+	// 3. 디테일 영역 초기화
+	const detail = document.getElementById("requestDetail");
+	const buttons = document.getElementById("actionButtons");
+	detail.innerHTML = `<p>좌측에서 신청자를 선택하세요.</p>`;
+	delete detail.dataset.userId;
+	buttons.style.display = "none";
 }
 
 window.onload = renderRequestList;
@@ -479,8 +570,8 @@ window.onload = renderRequestList;
 
 function handleCrewMember() {
 	closeSideModal(); // 사이드바 닫기
-	  crewMember(); 
-	
+	crewMember();
+
 }
 
 
@@ -512,43 +603,93 @@ function crewMember() {
 
 	
 	    `;
-		openModal(html);
-		
+	openModal(html);
+
 	setTimeout(() => renderMemberList(), 0);
-		
+
 }
-const members = [
-  { id: 1, name: "김철수", role: "일반", comment: "자주 산책합니다." },
-  { id: 2, name: "박영희", role: "방장", comment: "운영자입니다." },
-];
+let members = [];
 
 // 리스트 렌더링
 function renderMemberList() {
-  const list = document.getElementById("memberList");
-  list.innerHTML = members.map(m =>
-    `<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showMemberDetail(${m.id})">${m.name}</li>`
-  ).join('');
+	$.ajax({
+		type: "get",
+		url: `/usr/walkCrewMember/usr/walkCrew/memberList`,
+		data: { crewId },
+		success: function(data) {
+			members = data.data1;
+			const list = document.getElementById("memberList");
+			list.innerHTML = members.map(m =>
+				`<li class="cursor-pointer hover:bg-yellow-100 p-2 rounded" onclick="showMemberDetail(${m.memberId})">${m.crew_member_name}</li>`
+			).join('');
+		},
+		error: function(err) {
+			console.error("err list", err);
+		}
+	});
+
 }
 
 // 상세 보기
 function showMemberDetail(id) {
-  const member = members.find(m => m.id === id);
-  const detail = document.getElementById("memberDetail");
-  const buttons = document.getElementById("memberActionButtons");
+	const member = members.find(m => m.memberId === id);
+	const detail = document.getElementById("memberDetail");
+	const buttons = document.getElementById("memberActionButtons");
+	console.log(members);
+	$.ajax({
+		type: "GET",
+		url: `/api/member/getUsrInfo`,
+		data: { memberId: member.memberId },
+		success: function(data) {
+			console.log(data);
+			detail.innerHTML = `
+				  <p>${data.photo}</p>
+				  <p>${data.nickname}</p>
+				`;
+			detail.dataset.userId = member.id;
+			buttons.style.display = "block";
+		},
+		error: function(err) {
+			console.error("참가등록실패", err);
+		}
+	});
 
-  detail.innerHTML = `
-    <p><strong>이름:</strong> ${member.name}</p>
-    <p><strong>역할:</strong> ${member.role}</p>
-    <p><strong>소개:</strong> ${member.comment}</p>
-  `;
-  detail.dataset.userId = member.id;
-  buttons.style.display = "block";
+
 }
 
 // 강퇴 처리
 function kickMember() {
-  const id = document.getElementById("memberDetail").dataset.userId;
-  alert(`❌ ID ${id} 회원 강퇴 처리`);
-  // 실제 삭제 로직은 이곳에 추가
+	const id = document.getElementById("memberDetail").dataset.userId;
+	alert(`❌ ID ${id} 회원 강퇴 처리`);
+
 }
 //////
+
+
+
+////참가신청로직
+function crewJoin(crewId) {
+	$.ajax({
+		type: "POST",
+		url: `/usr/walkCrewMember/doJoin`,
+		data: { crewId },
+		success: function(data) {
+
+			console.log(data.msg);
+			// ✅ 참가 수락 후 멤버 목록도 다시 렌더링
+			renderMemberList();
+			renderCrewMemberSection();
+		},
+		error: function(err) {
+			console.error("참가등록실패", err);
+		}
+	});
+}
+
+
+
+
+
+
+
+

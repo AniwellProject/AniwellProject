@@ -31,7 +31,8 @@ public class PetVaccinationService {
 
     // 접종기록 등록
     public ResultData insertPetVaccination(int petId, String vaccineName, String injectionDate) {
-        // 동일 백신의 이전 접종 기록 → nextDueDate NULL 처리
+        System.out.println("🐾 백신 무효화 실행: petId=" + petId + ", vaccineName=" + vaccineName);
+
         petVaccinationRepository.invalidateNextDueDates(petId, vaccineName);
 
         // 새 백신 등록

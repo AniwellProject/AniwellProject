@@ -43,4 +43,9 @@ public interface WalkCrewRepository {
 
 	WalkCrew getCrewByMemberId(int memberId);
 
+	List<WalkCrew> findPagedFilteredCrews(String searchKeywordTypeCode, String searchKeyword, String dong, int offset,
+			int pageSize);
+
+	int countFilteredCrews(String searchKeywordTypeCode, String searchKeyword, String dong);
+
 }

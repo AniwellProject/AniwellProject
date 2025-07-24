@@ -17,6 +17,7 @@ import com.example.RSW.vo.District;
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.ResultData;
 import com.example.RSW.vo.WalkCrew;
+import com.example.RSW.vo.WalkCrewMember;
 
 @Service
 public class WalkCrewMemberService {
@@ -53,6 +54,11 @@ public class WalkCrewMemberService {
 	public boolean expelMemberFromCrew(int crewId, int memberId) {
 		int affectedRows = walkCrewMemberRepository.deleteMemberFromCrew(crewId, memberId);
 		return affectedRows > 0;
+	}
+
+	// 크루멤버리스트
+	public List<WalkCrewMember> getMembersByCrewId(int crewId) {
+		return walkCrewMemberRepository.findMembersByCrewId(crewId);
 	}
 
 }

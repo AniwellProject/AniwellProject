@@ -17,6 +17,7 @@ import com.example.RSW.vo.District;
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.ResultData;
 import com.example.RSW.vo.WalkCrew;
+import com.example.RSW.vo.WalkCrewMember;
 
 @Service
 public class WalkCrewService {

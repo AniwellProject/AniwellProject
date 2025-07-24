@@ -17,6 +17,7 @@ import com.example.RSW.vo.Article;
 import com.example.RSW.vo.ResultData;
 import com.example.RSW.vo.Rq;
 import com.example.RSW.vo.WalkCrew;
+import com.example.RSW.vo.WalkCrewMember;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,6 +48,7 @@ public class UsrWalkCrewMemberController {
 		}
 
 		int memberId = rq.getLoginedMemberId();
+		System.out.println(memberId);
 
 		// getTitle()은 롬복 @Data로 자동 생성됨
 		WalkCrew crew = walkCrewService.getCrewByLeaderId(memberId);
@@ -135,7 +137,7 @@ public class UsrWalkCrewMemberController {
 	@ResponseBody
 	public ResultData showRequestDetail(@RequestParam int crewId, @RequestParam int memberId, HttpServletRequest req) {
 		Rq rq = (Rq) req.getAttribute("rq");
-
+		System.out.println(memberId);
 		if (rq == null || !rq.isLogined()) {
 			return ResultData.from("F-1", "로그인 후 이용해주세요.");
 		}
@@ -260,6 +262,13 @@ public class UsrWalkCrewMemberController {
 		data.put("memberId", memberId);
 
 		return ResultData.from("S-1", "크루 탈퇴가 완료되었습니다.", data);
+	}
+
+	@GetMapping("/usr/walkCrew/memberList")
+	@ResponseBody
+	public ResultData getMemberList(@RequestParam int crewId) {
+		List<WalkCrewMember> members = walkCrewMemberService.getMembersByCrewId(crewId);
+		return ResultData.from("S-1", "크루 멤버 리스트", members);
 	}
 
 }

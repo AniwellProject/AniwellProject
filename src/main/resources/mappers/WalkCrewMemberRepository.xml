@@ -7,8 +7,8 @@
 
 	<insert id="requestToJoinCrew">
 		INSERT INTO walk_crew_member
-		(crew_id, member_id,
-		status, request_date)
+		(crewId, memberId,
+		status, joinedAt)
 		VALUES
 		(#{crewId}, #{memberId}, 'PENDING', NOW())
 	</insert>
@@ -64,9 +64,22 @@
 	<!-- ✅ 강퇴 & 탈퇴 처리 -->
 	<delete id="deleteMemberFromCrew" parameterType="map">
 		DELETE FROM
-		walk_crew_member
-		WHERE crew_id = #{crewId} AND member_id = #{memberId}
+		walk_crew_member	
+		WHERE crewId = #{crewId} AND memberId = #{memberId}
 	</delete>
+
+	<!-- ✅ 특정 크루에 소속된 멤버 전체 조회 (회원 정보 포함) -->
+	<select id="findMembersByCrewId"
+		resultType="com.example.RSW.vo.WalkCrewMember">
+		SELECT
+		wcm.*,
+		m.id AS crew_member_id,
+		m.nickname AS crew_member_name,
+		m.photo AS crew_member_photo
+		FROM walk_crew_member wcm
+		LEFT JOIN member m ON wcm.memberId = m.id
+		WHERE wcm.crewId = #{crewId}
+	</select>
 
 
 </mapper>

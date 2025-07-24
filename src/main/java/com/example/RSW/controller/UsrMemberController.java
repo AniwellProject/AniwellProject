@@ -912,5 +912,4 @@ public class UsrMemberController {
             return ResultData.from("F-2", "Firebase 토큰 생성 실패: " + e.getMessage());
         }
     }
-
 }

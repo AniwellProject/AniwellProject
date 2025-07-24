@@ -21,4 +21,8 @@ public class WalkCrewMember {
     private String role; // 권한부여
     
     private Member member; // 가입된 멤버 객체
+    
+    private String crew_member_id;
+    private String crew_member_name;
+    private String crew_member_photo;
 }

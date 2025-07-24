@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.WalkCrew;
+import com.example.RSW.vo.WalkCrewMember;
 
 @Mapper
 public interface WalkCrewMemberRepository {
@@ -30,4 +31,7 @@ public interface WalkCrewMemberRepository {
 
 	// 강퇴 & 탈퇴
 	int deleteMemberFromCrew(int crewId, int memberId);
+
+	// 멤버리스트 조회
+	List<WalkCrewMember> findMembersByCrewId(int crewId);
 }

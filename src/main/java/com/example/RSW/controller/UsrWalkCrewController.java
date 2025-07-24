@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.RSW.vo.Rq;
 import com.example.RSW.vo.WalkCrew;
+import com.example.RSW.vo.WalkCrewMember;
 import com.example.RSW.vo.District;
 import com.example.RSW.vo.Member;
 import com.example.RSW.vo.ResultData;
@@ -228,7 +229,8 @@ public class UsrWalkCrewController {
 	// ✅ 크루 목록을 JSON 형태로 반환하는 API 컨트롤러
 	@GetMapping("/api/list")
 	@ResponseBody
-	public ResultData getCrewListAsJson(HttpServletRequest req) {
+	public ResultData getCrewListAsJson(HttpServletRequest req, @RequestParam(required = false) String query, // 🔍 검색어
+			@RequestParam(required = false) String dong) {
 		// 🔹 로그인 사용자 정보 가져오기 (Rq는 로그인 상태 확인용 커스텀 객체)
 		Rq rq = (Rq) req.getAttribute("rq");
 
@@ -238,8 +240,24 @@ public class UsrWalkCrewController {
 		// 🔹 프론트에 반환할 JSON 형태로 변환할 리스트 선언
 		List<Map<String, Object>> resultList = new ArrayList<>();
 
-		// 🔁 각 크루 정보를 Map 형태로 변환해서 리스트에 담기
+		// 🔁 필터링된 데이터만 추출
 		for (WalkCrew crew : crews) {
+			// ✅ query (검색어) 필터 조건
+			if (query != null && !query.isBlank()) {
+				boolean titleMatch = crew.getTitle() != null && crew.getTitle().contains(query);
+				boolean descMatch = crew.getDescription() != null && crew.getDescription().contains(query);
+				if (!titleMatch && !descMatch) {
+					continue; // 검색어와 일치하지 않으면 건너뜀
+				}
+			}
+
+			// ✅ dong (동네) 필터 조건
+			if (dong != null && !dong.isBlank()) {
+				if (crew.getDong() == null || !crew.getDong().equals(dong)) {
+					continue; // 동네가 일치하지 않으면 제외
+				}
+			}
+
 			Map<String, Object> crewMap = new HashMap<>();
 
 			// ▶️ 크루 기본 정보 저장
@@ -267,5 +285,6 @@ public class UsrWalkCrewController {
 		// 🔚 ResultData 포맷으로 응답 반환
 		return ResultData.from("S-1", "크루 목록 불러오기 성공", data);
 	}
+
 
 }

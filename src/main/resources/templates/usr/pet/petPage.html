@@ -487,7 +487,7 @@
 						console.log("✅ 응답:", data);
 
 						if (data.resultCode?.startsWith("S-")) {
-							alert("💉 백신 등록 성공!");
+							form.reset();
 							closeVaccineModal(); // 모달 닫기
 							refreshCalendar(); // ✅ 달력만 다시 그리기
 							// ✅ 필요시 달력 리렌더 또는 리스트 갱신
