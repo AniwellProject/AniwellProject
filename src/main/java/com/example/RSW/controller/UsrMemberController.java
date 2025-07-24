@@ -6,6 +6,9 @@ import com.example.RSW.service.NotificationService;
 import com.example.RSW.service.VetCertificateService;
 import com.example.RSW.vo.VetCertificate;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.UserRecord;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -129,60 +132,50 @@ public class UsrMemberController {
 
     @RequestMapping("/usr/member/doLogin")
     @ResponseBody
-    public String doLogin(HttpServletRequest req, HttpServletResponse resp, String loginId, String loginPw,
-                          @RequestParam(defaultValue = "/") String afterLoginUri) {
+    public ResultData doLogin(HttpServletRequest req, HttpServletResponse resp, String loginId, String loginPw,
+                              @RequestParam(defaultValue = "/") String afterLoginUri) {
 
-        // 세션에서 rq 객체 가져오기
         Rq rq = (Rq) req.getSession().getAttribute("rq");
 
-        // rq 객체가 없다면 새로운 rq 객체를 생성하여 세션에 저장
         if (rq == null) {
-            // 새로운 rq 객체 생성, resp 객체도 전달
             rq = new Rq(req, resp, memberService);
-            req.getSession().setAttribute("rq", rq);  // 세션에 rq 객체 저장
+            req.getSession().setAttribute("rq", rq);
         }
 
-        // 로그인 필수 값 체크
         if (Ut.isEmptyOrNull(loginId)) {
-            return Ut.jsHistoryBack("F-1", "아이디를 입력해");
+            return ResultData.from("F-1", "아이디를 입력해주세요.");
         }
         if (Ut.isEmptyOrNull(loginPw)) {
-            return Ut.jsHistoryBack("F-2", "비밀번호를 입력해");
+            return ResultData.from("F-2", "비밀번호를 입력해주세요.");
         }
 
-        // 로그인 시 회원정보를 가져옵니다.
         Member member = memberService.getMemberByLoginId(loginId);
 
-        // 회원이 없으면 에러 반환
         if (member == null) {
-            return Ut.jsHistoryBack("F-3", Ut.f("%s는(은) 없는 아이디야", loginId));
+            return ResultData.from("F-3", Ut.f("%s는(은) 존재하지 않는 아이디입니다.", loginId));
         }
 
-        // 비밀번호 해시값 비교
         if (!member.getLoginPw().equals(Ut.sha256(loginPw))) {
-            return Ut.jsHistoryBack("F-4", Ut.f("비밀번호가 일치하지 않습니다!!!!!"));
+            return ResultData.from("F-4", "비밀번호가 일치하지 않습니다.");
         }
 
         if (member.isDelStatus()) {
-            return Ut.jsHistoryBack("F-5", "탈퇴한 회원입니다.");
+            return ResultData.from("F-5", "탈퇴한 회원입니다.");
         }
 
-        // 로그인 처리 후 rq 객체에 회원 정보를 설정
+        // 로그인 처리
         rq.login(member);
+        req.getSession().setAttribute("rq", rq);
 
-        // 로그인 후 rq 객체를 세션에 저장하여 이후 요청에서도 사용
-        req.getSession().setAttribute("rq", rq);  // 세션에 rq 객체 저장
-
-        // ✅ Firebase 연동 - uid는 이메일 기반으로 구성
+        // Firebase용 UID 기준 토큰 생성 (선택사항: uid = 이메일도 가능)
         String uid = member.getLoginId() + "@aniwell.com";
-        String firebaseToken = memberService.createFirebaseCustomToken(uid);
+        String firebaseToken = memberService.createFirebaseCustomToken(uid); // 너가 만든 메서드
         req.getSession().setAttribute("firebaseToken", firebaseToken);
 
-        return Ut.jsReplace("S-1", Ut.f("%s님 환영합니다", member.getNickname()),
-                afterLoginUri + "?firebaseToken=" + firebaseToken);
-
+        System.out.println("✅ [로그] 로그인 성공 → memberId: " + member.getId());
+        // 성공 응답 (JSON)
+        return ResultData.from("S-1", Ut.f("%s님 환영합니다", member.getNickname()));
     }
-
 
 
     @RequestMapping("/usr/member/join")
@@ -524,25 +517,24 @@ public class UsrMemberController {
             notificationService.sendNotificationToAdmins(rq.getLoginedMemberId());
 
             return """
-            <html>
-            <head><meta charset="UTF-8"><script>
-            alert('✅ 수의사 인증서가 등록되었습니다. 관리자 승인을 기다려주세요.');
-            location.replace('myCert');
-            </script></head><body></body></html>
-        """;
+                        <html>
+                        <head><meta charset="UTF-8"><script>
+                        alert('✅ 수의사 인증서가 등록되었습니다. 관리자 승인을 기다려주세요.');
+                        location.replace('myCert');
+                        </script></head><body></body></html>
+                    """;
 
         } catch (Exception e) {
             e.printStackTrace();
             return """
-            <html>
-            <head><meta charset="UTF-8"><script>
-            alert('⚠ 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-            location.replace('/usr/member/myPage');
-            </script></head><body></body></html>
-        """;
+                        <html>
+                        <head><meta charset="UTF-8"><script>
+                        alert('⚠ 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+                        location.replace('/usr/member/myPage');
+                        </script></head><body></body></html>
+                    """;
         }
     }
-
 
 
     @RequestMapping("/usr/member/myCert")
@@ -585,9 +577,9 @@ public class UsrMemberController {
 
         MultiValueMap<String, String> tokenParams = new LinkedMultiValueMap<>();
         tokenParams.add("grant_type", "authorization_code");
-        tokenParams.add("client_id", kakaoRestApiKey); // 카카오 REST API 키
-        tokenParams.add("redirect_uri", "http://localhost:8080/usr/member/kakao"); // 고정값
-        tokenParams.add("client_secret", kakaoClientSecret); // 카카오 클라이언트 시크릿
+        tokenParams.add("client_id", kakaoRestApiKey);
+        tokenParams.add("redirect_uri", "http://localhost:8080/usr/member/kakao");
+        tokenParams.add("client_secret", kakaoClientSecret);
         tokenParams.add("code", code);
 
         HttpEntity<MultiValueMap<String, String>> tokenRequest = new HttpEntity<>(tokenParams, tokenHeaders);
@@ -606,13 +598,18 @@ public class UsrMemberController {
                 Map.class
         );
 
-        Map properties = (Map) profileResponse.getBody().get("properties");
+        Map body = profileResponse.getBody();
+        Map properties = (Map) body.get("properties");
+        Map kakaoAccount = (Map) body.get("kakao_account");
 
-        String socialId = String.valueOf(profileResponse.getBody().get("id"));
+        String socialId = String.valueOf(body.get("id"));
         String name = (String) properties.get("nickname");
-
         String provider = "kakao";
-        String email = ""; // 이메일은 비워둠
+
+        // ✅ 이메일 강제 생성
+        String email = provider + "_" + socialId + "@noemail.kakao";
+        System.out.println("📌 강제 생성된 email: " + email);
+
 
         // 기존 사용자 조회 또는 새로 생성
         Member member = memberService.getOrCreateSocialMember(provider, socialId, email, name);
@@ -621,24 +618,22 @@ public class UsrMemberController {
         Rq rq = new Rq(req, resp, memberService);
         rq.login(member);
         req.getSession().setAttribute("rq", rq);
-        req.getSession().setAttribute("kakaoAccessToken", accessToken); // 자동 로그인용 저장
+        req.getSession().setAttribute("kakaoAccessToken", accessToken);
 
         // ✅ Firebase 토큰 생성 및 세션 저장
         String uid = member.getSocialProvider() + "_" + member.getSocialId();
         String firebaseToken = memberService.createFirebaseCustomToken(uid);
         req.getSession().setAttribute("firebaseToken", firebaseToken);
 
-        // ✅ 팝업 닫고 부모 창 새로고침
+        // ✅ 팝업 닫고 부모 창에 Firebase 연동 메시지 전송
         resp.setContentType("text/html; charset=UTF-8");
         PrintWriter out = resp.getWriter();
         out.println("<script>");
-        out.println("localStorage.setItem('kakaoAccessToken', '" + accessToken + "');"); // ✅ 자동 로그인용 토큰 저장
-        out.println("window.opener.location.href = '/';");
+        out.println("localStorage.setItem('kakaoAccessToken', '" + accessToken + "');");
+        out.println("window.opener.postMessage('socialLoginSuccess', '*');");
         out.println("window.close();");
         out.println("</script>");
-
     }
-
 
     // 카카오 팝업 로그인 처리용 REST API 컨트롤러 메서드
     @PostMapping("/usr/member/social-login")
@@ -751,15 +746,17 @@ public class UsrMemberController {
     }
 
     @RequestMapping("/usr/member/google")
-    public String googleCallback(@RequestParam("code") String code, HttpServletRequest req, HttpServletResponse resp) {
-
+    public void googleCallback(@RequestParam("code") String code,
+                               HttpServletRequest req,
+                               HttpServletResponse resp) {
         try {
-
             RestTemplate restTemplate = new RestTemplate();
 
-            // 1. access token 요청
+            // 1. 토큰 요청
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("code", code);  
+            params.add("code", code);
+            params.add("client_id", "구글 클라이언트 키");
+            params.add("client_secret", "구글 시크릿 키");
             params.add("redirect_uri", "http://localhost:8080/usr/member/google");
             params.add("grant_type", "authorization_code");
 
@@ -782,36 +779,48 @@ public class UsrMemberController {
             );
 
             Map<String, Object> userInfo = userInfoResponse.getBody();
-
             String email = (String) userInfo.get("email");
             String name = (String) userInfo.get("name");
+            String socialId = (String) userInfo.get("id"); // ✅ 고유 ID 따로 받아옴
 
-
-            // 3. DB 조회 또는 생성
-            Member member = memberService.getOrCreateByEmail(email, name);
+            // 3. 회원 생성 or 조회
+            Member member = memberService.getOrCreateSocialMember("google", socialId, email, name);
 
             // 4. 세션 저장
             req.getSession().setAttribute("loginedMemberId", member.getId());
             req.getSession().setAttribute("loginedMember", member);
-
-            // ✅ JSP에서도 rq.logined 동작하도록 강제 주입
             req.setAttribute("rq", new Rq(req, resp, memberService));
 
-            // 🔥 Firebase 토큰 추가
-            String uid = member.getSocialProvider() + "_" + member.getSocialId();
+            // 5. Firebase 토큰 발급 (✅ uid: google_소셜ID)
+            String uid = "google_" + socialId;
             String firebaseToken = memberService.createFirebaseCustomToken(uid);
             req.getSession().setAttribute("firebaseToken", firebaseToken);
 
-            return "redirect:/";
+            // ✅ 6. 부모 창에 메시지 전송 후 창 닫기
+            resp.setContentType("text/html; charset=UTF-8");
+            PrintWriter out = resp.getWriter();
+            out.println("<script>");
+            out.println("window.opener.postMessage('socialLoginSuccess', '*');");
+            out.println("window.close();");
+            out.println("</script>");
+
         } catch (Exception e) {
-            System.out.println("❌ Google 로그인 중 오류 발생:");
             e.printStackTrace();
-            return "redirect:/usr/member/login?error=google";
+            try {
+                resp.setContentType("text/html; charset=UTF-8");
+                PrintWriter out = resp.getWriter();
+                out.println("<script>");
+                out.println("alert('구글 로그인 실패');");
+                out.println("window.close();");
+                out.println("</script>");
+            } catch (Exception ignored) {
+            }
         }
     }
 
     // 네이버 로그인 콜백 처리
     @RequestMapping("/usr/member/naver")
+    @ResponseBody
     public String naverCallback(@RequestParam("code") String code,
                                 @RequestParam("state") String state,
                                 HttpServletRequest req, HttpServletResponse resp) {
@@ -875,8 +884,13 @@ public class UsrMemberController {
             String firebaseToken = memberService.createFirebaseCustomToken(uid);
             req.getSession().setAttribute("firebaseToken", firebaseToken);
 
-            // ✅ 로그인 완료 후 홈으로 리다이렉트
-            return "redirect:/";
+            // ✅ 팝업 방식 Firebase 연동용 JS 리턴
+            return """
+                    <script>
+                        window.opener.postMessage("socialLoginSuccess", "*");
+                        window.close();
+                    </script>
+                    """;
 
         } catch (Exception e) {
             // ⚠ 예외 처리 (토큰 요청 실패, 사용자 정보 오류 등)
@@ -886,30 +900,128 @@ public class UsrMemberController {
         }
     }
 
-    // ✅ Firebase Custom Token 발급용 엔드포인트
     @RequestMapping("/usr/member/firebase-token")
     @ResponseBody
-    public ResultData<Map<String, String>> generateFirebaseToken(HttpServletRequest req) {
-        Rq rq = (Rq) req.getAttribute("rq");
-        Member loginedMember = rq.getLoginedMember();
+    public ResultData<Map<String, String>> generateFirebaseToken(HttpServletRequest req, HttpServletResponse resp) {
+        Integer memberId = (Integer) req.getSession().getAttribute("loginedMemberId");
 
-        if (loginedMember == null) {
-            return ResultData.from("F-1", "로그인 후 이용 가능합니다.");
-        }
+        System.out.println("📥 [로그] firebase-token 요청 도착");
+        System.out.println("   - 로그인된 memberId: " + memberId);
+
+        if (memberId == null) return ResultData.from("F-1", "로그인 후 이용 가능합니다.");
+
+        Member loginedMember = memberService.getMemberById(memberId);
+        if (loginedMember == null) return ResultData.from("F-2", "회원 정보를 찾을 수 없습니다.");
 
         try {
-            // UID는 고유 식별자 (이메일이나 회원번호 사용 가능)
-            String uid = "user_" + loginedMember.getId();
+            String uid = UUID.randomUUID().toString();
+            String email = loginedMember.getEmail();
+            String name = loginedMember.getNickname();
+            String provider = loginedMember.getSocialProvider();
+            if (provider == null || provider.trim().isEmpty()) provider = "email";
 
-            // Firebase Custom Token 생성
+            System.out.println("   - 이메일: " + email);
+
+            try {
+                UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                        .setUid(uid)
+                        .setEmail(email)
+                        .setDisplayName(name)
+                        .setEmailVerified(true);
+
+                FirebaseAuth.getInstance().createUser(request);
+                System.out.println("✅ [로그] Firebase 새 사용자 등록 완료");
+
+            } catch (FirebaseAuthException e) {
+                if (e.getErrorCode().equals("EMAIL_ALREADY_EXISTS") || e.getMessage().contains("EMAIL_EXISTS")) {
+                    System.out.println("⚠️ [로그] 이미 등록된 사용자 → uid 조회");
+                    try {
+                        UserRecord existingUser = FirebaseAuth.getInstance().getUserByEmail(email);
+                        uid = existingUser.getUid();
+                        System.out.println("   - 기존 UID: " + uid);
+                    } catch (FirebaseAuthException ex) {
+                        System.out.println("❌ [로그] UID 조회 실패: " + ex.getMessage());
+                        return ResultData.from("F-5", "기존 UID 조회 실패: " + ex.getMessage());
+                    }
+                } else {
+                    System.out.println("❌ [로그] Firebase 사용자 등록 실패: " + e.getMessage());
+                    return ResultData.from("F-4", "Firebase 사용자 등록 실패: " + e.getMessage());
+                }
+            }
+
             String customToken = FirebaseAuth.getInstance().createCustomToken(uid);
+            System.out.println("✅ [로그] 커스텀 토큰 발급 완료");
 
             Map<String, String> data = new HashMap<>();
             data.put("token", customToken);
+            data.put("provider", provider);
 
             return ResultData.from("S-1", "토큰 생성 성공", data);
+
         } catch (Exception e) {
-            return ResultData.from("F-2", "Firebase 토큰 생성 실패: " + e.getMessage());
+            return ResultData.from("F-3", "토큰 생성 실패: " + e.getMessage());
         }
     }
+
+
+    @RequestMapping("/usr/member/firebase-session-login")
+    @ResponseBody
+    public ResultData doFirebaseSessionLogin(@RequestBody Map<String, String> body, HttpServletRequest req) {
+        String idToken = body.get("idToken");
+
+        System.out.println("📥 [로그] firebase-session-login 요청 도착");
+        System.out.println("📥 [로그] 전달된 idToken: " + (idToken != null ? "존재함" : "없음"));
+
+        try {
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+            String email = decodedToken.getEmail();
+            String uid = decodedToken.getUid();
+            String name = decodedToken.getName(); // ✅ 이름 정보 추가
+
+            System.out.println("✅ [로그] Firebase 인증 성공");
+            System.out.println("   - UID: " + uid);
+            System.out.println("   - 이메일: " + email);
+
+            if (Ut.isEmpty(email)) {
+                return ResultData.from("F-2", "이메일 정보 없음");
+            }
+
+            // ✅ 기존 회원 조회
+            Member member = memberService.findByEmail(email);
+
+            // ❗ 없으면 자동 가입
+            if (member == null) {
+                System.out.println("📌 [로그] 회원 정보 없음 → 자동 가입 시도");
+
+                String provider = "email";
+                if (uid != null && uid.contains("_")) {
+                    provider = uid.split("_")[0];
+                }
+
+                member = memberService.getOrCreateByEmail(email, name, provider);
+
+                if (member == null) {
+                    System.out.println("❌ [로그] 자동 가입 실패");
+                    return ResultData.from("F-9", "회원 자동 가입 실패");
+                }
+
+                System.out.println("📌 [로그] 자동 가입 완료 → ID: " + member.getId());
+            }
+
+            // ✅ 세션 저장
+            req.getSession().setAttribute("loginedMemberId", member.getId());
+            req.getSession().setAttribute("loginedMember", member);
+
+            System.out.println("✅ [로그] 세션에 로그인 정보 저장 완료");
+            System.out.println("   - memberId: " + member.getId());
+            System.out.println("   - nickname: " + member.getNickname());
+
+            return ResultData.from("S-1", "세션 로그인 완료");
+
+        } catch (FirebaseAuthException e) {
+            System.out.println("❌ [로그] Firebase 인증 실패: " + e.getMessage());
+            return ResultData.from("F-1", "Firebase 인증 실패: " + e.getMessage());
+        }
+    }
+
 }

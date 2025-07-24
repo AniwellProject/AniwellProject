@@ -176,10 +176,10 @@
         INSERT INTO `member`
         SET regDate = NOW(),
         updateDate = NOW(),
-        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{nickname}, -- 카카오 닉네임 그대로 사용
-            email = #{email}, cellphone = '',                                                                                                         -- 기본값 빈 문자열
-            address = '',                                                                                                                             -- 기본값 빈 문자열
-            photo = '',                                                                                                                               -- 기본값 빈 문자열
+        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{nickname},
+            email = #{email}, cellphone = '',
+            address = '',
+            photo = '',
             authLevel = 1, authName = '일반회원', delStatus = 0
     </insert>
 
