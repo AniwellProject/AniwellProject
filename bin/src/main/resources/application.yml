@@ -1,36 +1,121 @@
 server:
   port: 8080
+  tomcat:
+    max-swallow-size: -1          # 업로드 스트림 제한 해제
+    max-http-form-post-size: -1   # (urlencoded 폼) 제한 해제
 spring:
   mail:
-    host: smtp.gmail.com
+    host: smtp.sendgrid.net
     port: 587
-#   username: 구글 계정
-    #password: 구글 계정 앱 비밀번호
+    username: apikey
+    password:    # 푸시할 떄마다 지우기
     properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-  mvc:
-    view:
-      prefix: /WEB-INF/jsp/
-      suffix: .jsp
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 300MB        # 업로드 파일 최대 용량
+      max-request-size: 300MB     # 요청 전체 최대 용량
+  oauth2:
+    google:
+      client-id: ""
+      client-secret: ""
+      redirect-uri: "http://localhost:8080/usr/member/google"
+  session:
+    store-type: redis   # Redis 비활성화
+#    store-type: redis # Redis 활성화
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    content-type: text/html
+    cache: false
+    check-template-location: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/aniwell?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Seoul
-    username: root
-    password: 
+    url: jdbc:mysql://aniwell.crg6u0s2maw3.ap-northeast-2.rds.amazonaws.com:3306/aniwell?serverTimezone=Asia/Seoul
+    username: KJM
+    password: aniwell1234
 mybatis:
   type-aliases-package: com.example.RSW.vo
   mapper-locations: classpath:/mappers/**/*.xml
-
 custom:
   siteName: aniwell
   siteMainUri: http://localhost:8080
   emailFrom: no-reply@localhost
   emailFromName: aniwell
-
+  redis:
+    enabled: true                # false면 Redis 완전 비활성화 / true - Redis 활성화
+    use-personal: false           # true: 개인 Redis / false: 팀 공유 Redis
+    personal-host: 100.114.185.63
+    personal-port: 6379
+    shared-host: 100.65.187.38
+    shared-port: 6379
+    password: aniwell1234
 kakao:
-  rest-api-key: "API키"
-  javascript-key: "자바키"
+  rest-api-key: "79f2a3a73883a82595a2202187f96cc5"    # 로그인
+  javascript-key: "dfd275f49b78960a0458d6f6294cbde2"
+  client-secret: "61Ng1JnIKgkQRXgxaJOpY9wo4gffwvn2"
+  redirect-uri: "http://localhost:8080/usr/member/kakao"  #로그인 redirect URI
+cloudinary:
+    cloud_name: dfiqktimk
+    api_key: 145284189636895
+    api_secret: 4TS23PL5HMWPolljcIRqitpWwU0
+naver:
+  client-id: "ZdyW5GGtNSgCCaduup7_"
+  client-secret: "pJh4IlGi2_"
+  redirect-uri: "http://localhost:8080/usr/member/naver"
+# :흰색_확인_표시: [추가] 없으면 기본값 DOCUMENT_TEXT_DETECTION 사용
+# :흰색_확인_표시: [수정본] SDK(서비스계정 JSON) 방식 — json 만 사용, path/base64 는 비움
+gcv:
+  ocrMode: DOCUMENT_TEXT_DETECTION   # TEXT_DETECTION | DOCUMENT_TEXT_DETECTION
+  credentials:
+    json: ""
+    path: file:/C:/RSW_spring_work/keys/gcv.json # 로컬 키 파일 경로
+    base64: ""
+# [추가] 없으면 생성
+app:
+  upload:
+    base-dir: uploads    # 필요 시 절대경로로 변경 (/var/aniwell/uploads 등)
+    path: ""     # :x: API 키 문자열을 넣는 곳이 아닙니다. (JSON 파일 경로일 때만 사용)
+    base64: ""   # JSON을 base64로 넣을 때만 사용 (이번엔 미사용)
+aniwell:
+  qr:
+    base: https://aniwell.s3.ap-northeast-2.amazonaws.com/qr.html
+  # (선택) ESP32-CAM 기기 인증 토큰 — IngestController에서 X-Device-Key로 검사
+  device:
+    key: ""     # 예: "my-super-secret"; 빈 값이면 검사 안 함
+  # Python 분석기 설정 (PythonRunner에서 사용)
+  python:
+    exe: "/Users/e-suul/Desktop/HES/.venv/bin/python"          # 가상환경 python 경로
+    script: "/Users/e-suul/Desktop/HES/litter_video_test.py"   # 스크립트 절대경로
+    frames: 8
+    model: "gpt-4o"
+    ignoreEmpty: true      # true면 '들렀다-나감' 프리필터 ON
+    timeoutSec: 90         # 분석 최대 대기(초) — PythonRunner에 추가한 옵션
+  # 프레임 수집/조립 경로 및 ffmpeg 경로 (ESP32-CAM 프레임 업로드용)
+  ingest:
+    baseDir: /tmp/aniwell_ingest    # 프레임 임시 저장 루트 (쓰기 권한 필요)
+  ffmpeg:
+    bin: /opt/homebrew/bin/ffmpeg   # 맥 Homebrew 기준. 환경에 맞춰 경로 지정
+    # CloudFront 쓰면 여기를 CloudFront 도메인으로 교체
+  api:
+    default: https://seed-wesley-worried-highs.trycloudflare.com
+    # CloudFront 쓰면 여기를 CloudFront 도메인으로 교체
+openai:
+  api-base: https://api.openai.com/v1
+  api-key:
+coolsms:
+  api-key: "NCSLRRMCPV4OBR2T"
+  api-secret: "BNGFKQLLVYVE6I9MI0UJUBSM9MTGRB5P"
+  domain: https://api.coolsms.co.kr
+  from: "01083537338"   # 콘솔에 등록된 발신번호
+  ttl-seconds: 180       # 인증코드 유효시간(초)
+  cooldown-seconds: 60   # 재전송 쿨다운
+
