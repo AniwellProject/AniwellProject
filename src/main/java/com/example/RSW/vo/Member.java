@@ -1,5 +1,6 @@
 package com.example.RSW.vo;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -11,7 +12,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Member {
+public class Member implements Serializable {  // 🔥 직렬화 구현 추가
+
+	private static final long serialVersionUID = 1L; // 직렬화 버전 관리용 ID
 
 	private int id;
 	private LocalDateTime regDate;
@@ -35,9 +38,9 @@ public class Member {
 	private String socialProvider; // 예: kakao, google, naver
 	private String socialId;       // 소셜 플랫폼 제공 고유 ID
 
-	public boolean isSocialMember() {
+	private String uid; // Firebase 토큰
 
+	public boolean isSocialMember() {
 		return this.socialProvider != null && !this.socialProvider.isBlank();
 	}
-
 }

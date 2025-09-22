@@ -11,15 +11,15 @@ function renderMiniCalendar(targetId, events, date = new Date()) {
 	const today = new Date();
 
 	const englishMonthNames = [
-		"JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-		"JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+		"JANUARY 1", "FEBRUARY 2", "MARCH 3", "APRIL 4", "MAY 5", "JUNE 6",
+		"JULY 7", "AUGUST 8", "SEPTEMBER 9", "OCTOBER 10", "NOVEMBER 11", "DECEMBER 12"
 	];
 
 	const monthLabel = document.getElementById('current-month-label');
 	if (monthLabel) {
 		monthLabel.textContent = englishMonthNames[month];
+		monthLabel.classList.add('font-bold');
 	}
-
 	const header = document.createElement('div');
 	header.className = 'flex justify-between items-center mb-4 text-yellow-200';
 
@@ -35,11 +35,11 @@ function renderMiniCalendar(targetId, events, date = new Date()) {
 	title.className = 'text-lg font-bold text-center text-black flex-1';
 	title.textContent = year + '년 ' + (month + 1) + '월';
 
-	prevBtn.onclick = function () {
+	prevBtn.onclick = function() {
 		const newDate = new Date(year, month - 1, 1);
 		renderMiniCalendar(targetId, events, newDate);
 	};
-	nextBtn.onclick = function () {
+	nextBtn.onclick = function() {
 		const newDate = new Date(year, month + 1, 1);
 		renderMiniCalendar(targetId, events, newDate);
 	};
@@ -52,8 +52,10 @@ function renderMiniCalendar(targetId, events, date = new Date()) {
 	container.appendChild(header);
 
 	const weekRow = document.createElement('div');
-	weekRow.className = 'grid grid-cols-7 text-center text-sm font-semibold text-gray-700 mb-2';
+
+	weekRow.className = 'grid grid-cols-7 text-center text-gray-700 mb-1';
 	['일', '월', '화', '수', '목', '금', '토'].forEach(function (day) {
+
 		const div = document.createElement('div');
 		div.textContent = day;
 		weekRow.appendChild(div);
@@ -81,14 +83,14 @@ function renderMiniCalendar(targetId, events, date = new Date()) {
 			month === today.getMonth() &&
 			year === today.getFullYear()
 		) {
-			el.classList.add('bg-yellow-400', 'rounded-full', 'font-bold');
+			el.classList.add('bg-yellow-400', 'rounded-full');
 		}
 
 		const monthStr = (month + 1 < 10 ? '0' : '') + (month + 1);
 		const dayStr = (i < 10 ? '0' : '') + i;
 		const dateStr = year + '-' + monthStr + '-' + dayStr;
 
-		const matched = events.find(function (e) {
+		const matched = events.find(function(e) {
 			return e.start === dateStr;
 		});
 
@@ -100,7 +102,7 @@ function renderMiniCalendar(targetId, events, date = new Date()) {
 			el.appendChild(img);
 		}
 
-		el.onclick = function () {
+		el.onclick = function() {
 			const sameDayEvents = events.filter(e => e.start === dateStr);
 
 			if (sameDayEvents.length === 1) {

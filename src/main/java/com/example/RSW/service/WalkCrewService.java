@@ -36,7 +36,16 @@ public class WalkCrewService {
 
 	// 크루 등록
 	public void createCrew(WalkCrew walkCrew) {
+		// 1. 크루 DB 저장 (자동 ID 생성 포함)
 		walkCrewRepository.insert(walkCrew);
+
+		// 2. 크루장을 walk_crew_member 테이블에 등록
+		WalkCrewMember leader = new WalkCrewMember();
+		leader.setCrewId(walkCrew.getId()); // 크루 PK
+		leader.setMemberId(walkCrew.getLeaderId()); // 크루장 ID
+		leader.setRole("leader"); // 역할 지정
+
+		walkCrewMemberRepository.insert(leader); // DB에 등록
 	}
 
 	// ID로 크루 상세 조회
@@ -115,6 +124,33 @@ public class WalkCrewService {
 
 		// ✅ 이 로직은 VO가 아니라 서비스 내부에 위치해야 합니다
 		return crew.getLeaderId() == memberId;
+	}
+
+	public void updateLeader(int crewId, int newLeaderId) {
+		walkCrewRepository.updateCrewLeader(crewId, newLeaderId);
+	}
+
+	public boolean updateDescription(int crewId, String newDescription) {
+		return walkCrewRepository.updateDescriptionById(crewId, newDescription) > 0;
+	}
+
+	public List<WalkCrew> getCrewsByLeaderId(int leaderId) {
+		return walkCrewRepository.findCrewsByLeaderId(leaderId);
+	}
+
+	public List<WalkCrew> getJoinedCrewsByMemberId(int memberId) {
+		return walkCrewRepository.findJoinedCrewsByMemberId(memberId);
+	}
+
+	// 📍 거리 계산 (lat/lng가 모두 존재하고, 크루 위치도 존재할 경우)
+	public double calculateDistance(Double lat1, Double lon1, Double lat2, Double lon2) {
+		final int R = 6371;
+		double latDistance = Math.toRadians(lat2 - lat1);
+		double lonDistance = Math.toRadians(lon2 - lon1);
+		double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) + Math.cos(Math.toRadians(lat1))
+				* Math.cos(Math.toRadians(lat2)) * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		return R * c;
 	}
 
 }

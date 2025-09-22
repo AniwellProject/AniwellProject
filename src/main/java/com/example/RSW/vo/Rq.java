@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.example.RSW.service.MemberService;
@@ -36,11 +39,14 @@ public class Rq {
 		this.resp = resp;
 		this.session = req.getSession();
 
-		if (session.getAttribute("loginedMemberId") != null) {
-			isLogined = true;
-			loginedMemberId = (int) session.getAttribute("loginedMemberId");
-			loginedMember = memberService.getMemberById(loginedMemberId);
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+			CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+			this.loginedMember = userDetails.getMember();
+			this.loginedMemberId = loginedMember.getId();
+			this.isLogined = true;
 		}
+
 
 		this.req.setAttribute("rq", this);
 	}
@@ -66,9 +72,10 @@ public class Rq {
 	}
 
 	public void logout() {
-		session.removeAttribute("loginedMemberId");
-		session.removeAttribute("loginedMember");
+		SecurityContextHolder.clearContext(); // ✅ Spring Security 인증 정보 제거
+		session.invalidate(); // ✅ 세션도 완전히 초기화
 	}
+
 
 	public void login(Member member) {
 		session.setAttribute("loginedMemberId", member.getId());

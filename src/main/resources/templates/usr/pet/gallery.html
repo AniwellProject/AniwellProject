@@ -1,169 +1,425 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <link rel="stylesheet" th:href="@{/resource/css/common.css}">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>감정 결과 갤러리</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'SUIT', sans-serif;
-      background: #b7b7b7;
-      display: flex;
-      justify-content: end;
-      align-items: center;
-      height: 100vh;
-    }
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<title>감정 결과 갤러리</title>
+	<style>
+		h2 {
+			text-align: center;
+			color: #444;
+			padding: 30px;
+		}
 
-    .main-container {
-      display: flex;
-      flex-direction: column;
-      background: white;
-      width: 100%;
-      height: 95%;
-      overflow: hidden;
-      padding: 30px;
-    }
+		.tabs {
+			text-align: center;
+			margin-bottom: 20px;
+		}
 
-    h2 {
-      text-align: center;
-      color: #444;
-      margin-bottom: 20px;
-    }
+		.tabs button {
+			padding: 10px 20px;
+			margin: 6px;
+			border: none;
+			background-color: #ffe28a;
+			border-radius: 30px;
+			font-size: 14px;
+			font-weight: bold;
+			cursor: pointer;
+			transition: background-color 0.3s;
+			box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+		}
 
-    .tabs {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+		.tabs button.active {
+			background-color: #ffcd29;
+			color: white;
+		}
 
-    .tabs button {
-      padding: 10px 20px;
-      margin: 6px;
-      border: none;
-      background-color: #ffe28a;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
-    }
+		.gallery-section {
+			display: none;
+			overflow: hidden;
+			position: relative;
+			flex-grow: 1;
+		}
 
-    .tabs button.active {
-      background-color: #ffcd29;
-      color: white;
-    }
+		.gallery-section.active {
+			display: block;
+		}
 
-    .gallery-section {
-      display: none;
-      overflow: hidden;
-      position: relative;
-      flex-grow: 1;
-    }
+		.gallery-track {
+			gap: 20px;
+			transition: transform 0.2s linear;
+			will-change: transform;
+		}
 
-    .gallery-section.active {
-      display: block;
-    }
+		.label {
+			display: block;
+			font-size: 14px;
+			color: #777;
+		}
 
-    .gallery-track {
-      display: flex;
-      gap: 20px;
-      transition: transform 0.2s linear;
-      will-change: transform;
-    }
+		/* ====== 대자보 레이아웃 공통 변수 ====== */
+		:root {
+			--row-gap: 28px;
+			/* 행 간격 */
+			--overlap-x: -22px;
+			/* 카드 가로 겹침(음수=더 겹침) */
+			--lift: -6px;
+			/* 일부 카드 살짝 들림 */
+			--radius: 18px;
+			/* ← 원하는 픽셀 증가량 */
+			--grow-px: 10px;
+		}
 
-    .gallery-item {
-      width: 220px;
-      background-color: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 12px;
-      text-align: center;
-      flex-shrink: 0;
-    }
+		/* 섹션 안쪽 보드(세로 스크롤) */
+		.gallery-board {
+			display: flex;
+			flex-direction: column;
+			gap: var(--row-gap);
+			padding: 35px 8px;
+		}
 
-    .gallery-item img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 12px;
-      margin-bottom: 10px;
-    }
+		/* 한 행 */
+		.row {
+			display: flex;
+			align-items: flex-end;
+			gap: 18px;
+			justify-content: flex-start;
+			position: relative;
+		}
 
-    .label {
-      display: block;
-      font-size: 14px;
-      color: #777;
-    }
-  </style>
+		/* 2번째 이후 카드들은 살짝 겹치기 */
+		.row .card+.card {
+			margin-left: var(--overlap-x);
+		}
+
+		.card {
+			margin: 0 8px;
+			position: relative;
+			width: clamp(180px, 23vw, 240px);
+			aspect-ratio: 4/5;
+			--radius: 18px;
+			/* 혹시 없으면 기본 반경 정의 */
+			border-radius: var(--radius);
+			background: #fff;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, .10);
+			overflow: hidden;
+
+			transform-origin: 50% 85%;
+			transform: translateZ(0) scale(1);
+			/* 기본 크기 */
+			transition: transform .18s ease, box-shadow .18s ease, z-index .18s ease;
+		}
+
+		.card:hover {
+			/* JS가 --hover-scale을 계산해줌 */
+			transform: translateZ(0) scale(var(--hover-scale, 1));
+			box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+			z-index: 2;
+		}
+
+		.card img {
+			width: 100%;
+			height: 75%;
+			object-fit: cover;
+			display: block;
+			border-radius: 12px;
+			margin-bottom: 0;
+			/* 기존 스타일 무력화 */
+		}
+
+		.card strong {
+			display: block;
+			text-align: center;
+			margin-top: 8px;
+		}
+
+		.card .label {
+			display: block;
+			font-size: 14px;
+			color: #777;
+			text-align: center;
+		}
+
+		.card::before {
+			content: "";
+			position: absolute;
+			inset: 0;
+			border-radius: inherit;
+			background: radial-gradient(transparent 60%, rgba(0, 0, 0, .04));
+			pointer-events: none;
+		}
+
+		/* Row A 패턴: [-4, 1, -2, 3] */
+		.row-a .card:nth-child(1) {
+			--rot: -4deg;
+			transform: rotate(var(--rot));
+			z-index: 4;
+		}
+
+		.row-a .card:nth-child(2) {
+			--rot: 1deg;
+			transform: translateY(var(--lift)) rotate(var(--rot));
+			z-index: 3;
+		}
+
+		.row-a .card:nth-child(3) {
+			--rot: -2deg;
+			transform: rotate(var(--rot));
+			z-index: 2;
+		}
+
+		.row-a .card:nth-child(4) {
+			--rot: 3deg;
+			transform: translateY(var(--lift)) rotate(var(--rot));
+			z-index: 1;
+		}
+
+		/* Row B 패턴: [2, -3, 1, -1] */
+		.row-b .card:nth-child(1) {
+			--rot: 2deg;
+			transform: translateY(var(--lift)) rotate(var(--rot));
+			z-index: 1;
+		}
+
+		.row-b .card:nth-child(2) {
+			--rot: -3deg;
+			transform: rotate(var(--rot));
+			z-index: 2;
+		}
+
+		.row-b .card:nth-child(3) {
+			--rot: 1deg;
+			transform: translateY(var(--lift)) rotate(var(--rot));
+			z-index: 3;
+		}
+
+		.row-b .card:nth-child(4) {
+			--rot: -1deg;
+			transform: rotate(var(--rot));
+			z-index: 4;
+		}
+
+		/* 반응형(선택) */
+		@media (max-width:1024px) {
+			.card {
+				width: clamp(160px, 30vw, 220px);
+			}
+
+			:root {
+				--overlap-x: -16px;
+			}
+		}
+
+		@media (max-width:640px) {
+			.card {
+				width: clamp(150px, 44vw, 200px);
+			}
+
+			:root {
+				--overlap-x: -12px;
+			}
+		}
+
+		/* === ▼ 행 장식 공통 변수/기본값 (gallery.html에 추가) === */
+		.gallery-board {
+			--deco-color: #A8C7AF;
+			/* 장식 색상 (currentColor) */
+			--deco-size: 80px;
+			/* 장식 기본 크기 */
+		}
+
+		/* 공통: 마스크 장식을 위한 베이스 (::before/::after에 적용) */
+		.row,
+		.card {
+			position: relative;
+		}
+
+		/* ===== 1행(=row-a): 왼쪽 상단 '클립' 장식 - 첫 번째 카드에 부착 ===== */
+		.row-a::before {
+			z-index: 10;
+			content: "";
+			position: absolute;
+			top: -10px;
+			left: -10px;
+			width: var(--deco-size);
+			height: var(--deco-size);
+			color: var(--deco-color);
+			background-color: currentColor;
+			filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .25));
+			transform: rotate(-12deg);
+			/* Safari & 표준 마스크 */
+			-webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 91 91' fill='currentColor'%3E%3Cpath d='M88.3,34.924c-1.304-1.305-3.419-1.305-4.724,0L40.378,78.117c-3.561,3.561-8.238,5.568-13.175,5.652c-4.922,0.104-9.454-1.732-12.843-5.121c-7.027-7.027-6.789-18.701,0.529-26.02c0.01-0.01,0.016-0.021,0.026-0.032l41.019-41.016c4.5-4.492,11.817-4.49,16.319,0.009c4.503,4.504,4.503,11.832,0,16.336c-0.005,0.005-0.008,0.011-0.013,0.016L30.501,69.68c-0.002,0.002-0.002,0.003-0.004,0.005c-1.873,1.865-4.92,1.864-6.789-0.005c-0.908-0.906-1.41-2.113-1.41-3.396c0-1.281,0.498-2.482,1.4-3.388c0.005-0.004,0.01-0.007,0.014-0.011l37.43-37.438c1.304-1.305,1.304-3.418-0.001-4.723s-3.419-1.305-4.724,0l-37.41,37.418c-0.007,0.007-0.016,0.011-0.021,0.018c-2.172,2.168-3.367,5.055-3.367,8.123s1.195,5.951,3.369,8.125c2.238,2.234,5.179,3.352,8.118,3.352c2.94-0.002,5.881-1.117,8.118-3.354c0.005-0.005,0.008-0.011,0.014-0.016l41.736-41.735c0.001-0.002,0.003-0.003,0.005-0.005c0.003-0.003,0.006-0.007,0.009-0.01l0.711-0.711c0.182-0.181,0.331-0.38,0.462-0.588c5.896-7.155,5.505-17.787-1.183-24.477c-6.69-6.686-17.318-7.074-24.469-1.181c-0.208,0.131-0.407,0.281-0.588,0.462L10.163,47.904c-0.01,0.009-0.015,0.02-0.023,0.029C0.243,57.859,0.017,73.748,9.638,83.371c4.578,4.578,10.683,7.084,17.235,7.084c0.148,0,0.297-0.004,0.445-0.006c6.677-0.113,12.993-2.816,17.784-7.609c0.004-0.003,0.006-0.008,0.009-0.011L88.3,39.646C89.604,38.344,89.604,36.229,88.3,34.924z'/%3E%3C/svg%3E") no-repeat center / contain;
+			mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 91 91' fill='currentColor'%3E%3Cpath d='M88.3,34.924c-1.304-1.305-3.419-1.305-4.724,0L40.378,78.117c-3.561,3.561-8.238,5.568-13.175,5.652c-4.922,0.104-9.454-1.732-12.843-5.121c-7.027-7.027-6.789-18.701,0.529-26.02c0.01-0.01,0.016-0.021,0.026-0.032l41.019-41.016c4.5-4.492,11.817-4.49,16.319,0.009c4.503,4.504,4.503,11.832,0,16.336c-0.005,0.005-0.008,0.011-0.013,0.016L30.501,69.68c-0.002,0.002-0.002,0.003-0.004,0.005c-1.873,1.865-4.92,1.864-6.789-0.005c-0.908-0.906-1.41-2.113-1.41-3.396c0-1.281,0.498-2.482,1.4-3.388c0.005-0.004,0.01-0.007,0.014-0.011l37.43-37.438c1.304-1.305,1.304-3.418-0.001-4.723s-3.419-1.305-4.724,0l-37.41,37.418c-0.007,0.007-0.016,0.011-0.021,0.018c-2.172,2.168-3.367,5.055-3.367,8.123s1.195,5.951,3.369,8.125c2.238,2.234,5.179,3.352,8.118,3.352c2.94-0.002,5.881-1.117,8.118-3.354c0.005-0.005,0.008-0.011,0.014-0.016l41.736-41.735c0.001-0.002,0.003-0.003,0.005-0.005c0.003-0.003,0.006-0.007,0.009-0.01l0.711-0.711c0.182-0.181,0.331-0.38,0.462-0.588c5.896-7.155,5.505-17.787-1.183-24.477c-6.69-6.686-17.318-7.074-24.469-1.181c-0.208,0.131-0.407,0.281-0.588,0.462L10.163,47.904c-0.01,0.009-0.015,0.02-0.023,0.029C0.243,57.859,0.017,73.748,9.638,83.371c4.578,4.578,10.683,7.084,17.235,7.084c0.148,0,0.297-0.004,0.445-0.006c6.677-0.113,12.993-2.816,17.784-7.609c0.004-0.003,0.006-0.008,0.009-0.011L88.3,39.646C89.604,38.344,89.604,36.229,88.3,34.924z'/%3E%3C/svg%3E") no-repeat center / contain;
+		}
+
+		/* 행 컨테이너는 기준이 되어야 함 */
+		.row-b {
+			position: relative;
+			--deco-gap: 56px;
+		}
+
+		/* 두 아이콘 사이 간격 조절 */
+
+		.row-b::before,
+		.row-b::after {
+			content: "";
+			position: absolute;
+			top: -30px;
+			width: calc(var(--deco-size) * 1.15);
+			height: calc(var(--deco-size) * 1.15);
+			color: var(--deco-color);
+			background-color: #F3DF85;
+			filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .25));
+			pointer-events: none;
+			z-index: 10;
+			mask-mode: alpha;
+			/* 파이어폭스 일관성 */
+		}
+
+		/* 왼쪽(센터에서 -gap) : 기존 24x24 기어 아이콘 */
+		.row-b::before {
+			top:-30px;
+			left: 50%;
+			transform: translateX(-50%) rotate(-6deg);
+			-webkit-mask: url("data:image/svg+xml;utf8,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M20 9c1.66 0 3 1.34 3 3s-1.34 3-3 3h-.76l.54.54a3 3 0 0 1 0 4.24 3 3 0 0 1-4.24 0l-.54-.54V20c0 1.66-1.34 3-3 3s-3-1.34-3-3v-.76l-.54.54a3 3 0 0 1-4.24 0 3 3 0 0 1 0-4.24l.54-.54H4c-1.66 0-3-1.34-3-3s1.34-3 3-3h.76l-.54-.54a3 3 0 0 1 0-4.24 3 3 0 0 1 4.24 0l.54.54V4c0-1.66 1.34-3 3-3s3 1.34 3 3v.76l.54-.54a3 3 0 0 1 4.24 0 3 3 0 0 1 0 4.24l-.54.54H20Zm-4 3a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'/%3E%3C/svg%3E") no-repeat center / contain;
+			mask: url("data:image/svg+xml;utf8,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M20 9c1.66 0 3 1.34 3 3s-1.34 3-3 3h-.76l.54.54a3 3 0 0 1 0 4.24 3 3 0 0 1-4.24 0l-.54-.54V20c0 1.66-1.34 3-3 3s-3-1.34-3-3v-.76l-.54.54a3 3 0 0 1-4.24 0 3 3 0 0 1 0-4.24l.54-.54H4c-1.66 0-3-1.34-3-3s1.34-3 3-3h.76l-.54-.54a3 3 0 0 1 0-4.24 3 3 0 0 1 4.24 0l.54.54V4c0-1.66 1.34-3 3-3s3 1.34 3 3v.76l.54-.54a3 3 0 0 1 4.24 0 3 3 0 0 1 0 4.24l-.54.54H20Zm-4 3a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'/%3E%3C/svg%3E") no-repeat center / contain;
+		}
+
+		/* 오른쪽(센터에서 +gap) : 새 18x18 핀 아이콘 */
+		.row-b::after {
+			background-color: #DBE09A;
+			top: -50px;
+			left: 960px;
+			transform: translateX(-50%) rotate(6deg);
+			-webkit-mask: url("data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2018%2018'%20fill='%23000'%3E%3Cpath%20d='M14%2010a1%201%200%200%201-1%201h-3v4l-1%203-1-3v-4H5a1%201%200%200%201-1-1c0-1.1.9-3%202-3V2a1%201%200%200%201%200-2h6a1%201%200%200%201%200%202v5c1.1%200%202%201.9%202%203z'/%3E%3C/svg%3E") no-repeat center / contain;
+			mask: url("data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2018%2018'%20fill='%23000'%3E%3Cpath%20d='M14%2010a1%201%200%200%201-1%201h-3v4l-1%203-1-3v-4H5a1%201%200%200%201-1-1c0-1.1.9-3%202-3V2a1%201%200%200%201%200-2h6a1%201%200%200%201%200%202v5c1.1%200%202%201.9%202%203z'/%3E%3C/svg%3E") no-repeat center / contain;
+		}
+
+
+		/* 반응형 보정(선택): 모바일에서 장식 크기 줄이기 */
+		@media (max-width:640px) {
+			.gallery-board {
+				--deco-size: 22px;
+			}
+		}
+	</style>
+
 </head>
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
-<div th:replace="common :: siteHeader"></div>
 
-<!-- Main content -->
-<main class="main_page min-h-screen flex-1 p-6 grid grid-cols-12 gap-4">
-<div class="main-container col-span-12">
-  <h2>🐾 감정 결과 갤러리</h2>
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
 
-  <div class="tabs">
-    <button class="emotion-btn active" onclick="showGallery('happy')">😊 Happy</button>
-    <button class="emotion-btn" onclick="showGallery('relaxed')">😌 Relaxed</button>
-    <button class="emotion-btn" onclick="showGallery('sad')">🥲 Sad</button>
-    <button class="emotion-btn" onclick="showGallery('scared')">😨 Scared</button>
-  </div>
+	<div class="flex h-screen w-full">
 
-  <div th:each="emotion : ${emotionList}"
-       th:class="'gallery-section ' + (emotion == 'happy' ? 'active' : '')"
-       th:id="'section-' + ${emotion}">
-    <div th:id="'track-' + ${emotion}" class="gallery-track">
-      <div th:each="item : ${analysisList}"
-           th:if="${item.emotionResult == emotion}"
-           class="gallery-item">
-        <img th:src="${item.imagePath}" alt="Pet Image">
-        <strong th:text="${item.emotionResult}"></strong>
-        <span class="label" th:text="'신뢰도: ' + ${item.confidence} + '%'"></span>
-        <span class="label" th:text="'날짜: ' + ${item.analyzedAt}"></span>
-      </div>
-    </div>
-  </div>
+		<div th:replace="common :: siteHeader"></div>
+
+		<!-- Main content -->
+		<main class="main_page h-full overflow-y-auto min-h-dvh flex-1">
+
+			<div class="sticky top-0 z-20 bg-white/80 backdrop-blur-sm pb-3">
+				<div class="h-4"></div>
+				<h2>🐾 감정 결과 갤러리</h2>
+
+				<div class="tabs sticy">
+					<button class="emotion-btn active" onclick="showGallery('happy')">😊 Happy</button>
+					<button class="emotion-btn" onclick="showGallery('relaxed')">😌 Relaxed</button>
+					<button class="emotion-btn" onclick="showGallery('sad')">🥲 Sad</button>
+					<button class="emotion-btn" onclick="showGallery('scared')">😨 Scared</button>
+				</div>
+			</div>
 
 
-  <script>
-  let currentEmotion = 'happy';
-  const galleryScrolls = {};
 
-  function showGallery(emotion) {
-    document.querySelectorAll('.emotion-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.textContent.toLowerCase().includes(emotion)) btn.classList.add('active');
-    });
+			<div class="max-w-[1100px] mx-auto md:px-10">
+				<div th:each="emotion : ${emotionList}"
+					th:class="'gallery-section ' + (emotion == 'happy' ? 'active' : '')"
+					th:id="'section-' + ${emotion}">
+					<div th:id="'track-' + ${emotion}" class="gallery-track">
+						<div th:each="item : ${analysisList}" th:if="${item.emotionResult == emotion}" class="relative gallery-item group bg-white rounded-[22px] p-2 shadow-[0_12px_30px_rgba(0,0,0,0.12)]
+							ring-1 ring-black/5 transition-transform hover:-translate-y-0.5">
+							<img th:src="${item.imagePath}" alt="Pet Image" loading="lazy"
+								class="w-full h-full object-cover">
+							<div class="px-3 pb-3 pt-2 text-center">
+								<div th:text="${item.emotionResult}" class="text-xl font-extrabold tracking-tight">
+								</div>
+								<div class="text-xs text-neutral-500 mt-0.5"
+									th:text="'신뢰도: ' + ${item.confidence} + '%'">
+								</div>
+								<div class="text-xs text-neutral-400" th:text="'날짜: ' + ${item.analyzedAt}"></div>
+							</div>
+						</div>
 
-    document.querySelectorAll('.gallery-section').forEach(sec => sec.classList.remove('active'));
-    document.getElementById('section-' + emotion).classList.add('active');
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
 
-    currentEmotion = emotion;
-  }
 
-  function loopGalleryScroll(emotion) {
-    const track = document.getElementById('track-' + emotion);
-    let scrollX = 0;
+	<script>
+		document.addEventListener('DOMContentLoaded', () => {
+			buildRowsForAllSections(4);     // 4장씩 한 행
+			showGallery('happy');           // 초기 탭
+		});
 
-    function animate() {
-      if (currentEmotion !== emotion) return requestAnimationFrame(animate); // 현재 탭 아니면 패스
-      scrollX += 0.5;
-      if (track.scrollWidth - scrollX <= track.clientWidth) scrollX = 0;
-      track.style.transform = 'translateX(-' + scrollX + 'px)';
-      requestAnimationFrame(animate);
-    }
+		let currentEmotion = 'happy';
 
-    requestAnimationFrame(animate);
-  }
+		function showGallery(emotion) {
+			document.querySelectorAll('.emotion-btn').forEach(btn => {
+				btn.classList.toggle('active', btn.textContent.toLowerCase().includes(emotion));
+			});
+			document.querySelectorAll('.gallery-section').forEach(sec => sec.classList.remove('active'));
+			document.getElementById('section-' + emotion).classList.add('active');
+			currentEmotion = emotion;
+		}
 
-  ['happy', 'relaxed', 'sad', 'scared'].forEach(emotion => {
-    loopGalleryScroll(emotion);
-  });
-</script>
-</div>
-</main>
+		/** 각 섹션의 .gallery-item을 rowSize씩 잘라 row-a/row-b로 감싸고,
+		 *  컨테이너 .gallery-track -> .gallery-board로 변경
+		 */
+		function buildRowsForAllSections(rowSize = 4) {
+			document.querySelectorAll('.gallery-section').forEach(section => {
+				const track = section.querySelector('.gallery-track');
+				if (!track) return;
+
+				// 컨테이너 클래스 전환
+				track.classList.remove('gallery-track');
+				track.classList.add('gallery-board');
+
+				// 아이템 수집
+				const items = Array.from(track.querySelectorAll('.gallery-item'));
+				// 기존 노드 제거
+				track.innerHTML = '';
+
+				// 행 만들기 (A/B 번갈아)
+				let rowIndex = 0;
+				for (let i = 0; i < items.length; i += rowSize) {
+					const slice = items.slice(i, i + rowSize);
+					const row = document.createElement('div');
+					row.className = 'row ' + (rowIndex % 2 === 0 ? 'row-a' : 'row-b');
+					rowIndex++;
+
+					slice.forEach(item => {
+						item.classList.remove('gallery-item');
+						item.classList.add('card');
+						// lazy 보장 + 대체 텍스트
+						const img = item.querySelector('img');
+						if (img) {
+							img.loading = img.loading || 'lazy';
+							if (!img.alt || img.alt === 'Pet Image') {
+								const title = item.querySelector('strong')?.textContent?.trim() || 'photo';
+								img.alt = title;
+							}
+						}
+						row.appendChild(item);
+					});
+					track.appendChild(row);
+				}
+			});
+		}
+	</script>
+
+
 </body>
+
 </html>

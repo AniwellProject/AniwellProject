@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.MedicalDocumentRepository">
+
+	<!-- 기본 VO 매핑 -->
+	<resultMap id="MedicalDocumentMap" type="com.example.RSW.vo.MedicalDocument">
+		<id     property="id"        column="id"/>
+		<result property="visitId"   column="visit_id"/>
+		<result property="docType"   column="doc_type"/>
+		<result property="fileUrl"   column="file_url"/>
+		<result property="ocrJson"   column="ocr_json"/>
+		<result property="createdAt" column="created_at"/>
+	</resultMap>
+
+	<!-- 리스트 DTO 매핑 (한 번만 선언) -->
+	<resultMap id="LabDocListMap" type="com.example.RSW.dto.LabDocumentDto">
+		<id     property="documentId"   column="document_id"/>
+		<result property="visitId"      column="visit_id"/>
+		<result property="docType"      column="doc_type"/>
+		<result property="fileUrl"      column="file_url"/>
+		<result property="hospitalName" column="hospital_name"/>
+		<result property="visitDate"    column="visit_date"/>
+	</resultMap>
+
+	<select id="selectByVisitId" parameterType="int" resultMap="MedicalDocumentMap">
+		SELECT id, visit_id, doc_type, file_url, ocr_json, created_at
+		FROM medical_document
+		WHERE visit_id = #{visitId}
+		ORDER BY created_at DESC, id DESC
+	</select>
+
+
+	<!-- 공통 JOIN (기존 쿼리용) -->
+	<!-- 공통 JOIN: 파라미터(#{...}) 쓰지 마! -->
+	<sql id="MdJoinVisit">
+		medical_document md
+  JOIN visit v ON v.id = md.visit_id
+	</sql>
+
+	<!-- 목록: petId + lab만 -->
+	<select id="selectLabDocsByPetId" resultMap="LabDocListMap">
+		SELECT
+		md.id         AS document_id,
+		md.visit_id   AS visit_id,
+		md.doc_type   AS doc_type,
+		md.file_url   AS file_url,
+		v.hospital    AS hospital_name,
+		v.visit_date  AS visit_date
+		FROM
+		<include refid="MdJoinVisit"/>
+		WHERE
+		md.doc_type = 'lab'
+		AND v.pet_id = #{petId}       <!-- ★ 여기서 petId 조건 -->
+		ORDER BY v.visit_date DESC, md.id DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+
+	<!-- 카운트 -->
+	<select id="countLabDocsByPetId" resultType="int">
+		SELECT COUNT(*)
+		FROM <include refid="MdJoinVisit"/>
+		WHERE md.doc_type = 'lab'
+		AND v.pet_id = #{petId}       <!-- ★ 여기서 petId 조건 -->
+	</select>
+
+
+	<!-- ▼ lab 목록 전용 JOIN: petId 필터를 ON 절에 포함 -->
+	<sql id="MdJoinVisitForPet">
+		medical_document md
+    JOIN visit v
+      ON v.id = md.visit_id
+     AND v.pet_id = #{petId}
+	</sql>
+
+	<!-- INSERT/UPDATE/DELETE/SELECT 기존 쿼리들 ... (생략) -->
+
+	<!-- 방문 최신 문서 (버그 수정판) -->
+	<select id="findLatestByVisitId" parameterType="int" resultMap="MedicalDocumentMap">
+		SELECT id, visit_id, doc_type, file_url, ocr_json, created_at
+		FROM medical_document
+		WHERE visit_id = #{visitId}
+		ORDER BY created_at DESC, id DESC
+			LIMIT 1
+	</select>
+
+
+	<!-- 기존 selectByPetId 등은 그대로 유지 -->
+	<select id="selectByPetId" parameterType="int" resultMap="MedicalDocumentMap">
+		SELECT md.id, md.visit_id, md.doc_type, md.file_url, md.ocr_json, md.created_at
+		FROM medical_document md
+				 JOIN visit v ON v.id = md.visit_id
+		WHERE v.pet_id = #{petId}
+		ORDER BY v.visit_date DESC, md.created_at DESC
+	</select>
+
+	<!-- ▼ DocEnvelope 매핑 -->
+	<resultMap id="DocEnvelopeMap" type="com.example.RSW.dto.DocEnvelopeDto">
+		<id     property="documentId" column="document_id"/>
+		<result property="visitId"    column="visit_id"/>
+		<result property="docType"    column="doc_type"/>
+		<result property="fileUrl"    column="file_url"/>
+		<result property="ocrJson"    column="ocr_json"/>
+
+		<result property="petId"      column="v_pet_id"/>
+		<result property="visitDate"  column="visit_date"/>
+		<result property="hospital"   column="hospital"/>
+		<result property="doctor"     column="doctor"/>
+		<result property="diagnosis"  column="diagnosis"/>
+		<result property="notes"      column="notes"/>
+
+		<result property="petId2"     column="p_id"/>
+		<result property="petName"    column="pet_name"/>
+		<result property="species"    column="species"/>
+		<result property="sex"        column="sex"/>
+		<result property="birthDate"  column="birth_date"/>
+		<result property="age"        column="age"/>
+		<result property="ageMonths"  column="age_months"/>
+	</resultMap>
+
+	<!-- DocEnvelopeMap는 그대로 두되, birthDate 별칭은 birth_date로 맞춰둔 상태라고 가정 -->
+	<!-- 기존 DocEnvelopeMap은 그대로 두고, 이 SELECT만 교체 -->
+	<select id="selectDocEnvelopeById" parameterType="int" resultMap="DocEnvelopeMap">
+		SELECT
+			md.id        AS document_id,
+			md.visit_id  AS visit_id,
+			md.doc_type  AS doc_type,
+			md.file_url  AS file_url,
+			md.ocr_json  AS ocr_json,
+
+			v.pet_id     AS v_pet_id,
+			v.visit_date AS visit_date,
+			v.hospital   AS hospital,
+			v.doctor     AS doctor,
+			v.diagnosis  AS diagnosis,
+			v.notes      AS notes,
+
+			p.id         AS p_id,
+			p.name       AS pet_name,     -- ✓ pet.name
+			p.species    AS species,      -- ✓ pet.species
+			p.gender     AS sex,          -- ✓ pet.gender → sex 로 별칭
+			p.birthDate  AS birth_date,   -- ✓ pet.birthDate → birth_date 로 별칭
+			NULL         AS age,          -- (스키마에 없으니 null)
+			NULL         AS age_months    -- (스키마에 없으니 null)
+		FROM medical_document md
+				 JOIN visit v ON v.id = md.visit_id
+				 LEFT JOIN pet p ON p.id = v.pet_id
+		WHERE md.id = #{docId}
+	</select>
+
+	<select id="selectById" parameterType="int" resultMap="MedicalDocumentMap">
+		SELECT id, visit_id, doc_type, file_url, ocr_json, created_at
+		FROM medical_document
+		WHERE id = #{id}
+	</select>
+
+	<!-- ▼ OCR 문서 저장 -->
+	<insert id="insertDocument"
+			parameterType="map"
+			useGeneratedKeys="true"
+			keyProperty="id"
+			keyColumn="id">
+		INSERT INTO medical_document
+		(visit_id, doc_type, file_url, ocr_json, created_at)
+		VALUES
+		(#{visitId,jdbcType=INTEGER},
+		#{docType},
+		#{fileUrl},
+		#{ocrJson},       <!-- PostgreSQL JSONB면 #{ocrJson}::jsonb 로 -->
+		NOW())
+	</insert>
+
+
+
+
+
+</mapper>

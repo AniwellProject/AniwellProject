@@ -2,10 +2,13 @@ package com.example.RSW.controller;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import com.example.RSW.service.*;
+import com.example.RSW.vo.*;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -17,12 +20,6 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.example.RSW.interceptor.BeforeActionInterceptor;
 import com.example.RSW.util.Ut;
-import com.example.RSW.vo.Article;
-import com.example.RSW.vo.Board;
-import com.example.RSW.vo.Reply;
-import com.example.RSW.vo.ResultData;
-import com.example.RSW.vo.Rq;
-import com.example.RSW.vo.WalkCrew;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
@@ -55,34 +52,38 @@ public class UsrArticleController {
 
 	@Autowired
 	private NotificationService notificationService;
-    @Autowired
-    private SpringResourceTemplateResolver springResourceTemplateResolver;
+
+	@Autowired
+	private SpringResourceTemplateResolver springResourceTemplateResolver;
+	@Autowired
+	private WalkCrewMemberService walkCrewMemberService;
 
 	UsrArticleController(BeforeActionInterceptor beforeActionInterceptor) {
 		this.beforeActionInterceptor = beforeActionInterceptor;
 	}
 
-
 	@GetMapping("/usr/article/write/check")
 	public ResultData checkWritePermission(HttpServletRequest req, @RequestParam(required = false) Integer boardId,
-										   @RequestParam(required = false) Integer crewId, @RequestParam(required = false) String type) {
+			@RequestParam(required = false) Integer crewId, @RequestParam(required = false) String type) {
 
 		Rq rq = (Rq) req.getAttribute("rq");
 
+		int loginedMemberId = rq.getLoginedMemberId(); // ✅ 이거 선언 꼭 필요
+
+		// ✅ 크루 관련 권한 체크는 여기서도 반드시 수행
 		if (crewId != null) {
 			WalkCrew crew = walkCrewService.getCrewById(crewId);
-
 			if (crew == null) {
 				return ResultData.from("F-1", "존재하지 않는 크루입니다.");
 			}
 
-			boolean isApproved = walkCrewService.isApprovedMember(crewId, rq.getLoginedMemberId());
+			boolean isApproved = walkCrewService.isApprovedMember(crewId, loginedMemberId);
 			if (!isApproved) {
 				return ResultData.from("F-2", "승인된 크루 멤버만 글쓰기 가능합니다.");
 			}
 
 			if (boardId != null && boardId == 1) {
-				boolean isLeader = walkCrewService.isCrewLeader(crewId, rq.getLoginedMemberId());
+				boolean isLeader = walkCrewService.isCrewLeader(crewId, loginedMemberId);
 				if (!isLeader) {
 					return ResultData.from("F-3", "공지사항은 크루장만 작성할 수 있습니다.");
 				}
@@ -93,7 +94,9 @@ public class UsrArticleController {
 		}
 
 		// 일반 게시판인 경우 기본 boardId 할당
-		if (boardId == null) {
+		if (boardId == null)
+
+		{
 			boardId = 2;
 		}
 
@@ -103,13 +106,15 @@ public class UsrArticleController {
 	@PostMapping("/usr/article/doWrite")
 	@ResponseBody
 	public ResultData doWrite(HttpServletRequest req, @RequestParam(required = false) Integer crewId,
-							  @RequestParam(required = false) Integer boardId, @RequestParam String title, @RequestParam String body,
-							  @RequestParam(required = false) MultipartFile imageFile) {
+			@RequestParam(required = false) Integer boardId, @RequestParam String title, @RequestParam String body,
+			@RequestParam(required = false) MultipartFile imageFile) {
 
 		Rq rq = (Rq) req.getAttribute("rq");
 		int loginedMemberId = rq.getLoginedMemberId();
 
 		String imageUrl = null;
+
+		System.out.println("crewId: " + crewId);
 
 		// ✅ 이미지 업로드 처리 (Cloudinary)
 		if (imageFile != null && !imageFile.isEmpty()) {
@@ -120,6 +125,29 @@ public class UsrArticleController {
 			} catch (IOException e) {
 				e.printStackTrace();
 				return ResultData.from("F-Img", "이미지 업로드 실패");
+			}
+		}
+
+		// ✅✳️✳️✳️ [여기]에서 크루 권한 검사를 반드시 선행해야 함 ✳️✳️✳️
+		if (crewId != null) {
+			// ✅ 1. 크루 유효성 검사
+			WalkCrew crew = walkCrewService.getCrewById(crewId);
+			if (crew == null) {
+				return ResultData.from("F-1", "존재하지 않는 크루입니다.");
+			}
+
+			// ✅ 2. 승인된 멤버인지 확인
+			boolean isApproved = walkCrewService.isApprovedMember(crewId, loginedMemberId);
+			if (!isApproved) {
+				return ResultData.from("F-2", "승인된 크루 멤버만 글을 작성할 수 있습니다.");
+			}
+
+			// ✅ 3. 공지사항이라면 크루장만 가능
+			if (boardId != null && boardId == 1) {
+				boolean isLeader = walkCrewService.isCrewLeader(crewId, loginedMemberId);
+				if (!isLeader) {
+					return ResultData.from("F-3", "공지사항은 크루장만 작성할 수 있습니다.");
+				}
 			}
 		}
 
@@ -142,11 +170,22 @@ public class UsrArticleController {
 
 // ✅ 🔔 전체 알림 발송 (공지사항일 때만)
 		if (boardId != null && boardId == 1) {
-			String link = redirectUrl;
-			String notiTitle = "[공지사항] " + title;
-			notificationService.sendNotificationToAll(notiTitle, link, "NOTICE", loginedMemberId);
-		}
 
+			String link = redirectUrl;
+
+			if (crewId != null) {
+				// ✅ 크루공지로 간주
+				String notiTitle = "[크루공지] " + title;
+				// 기존 전체 전송 대신 크루용으로 커스텀 분기
+				notificationService.sendNotificationToMember(notiTitle, link, "CREW_NOTICE", loginedMemberId, crewId);
+
+				// 실제 크루 멤버에게만 보내고 싶으면 위 메서드만 수정
+			} else {
+				// ✅ 전체 공지
+				String notiTitle = "[공지사항] " + title;
+				notificationService.sendNotificationToAll(notiTitle, link, "NOTICE", loginedMemberId, crewId);
+			}
+		}
 		return ResultData.from("S-1", "게시글이 성공적으로 작성되었습니다.",
 				Map.of("articleId", articleId, "redirectUrl", redirectUrl));
 	}
@@ -154,9 +193,7 @@ public class UsrArticleController {
 	// ✅ 게시글 수정 처리 (JSON 방식)
 	@PostMapping("/usr/article/doModify")
 	@ResponseBody
-	public ResultData doModify(@RequestParam int id,
-							   @RequestParam String title,
-							   @RequestParam String body) {
+	public ResultData doModify(@RequestParam int id, @RequestParam String title, @RequestParam String body) {
 
 		Article article = articleService.getArticleById(id);
 		if (article == null) {
@@ -175,11 +212,11 @@ public class UsrArticleController {
 		return ResultData.from("S-1", "게시글 수정 완료", "data1", updated);
 	}
 
-
+	@ResponseBody
 	@PostMapping("/usr/article/doDelete")
 	public ResultData doDelete(HttpServletRequest req, @RequestParam int id, @RequestParam int crewId) {
 		Rq rq = (Rq) req.getAttribute("rq");
-
+		System.out.println(id + " / " + crewId);
 		if (rq == null || !rq.isLogined()) {
 			return ResultData.from("F-0", "로그인 후 이용해주세요.");
 		}
@@ -194,6 +231,14 @@ public class UsrArticleController {
 			return ResultData.from(userCanDeleteRd.getResultCode(), userCanDeleteRd.getMsg());
 		}
 
+		String redirectUrl = article.getCrewId() != null
+				? "/usr/article/detail?id=" + id + "&crewId=" + article.getCrewId()
+				: "/usr/article/detail?id=" + id + "&boardId=" + article.getBoardId();
+
+		System.out.println("redirectUrl: " + redirectUrl);
+
+		notificationService.deleteByLink(redirectUrl);
+
 		articleService.deleteArticle(id);
 
 		// ✅ 프론트에서 리디렉션할 수 있도록 리턴
@@ -205,6 +250,21 @@ public class UsrArticleController {
 	public String showDetail(HttpServletRequest req, HttpServletResponse resp, Model model, int id) throws IOException {
 		Rq rq = (Rq) req.getAttribute("rq");
 		Article article = articleService.getForPrintArticle(rq.getLoginedMemberId(), id);
+
+		boolean canWriteReply = false;
+		int loginMemberId = rq.getLoginedMemberId();
+
+		if (rq.isLogined()) {
+			if (article.getCrewId() == null) {
+				canWriteReply = true;
+			} else {
+				List<WalkCrewMember> crewMembers = walkCrewMemberService.getMembersByCrewId(article.getCrewId());
+				canWriteReply = crewMembers.stream().anyMatch(cm -> cm.getMemberId() == loginMemberId);
+				model.addAttribute("crewMembers", crewMembers); // 필요하면 계속 넘김
+			}
+		}
+
+		model.addAttribute("canWriteReply", canWriteReply);
 
 		if (article == null) {
 			resp.setContentType("text/html; charset=UTF-8");
@@ -227,19 +287,31 @@ public class UsrArticleController {
 
 		model.addAttribute("article", article);
 		model.addAttribute("usersReaction", usersReactionRd.getData1());
-		model.addAttribute("isAlreadyAddGoodRp", reactionPointService.isAlreadyAddGoodRp(rq.getLoginedMemberId(), id, "article"));
-		model.addAttribute("isAlreadyAddBadRp", reactionPointService.isAlreadyAddBadRp(rq.getLoginedMemberId(), id, "article"));
+		model.addAttribute("isAlreadyAddGoodRp",
+				reactionPointService.isAlreadyAddGoodRp(rq.getLoginedMemberId(), id, "article"));
+		model.addAttribute("isAlreadyAddBadRp",
+				reactionPointService.isAlreadyAddBadRp(rq.getLoginedMemberId(), id, "article"));
 
 		return "usr/article/detail"; // 정상 진입 시 detail 페이지 이동
 	}
 
 	@GetMapping("/usr/article/list")
+	@ResponseBody
 	public ResultData showList(HttpServletRequest req, @RequestParam(required = false) Integer boardId,
-							   @RequestParam(required = false) Integer crewId, @RequestParam(defaultValue = "1") int page,
-							   @RequestParam(defaultValue = "title") String searchKeywordTypeCode,
-							   @RequestParam(defaultValue = "") String searchKeyword) throws IOException {
+			@RequestParam(required = false) Integer crewId, @RequestParam(required = false) Integer memberId,
+			@RequestParam(defaultValue = "1") int page,
+			@RequestParam(defaultValue = "title") String searchKeywordTypeCode,
+			@RequestParam(defaultValue = "") String searchKeyword) throws IOException {
 
 		Rq rq = (Rq) req.getAttribute("rq");
+
+		// ✅ crewId, boardId, memberId 모두 있는 경우 → 내가 쓴 글 필터
+		if (crewId != null && boardId != null && memberId != null) {
+			List<Article> articles = articleService.getArticlesByCrewBoardAndMember(crewId, boardId, memberId);
+
+			return ResultData.from("S-0", "내가 쓴 글 목록 조회 성공",
+					Map.of("articles", articles, "crewId", crewId, "boardId", boardId, "memberId", memberId));
+		}
 
 		// ✅ crewId와 boardId 모두 존재하는 경우 (크루 게시판)
 		if (crewId != null && boardId != null) {
@@ -313,23 +385,58 @@ public class UsrArticleController {
 
 	// ✅ 모임일정 등록 (JSON 응답)
 	@PostMapping("/usr/article/doWriteSchedule")
-	public ResultData doWriteSchedule(@RequestParam int crewId, @RequestParam String scheduleDate,
-									  @RequestParam String scheduleTitle, @RequestParam(required = false) String scheduleBody,
-									  HttpServletRequest req) {
+	@ResponseBody
+	public ResultData doWriteSchedule(@RequestParam int crewId, @RequestParam LocalDate scheduleDate,
+
+			@RequestParam String scheduleTitle, @RequestParam(required = false) String scheduleBody,
+			HttpServletRequest req) {
 		Rq rq = (Rq) req.getAttribute("rq");
 
 		if (rq == null || !rq.isLogined()) {
 			return ResultData.from("F-1", "로그인이 필요합니다.");
 		}
-
+		System.err.print(scheduleDate);
+		System.err.printf("%s %s", scheduleTitle, scheduleBody);
 		int loginedMemberId = rq.getLoginedMemberId();
 
-		// ✅ 기존과 동일하게 저장만 처리
-		articleService.writeSchedule(crewId, loginedMemberId, scheduleDate, scheduleTitle, scheduleBody);
+		// ✅ 일정 등록
+		int scheduleId = articleService.writeSchedule(crewId, loginedMemberId, scheduleDate, scheduleTitle,
+				scheduleBody);
 
+		// ✅ ✨ 작성자를 자동으로 참가자로 등록
+		articleService.joinSchedule(scheduleId, loginedMemberId);
+		
 		// ✅ 성공 메시지 리턴 (articleId 없이)
 		return ResultData.from("S-1", "모임 일정이 등록되었습니다.",
 				Map.of("crewId", crewId, "redirectUrl", "/usr/crewCafe/cafeHome?crewId=" + crewId));
+	}
+
+	// ✅ 일정 참가 처리
+	@PostMapping("/usr/article/doJoinSchedule")
+	@ResponseBody
+	public ResultData doJoinSchedule(@RequestParam int scheduleId, HttpServletRequest req) {
+		Rq rq = (Rq) req.getAttribute("rq");
+
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
+		}
+
+		int memberId = rq.getLoginedMemberId();
+
+		if (articleService.isAlreadyJoinedSchedule(scheduleId, memberId)) {
+			return ResultData.from("F-2", "이미 참가한 일정입니다.");
+		}
+
+		articleService.joinSchedule(scheduleId, memberId);
+		return ResultData.from("S-1", "일정 참가 완료");
+	}
+
+// 참가자 리스트 조회
+	@GetMapping("/usr/article/getParticipants")
+	@ResponseBody
+	public ResultData getScheduleParticipants(@RequestParam int scheduleId) {
+		List<Map<String, Object>> participants = articleService.getScheduleParticipants(scheduleId);
+		return ResultData.from("S-1", "참가자 목록", participants);
 	}
 
 	// ✅ JSON 응답 방식으로 변경
@@ -352,6 +459,5 @@ public class UsrArticleController {
 		model.addAttribute("articles", articles);
 		return "adm/article/list :: post-list"; // ✅ fragment 이름으로 지정
 	}
-
 
 }

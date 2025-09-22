@@ -242,15 +242,17 @@
 	<!-- @formatter:off -->
 	<select id="getRecentArticlesByCrewAndBoardId"
 		resultType="com.example.RSW.vo.Article">
-		SELECT *
-		FROM article
-		WHERE crewId = #{crewId}
-		AND boardId =
-		#{boardId}
-		AND delStatus = 0
-		ORDER BY id DESC
-		LIMIT #{limit}
+		SELECT A.*, M.nickname AS extra__writer
+		FROM article AS A
+		INNER JOIN member AS M ON A.memberId = M.id
+		WHERE A.crewId = #{crewId}
+		AND A.boardId = #{boardId}
+		AND A.delStatus = 0
+		ORDER BY A.id DESC
+		LIMIT
+		#{limit}
 	</select>
+
 	<!-- @formatter:on -->
 
 	<!-- ✅ 특정 크루 ID와 게시판 ID에 해당하는 게시글 목록 조회 -->
@@ -283,23 +285,6 @@
 		ORDER BY A.id DESC
 		LIMIT #{limit}
 	</select>
-
-	<!-- 일정을 등록하기 -->
-	<insert id="writeSchedule">
-		INSERT INTO article
-		SET
-		boardId = 5,
-		crewId = #{crewId},
-		memberId = #{loginedMemberId},
-		title = #{scheduleTitle},
-		body =
-		#{scheduleBody},
-		regDate = NOW(),
-		updateDate = NOW(),
-		scheduleDate =
-		#{scheduleDate}
-	</insert>
-
 
 	<!-- 일정 리스트 불러오기 -->
 	<select id="getSchedulesByCrewId" resultType="map">
@@ -345,6 +330,8 @@
 		WHERE boardId = #{boardId}
 		AND delStatus = 0
 		AND
+		crewId IS NULL   <!-- ✅ 크루 공지 제외 필터 -->
+		AND
 		memberId IN (
 		SELECT id FROM member WHERE authLevel = 7
 		)
@@ -363,5 +350,60 @@
 	</select>
 
 
+	<!-- 내가 쓴글 조회하기 -->
+	<select id="getArticlesByCrewBoardAndMember"
+		resultType="com.example.RSW.vo.Article">
+		SELECT A.*, M.nickname AS extra__writer
+		FROM article AS A
+		INNER JOIN member AS M ON A.memberId = M.id
+		WHERE A.crewId = #{crewId}
+		AND A.boardId = #{boardId}
+		AND A.memberId = #{memberId}
+		AND A.delStatus
+		= 0
+		ORDER BY A.id DESC
+	</select>
+
+
+	<!-- 일정을 등록하기 -->
+	<insert id="writeSchedule" parameterType="Article"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO article
+		SET
+		boardId = #{boardId},
+		crewId = #{crewId},
+		memberId = #{memberId},
+		title =
+		#{title},
+		body = #{body},
+		regDate = NOW(),
+		updateDate = NOW(),
+		scheduleDate = #{scheduleDate}
+	</insert>
+
+
+	<!-- 일정 참가자 조회 -->
+	<insert id="insertScheduleParticipant">
+		INSERT INTO schedule_participant (scheduleId,
+		memberId)
+		VALUES (#{scheduleId}, #{memberId})
+	</insert>
+
+	<select id="countScheduleParticipant" resultType="int">
+		SELECT COUNT(*)
+		FROM schedule_participant
+		WHERE scheduleId = #{scheduleId} AND memberId
+		= #{memberId}
+	</select>
+
+	<!-- 참가자 리스트 조회 -->
+	<select id="getScheduleParticipants" resultType="map">
+		SELECT SP.*,
+		M.nickname
+		FROM schedule_participant AS SP
+		INNER JOIN member AS M ON
+		SP.memberId = M.id
+		WHERE SP.scheduleId = #{scheduleId}
+	</select>
 
 </mapper>

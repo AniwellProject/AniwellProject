@@ -11,7 +11,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/adm/notification")
@@ -26,7 +28,7 @@ public class AdmNotificationController {
     @Autowired
     private Rq rq;
 
-    // 관리자용 알림 리스트
+ // 관리자용 알림 리스트
     @GetMapping("/list")
     public String showNotificationList(Model model) {
         int adminId = rq.getLoginedMemberId();
@@ -36,6 +38,7 @@ public class AdmNotificationController {
         model.addAttribute("notifications", notifications);
         return "adm/notification/list";
     }
+
 
     // 알림 삭제 (단일)
     @PostMapping("/delete")

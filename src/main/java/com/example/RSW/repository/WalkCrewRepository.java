@@ -48,4 +48,23 @@ public interface WalkCrewRepository {
 
 	int countFilteredCrews(String searchKeywordTypeCode, String searchKeyword, String dong);
 
+	void updateCrewLeader(int crewId, int newLeaderId);
+
+	int updateDescriptionById(int crewId, String newDescription);
+
+	// WalkCrewRepository.java
+	List<WalkCrew> getCrewsByLeaderId(@Param("memberId") int memberId);
+
+	// ✅ 내가 '리더'로 있는 크루 목록 조회
+	// - walk_crew 테이블의 leaderId 기준
+	// - 즉, 내가 만든/운영하는 크루만 조회됨
+	List<WalkCrew> findCrewsByLeaderId(int leaderId);
+
+	// ✅ 내가 '승인된 멤버'로 참가한 크루 목록 조회
+	// - walk_crew_member 테이블 기준 (status = 'APPROVED')
+	// - 내가 만든 크루가 아닌, 단순히 참가한 크루도 포함됨
+	List<WalkCrew> findCrewsByMemberId(@Param("memberId") int memberId);
+
+	List<WalkCrew> findJoinedCrewsByMemberId(int memberId);
+
 }

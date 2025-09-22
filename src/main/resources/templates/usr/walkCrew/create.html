@@ -2,30 +2,33 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
-<title>크루 등록</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<title>크루 등록</title>
 </head>
 
 <body class="min-h-screen h-auto">
 	<div class="h-[100%] w-full flex justify-center items-start p-6">
 		<!-- ✅ 크루 등록 폼 -->
-		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" method="post" enctype="multipart/form-data"
-			onsubmit="handleSubmit(event)">
+		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" method="post"
+			enctype="multipart/form-data" onsubmit="handleSubmit(event)">
 			<!-- ✅ JS로 등록 후 이동 처리 -->
 
 			<div class="w-full h-[100%] max-w-[600px]">
 				<!-- 제목 입력 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">크루 이름</label>
-					<input type="text" name="title" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
+					<input type="text" name="title" required
+						class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
 				</div>
 
 				<!-- 소개 입력 -->
 				<div class="mb-3">
 					<label class="font-semibold block mb-4">소개</label>
-					<textarea name="description" rows="5" required class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
+					<textarea name="description" rows="5" required
+						class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
 				</div>
 
 				<!-- 지역(동네) 선택 -->
@@ -38,7 +41,8 @@
 
 					<!-- 동 선택 드롭다운 -->
 					<details class="relative w-[250px]" id="dongDropdown">
-						<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel"> 동 선택 </summary>
+						<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel">
+							동 선택 </summary>
 						<ul id="dongListContainer"
 							class="h-[140px] absolute z-10 w-full bg-white border rounded shadow mt-2 max-h-48 overflow-y-auto hidden divide-y divide-gray-100 text-sm">
 						</ul>
@@ -51,7 +55,8 @@
 
 				<!-- 등록 버튼 -->
 				<div class="text-right">
-					<button type="submit" class="px-6 py-2 bg-gradient-to-r from-green-200 to-yellow-200 rounded-xl shadow">완료</button>
+					<button type="submit"
+						class="px-6 py-2 bg-gradient-to-r from-green-200 to-yellow-200 rounded-xl shadow">완료</button>
 				</div>
 			</div>
 
@@ -192,8 +197,6 @@
 				.then(response => response.json())
 				.then(result => {
 					if (result.resultCode === "S-1") {
-						alert("✅ 등록 완료: " + result.msg);
-
 						const crewId = result.data1?.crewId;
 						if (crewId) {
 							// ✅ ✅ ✅ 여기 수정됨: 크루 카페 홈으로 이동

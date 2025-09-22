@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>활동 일지</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+    <link rel="stylesheet" th:href="@{/resource/css/global.css}">
+    <style>
+        h2 {
+            margin: 0 0 20px 10px;
+            color: #4a6e4d;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        #chartWrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+            border-top: 2px dashed #ccc;
+        }
+
+        #chartArea {
+            min-width: 1920px; /* 24시간 * 80px */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px 0;
+        }
+
+        .bar-row {
+            position: relative;
+            height: 50px;
+            background: #fff;
+        }
+
+        .bars {
+            height: 30px;
+            border-radius: 20px;
+            position: absolute;
+        }
+
+        .time-grid {
+            position: relative;
+            height: 20px;
+            border-bottom: 1px dashed #ccc;
+            min-width: 1920px;
+        }
+
+        .time-label {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            top: 0;
+            transform: translateX(-50%);
+        }
+
+        .bars:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: -35px;
+            left: 0;
+            white-space: nowrap;
+            background: #444;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        #datePicker {
+            margin-left: 10px;
+            margin-bottom: 20px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+<div class="flex h-screen w-full">
+    <div th:replace="common :: siteHeader" class=""></div>
+    <main class="main_page h-full overflow-y-auto min-h-dvh box-border flex grid-cols-12 flex-1 p-6 grid gap-4">
+        <div class="col-span-11">
+            <h2>활동 일지 <input type="date" id="datePicker"/></h2>
+            <div id="chartWrapper">
+                <div class="time-grid">
+                    <script>
+                        for (let h = 0; h <= 24; h++) {
+                            document.write(`<div class="time-label" style="left: ${h * 80}px">${String(h).padStart(2, '0')}:00</div>`);
+                        }
+                    </script>
+                </div>
+                <div id="chartArea"></div>
+            </div>
+            <div id="noActivityMessage" style="display:none; text-align:center; color:#888; font-size:16px;">오늘 활동이 없습니다</div>
+        </div>
+    </main>
+</div>
+
+<script th:inline="javascript">
+    const petId = [[${petId}]];
+    let rawInitialData = [[${activitiesJson}]];
+    let initialData;
+
+    try {
+        initialData = typeof rawInitialData === "string" ? JSON.parse(rawInitialData) : rawInitialData;
+    } catch {
+        initialData = [];
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const datePicker = document.getElementById("datePicker");
+    datePicker.value = todayStr;
+
+    const chartArea = document.getElementById("chartArea");
+
+    const COLORS = {
+        "거실": "#fff8b5",
+        "침실": "#d3f8e2",
+        "기타": "#e0eafc"
+    };
+
+    function formatTime(date) {
+        const d = new Date(date);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function formatDuration(seconds) {
+        seconds = Math.max(0, seconds);
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}분 ${secs}초 머묾`;
+    }
+
+    function renderChart(data) {
+        chartArea.innerHTML = "";
+
+        const rows = Math.max(data.length, 5);
+        for (let i = 0; i < rows; i++) {
+            const barRow = document.createElement("div");
+            barRow.className = "bar-row";
+            chartArea.appendChild(barRow);
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+            document.getElementById("noActivityMessage").style.display = "block";
+            return;
+        }
+        document.getElementById("noActivityMessage").style.display = "none";
+
+        data.sort((a, b) => new Date(a.enteredAt) - new Date(b.enteredAt));
+        const startOfDay = new Date(data[0].enteredAt);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        data.forEach((item, index) => {
+            const entered = new Date(item.enteredAt);
+            const exited = new Date(item.exitedAt);
+            const durationSec = (exited - entered) / 1000;
+            const offsetSec = (entered - startOfDay) / 1000;
+
+            const offsetPx = (offsetSec / 3600) * 80;
+            const widthPx = Math.max((durationSec / 3600) * 80, 4);
+
+            const bar = document.createElement("div");
+            bar.className = "bars";
+            bar.style.left = `${offsetPx}px`;
+            bar.style.width = `${widthPx}px`;
+            bar.style.backgroundColor = COLORS[item.zoneName] || COLORS["기타"];
+            bar.setAttribute("data-tooltip", `${formatTime(entered)} ~ ${formatTime(exited)}\n${formatDuration(durationSec)}`);
+
+            chartArea.children[index].appendChild(bar);
+        });
+    }
+
+    function loadActivitiesByDate(dateStr) {
+        fetch(`/usr/pet/activity/list?petId=${petId}&date=${dateStr}`)
+            .then(res => res.json())
+            .then(data => renderChart(data));
+    }
+
+    datePicker.addEventListener("change", () => {
+        loadActivitiesByDate(datePicker.value);
+    });
+
+    renderChart(initialData);
+</script>
+</body>
+</html>

@@ -55,6 +55,9 @@ public class UsrQnaController {
             }
         }
 
+        Member loginedMember = rq.getLoginedMember(); // 로그인 멤버 객체
+        model.addAttribute("loginedMember", loginedMember);
+
         model.addAttribute("qnas", qnas);
         model.addAttribute("myQnas", myQnas);
         model.addAttribute("selectedQna", selectedQna);

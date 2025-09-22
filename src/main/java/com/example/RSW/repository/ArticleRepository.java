@@ -1,5 +1,6 @@
 package com.example.RSW.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -70,11 +71,21 @@ public interface ArticleRepository {
 	public List<Article> getAdminOnlyArticles(Integer boardId, int limitStart, int itemsInAPage,
 			String searchKeywordTypeCode, String searchKeyword);;
 
+	// 내가 쓴글 조회하기
+	List<Article> getArticlesByCrewBoardAndMember(@Param("crewId") int crewId, @Param("boardId") int boardId,
+			@Param("memberId") int memberId);
+
 	// 일정등록하기
-	public void writeSchedule(@Param("crewId") int crewId, @Param("loginedMemberId") int loginedMemberId,
-			@Param("scheduleDate") String scheduleDate, @Param("scheduleTitle") String scheduleTitle,
-			String scheduleBody);
+	// ArticleRepository.java
+	int writeSchedule(Article article);
 
 	public List<Map<String, Object>> getSchedulesByCrewId(int crewId);
+
+	// 일정 참가 회원 정보 조회
+	void insertScheduleParticipant(@Param("scheduleId") int scheduleId, @Param("memberId") int memberId);
+
+	int countScheduleParticipant(@Param("scheduleId") int scheduleId, @Param("memberId") int memberId);
+
+	public List<Map<String, Object>> getScheduleParticipants(int scheduleId);
 
 }

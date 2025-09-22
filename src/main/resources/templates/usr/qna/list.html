@@ -6,15 +6,16 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+    <link rel="stylesheet" th:href="@{/resource/css/global.css}">
 </head>
 
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fef3c7] font-sans">
-<div class="flex h-screen">
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+<div class="flex h-screen w-full">
     <!-- Sidebar -->
     <div th:replace="common :: siteHeader"></div>
 
     <!-- Main content -->
-    <main class="main_page min-h-screen flex-1 p-6 grid grid-cols-12 gap-4">
+    <main class="main_page h-full overflow-y-auto min-h-dvh box-border  flex-1 p-6 grid grid-cols-12 gap-4">
 
         <div class="flex w-full max-w-7xl space-x-6 col-span-12">
 
@@ -33,7 +34,7 @@
                 <!-- 1. 자주 묻는 질문 제목 목록 -->
                 <div class="bg-white/90 p-6 rounded-2xl shadow-lg">
                     <h2 class="text-xl font-bold text-lime-800 mb-4">📌 자주 묻는 질문 목록</h2>
-                    <ol class="list-decimal list-inside space-y-2">
+                    <ol class="list-decimal list-inside space-y-2 h-[100px] overflow-y-auto">
                         <li th:each="qna : ${selectedQna}"
                             class="text-lime-700 font-medium cursor-pointer faq-item"
                             th:attr="data-id=${qna.id}"
@@ -56,7 +57,8 @@
                      data-body=${qna.body},
                      data-answered=${qna.answered},
                      data-secret=${qna.secret},
-                     data-answer=${qna.answer}">
+                     data-answer=${qna.answer},
+data-member-id=${qna.memberId}">
 
                             <!-- 제목 -->
                             <span class="text-lime-800 font-medium truncate w-4/5" th:text="Q.+${qna.title}"></span>
@@ -74,7 +76,7 @@
             <!-- 오른쪽: 내 질문 목록 + 버튼 -->
             <div class="w-1/3 bg-white/90 p-6 rounded-2xl shadow-lg h-[97%] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-lime-800">🙋 내 질문 목록</h2>
+                    <h2 class="text-lg font-bold text-lime-800">내 질문</h2>
                     <button id="askBtn"
                             type="button"
                             class="text-xs bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded-full shadow">
@@ -90,7 +92,8 @@
              data-body=${qna.body},
              data-answered=${qna.answered},
              data-secret=${qna.secret},
-             data-answer=${qna.answer}">
+             data-answer=${qna.answer},
+data-member-id=${qna.memberId}">
 
                     <span class="text-lime-800 font-medium" th:text="Q.+${qna.title}"></span>
                         <span th:if="${qna.answered}" class="ml-2 text-green-600 font-semibold text-xs">[답변 완료]</span>
@@ -106,7 +109,7 @@
             <div class="bg-white p-6 rounded-xl w-full max-w-lg relative shadow-lg">
                 <button class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl font-bold"
                         onclick="hideAskModal()">&times;</button>
-                <h2 class="text-xl font-bold mb-4">🙋 질문 등록</h2>
+                <h2 class="text-xl font-bold mb-4">질문 등록</h2>
 
                 <form id="askForm">
 
@@ -136,7 +139,6 @@
         <div id="qnaDetailModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
             <div class="bg-white p-6 rounded-xl w-full max-w-lg relative shadow-lg">
                 <button class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl font-bold" onclick="hideQnaModal()">&times;</button>
-                <h2 class="text-xl font-bold mb-4">🙋 질문 상세</h2>
 
                 <form id="modifyQnaForm">
                     <input type="hidden" id="modalQnaId" name="id">
@@ -161,11 +163,12 @@
                         <span id="modalQnaStatus" class="text-sm text-gray-600"></span>
                         <div class="space-x-2">
                             <button type="button" id="editBtn"
-                                    class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">수정</button>
+                                    class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 hidden">수정</button>
                             <button type="submit" id="saveBtn"
                                     class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 hidden">저장</button>
                             <button type="button" id="deleteBtn"
-                                    class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">삭제</button>
+                                    class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 hidden">삭제</button>
+
                         </div>
                     </div>
 
@@ -324,6 +327,7 @@
                         const answered = item.dataset.answered === "true";
                         const answer = item.dataset.answer;
                         const id = item.dataset.id;
+                        const memberId = parseInt(item.dataset.memberId, 10); // 작성자 ID
 
                         // 값 세팅
                         document.getElementById("modalQnaTitle").value = title;
@@ -331,11 +335,9 @@
                         document.getElementById("modalQnaId").value = id;
                         document.getElementById("modalQnaStatus").textContent = answered ? "✅ 답변 완료" : "⏳ 답변 대기";
 
-
-                        // ✅ 답변 표시 처리 (답변 있으면 보임)
+                        // 답변 표시 처리
                         const answerBox = document.getElementById("modalQnaAnswerBox");
                         const answerText = document.getElementById("modalQnaAnswerText");
-                        console.log("답변 데이터 확인:", { answered, answer });
                         if (answered) {
                             answerBox.style.display = "block";
                             answerText.textContent = answer;
@@ -350,14 +352,25 @@
                         document.getElementById("modalQnaBody").readOnly = true;
                         document.getElementById("modalQnaBody").classList.add("bg-gray-100");
 
-                        document.getElementById("editBtn").classList.remove("hidden");
-                        document.getElementById("saveBtn").classList.add("hidden");
+                        const editBtn = document.getElementById("editBtn");
+                        const saveBtn = document.getElementById("saveBtn");
+                        const deleteBtn = document.getElementById("deleteBtn");
+
+                        if (memberId === currentMemberId) {
+                            editBtn.classList.remove("hidden");
+                            deleteBtn.classList.remove("hidden");
+                        } else {
+                            editBtn.classList.add("hidden");
+                            deleteBtn.classList.add("hidden");
+                        }
+                        saveBtn.classList.add("hidden");
 
                         document.getElementById("qnaDetailModal").classList.remove("hidden");
                         document.getElementById("qnaDetailModal").classList.add("flex");
                     });
                 });
             }
+
 
 
 
@@ -394,6 +407,9 @@
                 }
             }
 
+            // Thymeleaf로부터 현재 로그인 멤버 ID 받아오기 (없으면 null 또는 -1 등)
+            const currentMemberId = [[${rq.loginedMember != null ? rq.loginedMember.id : -1}]];
+
             function bindFaqClickEvents() {
                 document.querySelectorAll(".faq-item").forEach(item => {
                     item.addEventListener("click", () => {
@@ -410,9 +426,30 @@
                                 document.getElementById("modalQnaBody").value = qna.body;
                                 document.getElementById("modalQnaStatus").textContent = "📌 자주 묻는 질문";
 
-                                // 수정/저장 버튼 숨김
-                                document.getElementById("editBtn").classList.add("hidden");
-                                document.getElementById("saveBtn").classList.add("hidden");
+                                // 답변 영역 숨김 (FAQ는 답변 항상 숨김)
+                                const answerBox = document.getElementById("modalQnaAnswerBox");
+                                const answerText = document.getElementById("modalQnaAnswerText");
+                                answerBox.style.display = "none";
+                                answerText.textContent = "";
+
+                                // 수정/저장 버튼, 삭제 버튼 가져오기
+                                const editBtn = document.getElementById("editBtn");
+                                const saveBtn = document.getElementById("saveBtn");
+                                const deleteBtn = document.getElementById("deleteBtn");
+
+                                // 작성자 여부 체크 (현재 로그인한 사용자와 작성자 ID 비교)
+                                if (qna.memberId === currentMemberId) {
+                                    // 본인이면 수정/삭제 버튼 보임
+                                    editBtn.classList.remove("hidden");
+                                    deleteBtn.classList.remove("hidden");
+                                } else {
+                                    // 본인이 아니면 수정/삭제 버튼 숨김
+                                    editBtn.classList.add("hidden");
+                                    deleteBtn.classList.add("hidden");
+                                }
+
+                                // 저장 버튼은 항상 숨김 (수정 버튼 누르면 나옴)
+                                saveBtn.classList.add("hidden");
 
                                 // 읽기 전용 설정
                                 document.getElementById("modalQnaTitle").readOnly = true;
@@ -420,15 +457,10 @@
                                 document.getElementById("modalQnaBody").readOnly = true;
                                 document.getElementById("modalQnaBody").classList.add("bg-gray-100");
 
-                                // ✅ 자주 묻는 질문은 답변 항상 숨김
-                                const answerBox = document.getElementById("modalQnaAnswerBox");
-                                const answerText = document.getElementById("modalQnaAnswerText");
-                                answerBox.style.display = "none";
-                                answerText.textContent = "";
-
                                 // 모달 열기
-                                document.getElementById("qnaDetailModal").classList.remove("hidden");
-                                document.getElementById("qnaDetailModal").classList.add("flex");
+                                const modal = document.getElementById("qnaDetailModal");
+                                modal.classList.remove("hidden");
+                                modal.classList.add("flex");
                             })
                             .catch(() => {
                                 alert("❌ 질문 데이터를 불러오는데 실패했습니다.");
@@ -436,6 +468,7 @@
                     });
                 });
             }
+
 
             function refreshFaqList() {
                 fetch("/adm/qna/faqList")

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.RSW.service.ReactionPointService;
 import com.example.RSW.service.ReplyService;
+import com.example.RSW.service.WalkCrewService;
 import com.example.RSW.util.Ut;
 import com.example.RSW.vo.Reply;
 import com.example.RSW.vo.ResultData;
@@ -20,84 +21,98 @@ import java.util.List;
 @Controller
 public class UsrReplyController {
 
-    @Autowired
-    private Rq rq;
+	@Autowired
+	private Rq rq;
 
-    @Autowired
-    private ReactionPointService reactionPointService;
+	@Autowired
+	private ReactionPointService reactionPointService;
 
-    @Autowired
-    private ReplyService replyService;
+	@Autowired
+	private ReplyService replyService;
 
-    @RequestMapping("/usr/reply/list")
-    @ResponseBody
-    public List<Reply> getReplies(String relTypeCode, int relId) {
-        return replyService.getForPrintReplies(rq.getLoginedMemberId(), relTypeCode, relId);
-    }
+	@Autowired
+	private WalkCrewService walkCrewService;
 
-    // 댓글 작성 처리
-    @RequestMapping("/usr/reply/doWrite")
-    @ResponseBody
-    public String doWrite(HttpServletRequest req, String relTypeCode, int relId, String body) {
-        Rq rq = (Rq) req.getAttribute("rq");
+	@RequestMapping("/usr/reply/list")
+	@ResponseBody
+	public List<Reply> getReplies(String relTypeCode, int relId) {
+		return replyService.getForPrintReplies(rq.getLoginedMemberId(), relTypeCode, relId);
+	}
 
-        if (Ut.isEmptyOrNull(body)) {
-            return Ut.jsHistoryBack("F-2", "내용을 입력해주세요");
-        }
+	// 댓글 작성 처리
+	@RequestMapping("/usr/reply/doWrite")
+	@ResponseBody
+	public String doWrite(HttpServletRequest req, String relTypeCode, int relId, String body,
+			@RequestParam(required = false) Integer crewId, @RequestParam(required = false) Integer boardId) {
+		Rq rq = (Rq) req.getAttribute("rq");
 
+		if (Ut.isEmptyOrNull(body)) {
+			return Ut.jsHistoryBack("F-2", "내용을 입력해주세요");
+		}
 
-        // 댓글 저장
-        ResultData writeReplyRd = replyService.writeReply(rq.getLoginedMemberId(), body, relTypeCode, relId);
-        int id = (int) writeReplyRd.getData1();
+		// ✅ 크루 공지사항(boardId == 1)일 경우, 멤버만 댓글 작성 가능
+		if (boardId != null && boardId == 1 && crewId != null) {
+			boolean isApproved = walkCrewService.isApprovedMember(crewId, rq.getLoginedMemberId());
+			if (!isApproved) {
+				return Ut.jsHistoryBack("F-3", "크루 멤버만 댓글을 작성할 수 있습니다.");
+			}
+		}
 
-        // 게시글 상세 페이지로 이동
-        return Ut.jsReplace(writeReplyRd.getResultCode(), writeReplyRd.getMsg(), "../article/detail?id=" + relId);
-    }
+		System.out.printf("댓글 작성 요청 - boardId: %d, crewId: %d, memberId: %d%n", boardId, crewId,
+				rq.getLoginedMemberId());
 
-    // 댓글 수정 처리
-    @RequestMapping("/usr/reply/doModify")
-    @ResponseBody
-    public String doModify(HttpServletRequest req, int id, String body) {
-        System.err.println(id);
-        System.err.println(body);
+		// 댓글 저장
+		ResultData writeReplyRd = replyService.writeReply(rq.getLoginedMemberId(), body, relTypeCode, relId);
+		int id = (int) writeReplyRd.getData1();
 
-        Rq rq = (Rq) req.getAttribute("rq");
-        Reply reply = replyService.getReply(id);
+		// 게시글 상세 페이지로 이동
+		return Ut.jsReplace(writeReplyRd.getResultCode(), writeReplyRd.getMsg(), "../article/detail?id=" + relId);
+	}
 
-        if (reply == null) {
-            return Ut.jsHistoryBack("F-1", Ut.f("%d번 댓글은 존재하지 않습니다", id));
-        }
+	// 댓글 수정 처리
+	@RequestMapping("/usr/reply/doModify")
+	@ResponseBody
+	public String doModify(HttpServletRequest req, int id, String body) {
+		System.err.println(id);
+		System.err.println(body);
 
-        // 수정 권한 체크
-        ResultData loginedMemberCanModifyRd = replyService.userCanModify(rq.getLoginedMemberId(), reply);
-        if (loginedMemberCanModifyRd.isSuccess()) {
-            replyService.modifyReply(id, body);
-        }
+		Rq rq = (Rq) req.getAttribute("rq");
+		Reply reply = replyService.getReply(id);
 
-        reply = replyService.getReply(id); // 최신 내용 재조회
-        return reply.getBody(); // 새로 수정된 댓글 본문 반환 (AJAX 용)
-    }
+		if (reply == null) {
+			return Ut.jsHistoryBack("F-1", Ut.f("%d번 댓글은 존재하지 않습니다", id));
+		}
 
-    // 댓글 삭제 처리
-    @RequestMapping("/usr/reply/doDelete")
-    @ResponseBody
-    public String doDelete(@RequestParam int id, @RequestParam String relTypeCode, @RequestParam int relId,
-                           @RequestParam int boardId) {
+		// 수정 권한 체크
+		ResultData loginedMemberCanModifyRd = replyService.userCanModify(rq.getLoginedMemberId(), reply);
+		if (loginedMemberCanModifyRd.isSuccess()) {
+			replyService.modifyReply(id, body);
+		}
 
-        Reply reply = replyService.getReply(id);
-        if (reply == null) {
-            return Ut.jsHistoryBack("F-1", "해당 댓글이 존재하지 않습니다.");
-        }
+		reply = replyService.getReply(id); // 최신 내용 재조회
+		return reply.getBody(); // 새로 수정된 댓글 본문 반환 (AJAX 용)
+	}
 
-        // 삭제 권한 체크
-        ResultData actorCanDeleteRd = replyService.userCanDelete(rq.getLoginedMemberId(), reply);
-        if (actorCanDeleteRd.isFail()) {
-            return Ut.jsHistoryBack(actorCanDeleteRd.getResultCode(), actorCanDeleteRd.getMsg());
-        }
+	// 댓글 삭제 처리
+	@RequestMapping("/usr/reply/doDelete")
+	@ResponseBody
+	public String doDelete(@RequestParam int id, @RequestParam String relTypeCode, @RequestParam int relId,
+			@RequestParam int boardId) {
 
-        replyService.deleteReply(id);
+		Reply reply = replyService.getReply(id);
+		if (reply == null) {
+			return Ut.jsHistoryBack("F-1", "해당 댓글이 존재하지 않습니다.");
+		}
 
-        // 삭제 후 게시글 상세 페이지로 리다이렉트
-        return Ut.jsReplace("S-1", "댓글을 삭제했습니다.", "../article/detail?id=" + relId + "&boardId=" + boardId);
-    }
+		// 삭제 권한 체크
+		ResultData actorCanDeleteRd = replyService.userCanDelete(rq.getLoginedMemberId(), reply);
+		if (actorCanDeleteRd.isFail()) {
+			return Ut.jsHistoryBack(actorCanDeleteRd.getResultCode(), actorCanDeleteRd.getMsg());
+		}
+
+		replyService.deleteReply(id);
+
+		// 삭제 후 게시글 상세 페이지로 리다이렉트
+		return Ut.jsReplace("S-1", "댓글을 삭제했습니다.", "../article/detail?id=" + relId + "&boardId=" + boardId);
+	}
 }

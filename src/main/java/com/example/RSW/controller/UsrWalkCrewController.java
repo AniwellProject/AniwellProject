@@ -123,16 +123,17 @@ public class UsrWalkCrewController {
 		return ResultData.from("S-1", "크루 생성 완료", data);
 	}
 
-	// 크루 상세보기 페이지
 	// ✅ 크루 상세보기 페이지 (JSP 반환)
 	@GetMapping("/detail/{id}")
 	public String showCrewDetail(@PathVariable int id, HttpServletRequest req, Model model) {
 		Rq rq = (Rq) req.getAttribute("rq");
+		System.out.println("🔥 rq = " + rq);
+		System.out.println("🔥 isLogined = " + (rq != null ? rq.isLogined() : "rq가 null임"));
 
 		WalkCrew crew = walkCrewService.getCrewById(id);
 		if (crew == null) {
 			model.addAttribute("errorMsg", "해당 크루를 찾을 수 없습니다.");
-			return "common/error"; // 에러 페이지
+			return "common/error";
 		}
 
 		Date createdDate = Date.from(crew.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
@@ -146,17 +147,29 @@ public class UsrWalkCrewController {
 		}
 
 		boolean isJoined = false;
+		boolean isLeader = false;
+		boolean isPending = false;
+
 		if (rq != null && rq.isLogined()) {
-			isJoined = walkCrewMemberService.isJoinedCrew(rq.getLoginedMemberId(), crew.getId());
+			int memberId = rq.getLoginedMemberId(); // ✅ 한 번만 선언
+			int crewId = crew.getId();
+
+			isJoined = walkCrewMemberService.isJoinedCrew(memberId, crewId);
+			isLeader = walkCrewMemberService.isCrewLeader(crewId, memberId);
+			isPending = walkCrewMemberService.isPending(crewId, memberId);
+
+			System.out.println("✅ isPending = " + isPending);
 		}
 
 		model.addAttribute("crew", crew);
 		model.addAttribute("createdDate", createdDate);
 		model.addAttribute("crewLocation", crewLocation);
 		model.addAttribute("isJoined", isJoined);
+		model.addAttribute("isLeader", isLeader);
+		model.addAttribute("isPending", isPending);
 		model.addAttribute("rq", rq);
 
-		return "usr/walkCrew/detail"; // JSP 경로
+		return "usr/walkCrew/detail";
 	}
 
 	// ✅ 크루 참가 처리
@@ -213,54 +226,66 @@ public class UsrWalkCrewController {
 		return ResultData.from("S-1", "지역 ID 조회 성공", data);
 	}
 
-	// 참가 요청 권한
-	@PostMapping("/approveApplicant")
-	@ResponseBody
-	public ResultData approveApplicant(@RequestParam int crewId, @RequestParam int memberId) {
-		walkCrewService.approveMember(crewId, memberId);
-
-		Map<String, Object> data = new HashMap<>();
-		data.put("crewId", crewId);
-		data.put("memberId", memberId);
-
-		return ResultData.from("S-1", "참가 요청을 수락했습니다.", data);
-	}
-
-	// ✅ 크루 목록을 JSON 형태로 반환하는 API 컨트롤러
+	// [API] 크루 목록 조회 (검색 및 위치 기반 정렬 지원)
 	@GetMapping("/api/list")
 	@ResponseBody
 	public ResultData getCrewListAsJson(HttpServletRequest req, @RequestParam(required = false) String query, // 🔍 검색어
-			@RequestParam(required = false) String dong) {
-		// 🔹 로그인 사용자 정보 가져오기 (Rq는 로그인 상태 확인용 커스텀 객체)
+																												// (제목/설명
+																												// 포함
+																												// 여부)
+			@RequestParam(required = false) String dong, // 🏠 동네 이름 (정렬 및 필터 기준)
+			@RequestParam(required = false, defaultValue = "createdAt") String sortBy // 🔃 정렬 기준
+	) {
+		// ✅ 로그인 사용자 정보 가져오기
 		Rq rq = (Rq) req.getAttribute("rq");
 
-		// 🔹 모든 크루 정보를 데이터베이스에서 조회
+		// ✅ [기능 0] 전체 크루 리스트 가져오기
 		List<WalkCrew> crews = walkCrewService.getAllCrews();
 
-		// 🔹 프론트에 반환할 JSON 형태로 변환할 리스트 선언
+		// ✅ [기능 1] 반환할 JSON 형태의 리스트 준비
 		List<Map<String, Object>> resultList = new ArrayList<>();
 
-		// 🔁 필터링된 데이터만 추출
+		// ✅ [기능 2] 모든 크루 순회하며 조건별로 필터링 및 변환
 		for (WalkCrew crew : crews) {
-			// ✅ query (검색어) 필터 조건
+
+			// 🔍 [기능 2-1] 검색어 필터링
 			if (query != null && !query.isBlank()) {
 				boolean titleMatch = crew.getTitle() != null && crew.getTitle().contains(query);
 				boolean descMatch = crew.getDescription() != null && crew.getDescription().contains(query);
 				if (!titleMatch && !descMatch) {
-					continue; // 검색어와 일치하지 않으면 건너뜀
+					continue;
 				}
 			}
 
-			// ✅ dong (동네) 필터 조건
+			// 🏠 [기능 2-2] 동네 필터링 (query가 없을 때만 적용)
+			if ((query == null || query.isBlank()) && dong != null && !dong.isBlank()) {
+				if (!dong.equals(crew.getDong())) {
+					continue;
+				}
+			}
+
+			// 🎯 [기능 2-3] 위치 기반 정렬용 플래그 설정 (앞 2글자 기준)
+			String dongPrefix = "";
+			String crewDongPrefix = "";
+			String crewDong = crew.getDong() != null ? crew.getDong() : "";
+
+			crewDongPrefix = crewDong.length() >= 2 ? crewDong.substring(0, 2).replaceAll("\\s+", "").toLowerCase()
+					: crewDong.replaceAll("\\s+", "").toLowerCase();
+
 			if (dong != null && !dong.isBlank()) {
-				if (crew.getDong() == null || !crew.getDong().equals(dong)) {
-					continue; // 동네가 일치하지 않으면 제외
-				}
+				dongPrefix = dong.substring(0, Math.min(2, dong.length())).replaceAll("\\s+", "").toLowerCase();
 			}
 
-			Map<String, Object> crewMap = new HashMap<>();
+			boolean isTargetDong = false;
 
-			// ▶️ 크루 기본 정보 저장
+			if (dongPrefix != null && !dongPrefix.isBlank()) {
+				isTargetDong = dongPrefix.equals(crewDongPrefix); // 또는 crewDongPrefix
+			}
+
+			System.out.println("\uD83D\uDEA8 비교중: dongPrefix = " + dongPrefix + ", crewDongPrefix = " + crewDongPrefix);
+
+			// ✅ [기능 2-4] JSON Map 구성
+			Map<String, Object> crewMap = new HashMap<>();
 			crewMap.put("id", crew.getId());
 			crewMap.put("title", crew.getTitle());
 			crewMap.put("description", crew.getDescription());
@@ -269,22 +294,71 @@ public class UsrWalkCrewController {
 			crewMap.put("district", crew.getDistrict());
 			crewMap.put("dong", crew.getDong());
 			crewMap.put("createdAt", crew.getCreatedAt());
-
-			// ✅ 핵심: 이미지 URL도 포함해야 프론트에서 썸네일 출력 가능
 			crewMap.put("imageUrl", crew.getImageUrl());
+			crewMap.put("isTargetDong", isTargetDong);
 
-			// ▶️ 완성된 crewMap을 결과 리스트에 추가
 			resultList.add(crewMap);
 		}
 
-		// 🔹 최종 반환용 data 객체 생성 (crews 리스트 + 로그인한 사용자 ID 포함)
+		// ✅ [기능 3] 리스트 정렬 처리 (정렬 기준 우선 → 위치 정렬 보조)
+		resultList.sort((a, b) -> {
+			// 🎯 [1] isTargetDong이 true인 항목이 먼저 오도록
+			boolean aIsTarget = (boolean) a.getOrDefault("isTargetDong", false);
+			boolean bIsTarget = (boolean) b.getOrDefault("isTargetDong", false);
+
+			if (aIsTarget && !bIsTarget)
+				return -1;
+			if (!aIsTarget && bIsTarget)
+				return 1;
+
+			// 🔃 [2] 그 다음 정렬 기준 적용
+			if ("title".equals(sortBy)) {
+				return ((String) a.get("title")).compareTo((String) b.get("title"));
+			} else {
+				return ((Comparable) b.get("createdAt")).compareTo(a.get("createdAt"));
+			}
+		});
+
+		// ✅ [기능 4] 최종 응답 JSON 구성
 		Map<String, Object> data = new HashMap<>();
-		data.put("crews", resultList); // 크루 목록 데이터
+		data.put("crews", resultList);
 		data.put("loginMemberId", (rq != null && rq.isLogined()) ? rq.getLoginedMemberId() : "");
 
-		// 🔚 ResultData 포맷으로 응답 반환
+		// ✅ [기능 5] 응답 반환
 		return ResultData.from("S-1", "크루 목록 불러오기 성공", data);
 	}
 
+	// ✅ 크루 소개글 수정 처리
+	@PostMapping("/doModifyDescription")
+	@ResponseBody
+	public ResultData modifyCrewDescription(@RequestParam int crewId, @RequestParam String newDescription,
+			HttpServletRequest req) {
+		Rq rq = (Rq) req.getAttribute("rq");
+
+		// ✅ 로그인 체크
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
+		}
+
+		int memberId = rq.getLoginedMemberId();
+
+		// ✅ 크루장만 수정 가능
+		boolean isLeader = walkCrewMemberService.isCrewLeader(crewId, memberId);
+		if (!isLeader) {
+			return ResultData.from("F-2", "크루장만 소개글을 수정할 수 있습니다.");
+		}
+
+		// ✅ 실제 수정 로직 수행
+		boolean result = walkCrewService.updateDescription(crewId, newDescription);
+		if (!result) {
+			return ResultData.from("F-3", "소개글 수정에 실패했습니다.");
+		}
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("crewId", crewId);
+		data.put("newDescription", newDescription);
+
+		return ResultData.from("S-1", "소개글이 성공적으로 수정되었습니다.", data);
+	}
 
 }

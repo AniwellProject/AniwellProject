@@ -2,6 +2,7 @@ package com.example.RSW.controller;
 
 import com.example.RSW.service.ArticleService;
 import com.example.RSW.service.MemberService;
+import com.example.RSW.service.NotificationService;
 import com.example.RSW.service.QnaService;
 import com.example.RSW.util.Ut;
 import com.example.RSW.vo.Article;
@@ -33,6 +34,9 @@ public class AdmArticleController {
     @Autowired
     private MemberService memberService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // 게시글 리스트 페이지 요청 처리
     @RequestMapping("/list")
     public String showList(HttpServletRequest req, Model model,
@@ -42,6 +46,11 @@ public class AdmArticleController {
                            @RequestParam(defaultValue = "") String searchType) throws IOException { // 검색 키워드 (기본값: 없음)
 
         Rq rq = (Rq) req.getAttribute("rq"); // 로그인 정보 등 사용자 정보 객체 획득
+
+        Member loginedMember = rq.getLoginedMember();
+        if (loginedMember == null || loginedMember.getAuthLevel() != 7) {
+            return "redirect:/";
+        }
 
         int itemsInAPage = 10; // 한 페이지에 보여줄 게시글 수
         int articlesCount = articleService.getArticleCount(0, searchKeywordTypeCode, searchKeyword);
@@ -79,6 +88,22 @@ public class AdmArticleController {
             return Map.of(
                     "resultCode", "F-1",
                     "msg", id + "번 게시글은 존재하지 않습니다."
+            );
+        }
+
+        String redirectUrl = article.getCrewId() != null ? "/usr/article/detail?id=" + id + "&crewId=" + article.getCrewId()
+                : "/usr/article/detail?id=" + id + "&boardId=" + article.getBoardId();
+
+        System.out.println("redirectUrl: " + redirectUrl);
+
+        notificationService.deleteByLink(redirectUrl);
+
+        Member loginedMember = rq.getLoginedMember();
+
+        if (loginedMember == null || loginedMember.getAuthLevel() != 7) {
+            return Map.of(
+                    "resultCode", "F-2",
+                    "msg", "관리자만 게시글 삭제가 가능합니다."
             );
         }
 

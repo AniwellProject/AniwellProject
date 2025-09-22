@@ -5,6 +5,7 @@
   <title>내 주변 펫 장소</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+  <link rel="stylesheet" th:href="@{/resource/css/global.css}">
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=dfd275f49b78960a0458d6f6294cbde2&libraries=services"></script>
   <style>
     /* (CSS는 그대로 유지) */
@@ -99,7 +100,7 @@
     .popup {
       position: fixed;
       top: 5%;
-      right: 28%;
+      right: 30%;
       width: 400px;
       height: 90%;
       overflow-y: auto;
@@ -166,13 +167,13 @@
   </style>
 </head>
 
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
-<div class="flex h-screen">
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+<div class="flex h-screen w-full">
   <!-- Sidebar -->
   <div th:replace="common :: siteHeader"></div>
 
   <!-- Main content -->
-  <main class="main_page relative min-h-screen flex-1">
+  <main class="main_page h-full overflow-y-auto flex-1 min-h-dvh box-border">
     <!-- 전체 지도 -->
     <div id="map" class="absolute inset-0 z-0" style="border-radius: 20px 0 0 20px;"></div>
 
@@ -209,7 +210,26 @@
     </div>
 
     <!-- 팝업도 map 위에 떠야 하므로 그대로 유지 -->
-    <div id="placePopup" class="popup hidden">...</div>
+    <div id="placePopup" class="popup hidden">
+      <button class="close-btn" onclick="closePopup()">❌닫기</button>
+
+      <div id="popupLoading" style="text-align:center; margin-top:30px;">
+        <div class="spinner"></div>
+        <p>정보를 불러오는 중입니다...</p>
+      </div>
+
+      <div id="popupContent" style="display: none;">
+        <h2><p><strong>📍</strong> <span id="popupName"></span></p></h2>
+        <p><strong>운영 상태:</strong> <span id="popupStatus"></span></p>
+        <p><strong>영업 시간:</strong> <span id="popupHour"></span></p>
+        <p><strong>전화번호:</strong> <span id="popupPhone"></span></p>
+        <p><strong>주소:</strong> <span id="popupAddress"></span></p>
+
+        <h3>📸 장소 사진</h3>
+        <div id="popupPhotos" class="photo-grid"></div>
+        <button id="loadMoreBtn" onclick="loadMorePhotos()">더보기</button>
+      </div>
+    </div>
   </main>
 
 <script th:inline="javascript">

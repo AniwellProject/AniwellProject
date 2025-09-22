@@ -5,6 +5,15 @@
 
 <mapper namespace="com.example.RSW.repository.PetVaccinationRepository">
 
+    <resultMap id="VaccinationWithPetNameMap" type="com.example.RSW.vo.PetVaccination">
+        <id property="id" column="id"/>
+        <result property="petId" column="petId"/>
+        <result property="vaccineName" column="vaccineName"/>
+        <result property="nextDueDate" column="nextDueDate"/>
+        <result property="memberId" column="memberId"/>
+        <result property="petName" column="petName"/>
+    </resultMap>
+
     <!-- 펫 ID로 접종 이력 조회 -->
     <select id="getVaccinationByPetId" parameterType="int" resultType="com.example.RSW.vo.PetVaccination">
         SELECT
@@ -83,5 +92,50 @@
         WHERE petId = #{petId}
           AND vaccineName = #{vaccineName}
     </update>
+
+    <!-- 1. 최신 접종일 조회 -->
+    <select id="findLatestInjectionDate" resultType="java.time.LocalDate">
+        SELECT MAX(injectionDate)
+        FROM pet_vaccination
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+    </select>
+
+    <!-- 2. 백신 주기 조회 -->
+    <select id="findIntervalMonthsByVaccine" resultType="int">
+        SELECT intervalMonths
+        FROM vaccine_schedule
+        WHERE vaccineName = #{vaccineName}
+            LIMIT 1
+    </select>
+
+    <!-- 최신 날짜만 업데이트 -->
+    <update id="updateNextDueDateByInjectionDate">
+        UPDATE pet_vaccination
+        SET nextDueDate = #{nextDueDate}
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+          AND injectionDate = #{latestInjectionDate}
+    </update>
+
+    <!-- 최신 날짜 아닌 애들은 NULL 처리 -->
+    <update id="invalidateOldNextDueDates">
+        UPDATE pet_vaccination
+        SET nextDueDate = NULL
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+          AND injectionDate != #{latestInjectionDate}
+    </update>
+
+    <select id="findNextDueInDays" resultMap="VaccinationWithPetNameMap">
+        SELECT pv.*, p.name AS petName
+        FROM pet_vaccination pv
+                 JOIN pet p ON p.id = pv.petId
+        WHERE pv.nextDueDate IN (
+                                 CURDATE(),
+                                 DATE_ADD(CURDATE(), INTERVAL 3 DAY),
+                                 DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            )
+    </select>
 
 </mapper>

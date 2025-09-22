@@ -7,7 +7,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
+import com.example.RSW.vo.ResultData;
+
 public class Ut {
+	
+	public static String rd(String resultCode, String msg) {
+	    return String.format("%s,%s", resultCode, msg);
+	}
 
 	public static String jsReplace(String resultCode, String msg, String replaceUri) {
 

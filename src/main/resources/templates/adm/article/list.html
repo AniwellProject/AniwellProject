@@ -6,20 +6,21 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" />
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+<link rel="stylesheet" th:href="@{/resource/css/global.css}">
 <style>
-	.scroll-box {
-		max-height: 400px;
-		overflow-y: auto;
-	}
+.scroll-box {
+	max-height: 400px;
+	overflow-y: auto;
+}
 </style>
 </head>
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
 	<div class="flex h-screen">
 		<!-- Sidebar -->
 		<div th:replace="common :: siteHeader"></div>
 
 		<!-- Main content -->
-		<main class="main_page min-h-screen flex-1 p-6 grid grid-rows-12 gap-4 bg-white">
+		<main class="main_page h-full overflow-y-auto min-h-dvh box-border flex-1 p-6 grid grid-rows-12 gap-4 bg-white">
 
 			<h1 class="text-3xl font-bold mb-6">관리자 대시보드</h1>
 
@@ -339,19 +340,22 @@
 						<!-- 제목 입력 -->
 						<div>
 							<label for="modal-title" class="block font-semibold mb-1">제목</label>
-							<input type="text" id="modal-title" name="title" required class="input input-bordered w-full" placeholder="제목을 입력하세요" />
+							<input type="text" id="modal-title" name="title" required class="input input-bordered w-full"
+								placeholder="제목을 입력하세요" />
 						</div>
 
 						<!-- 내용 입력 -->
 						<div>
 							<label for="modal-body" class="block font-semibold mb-1">내용</label>
-							<textarea id="modal-body" name="body" rows="8" required class="textarea textarea-bordered w-full" placeholder="내용을 입력하세요"></textarea>
+							<textarea id="modal-body" name="body" rows="8" required class="textarea textarea-bordered w-full"
+								placeholder="내용을 입력하세요"></textarea>
 						</div>
 
 						<!-- 이미지 업로드 -->
 						<div>
 							<label for="modal-imageFile" class="block font-semibold mb-1">이미지 첨부 (선택)</label>
-							<input type="file" id="modal-imageFile" name="imageFile" accept="image/*" class="file-input file-input-bordered w-full" />
+							<input type="file" id="modal-imageFile" name="imageFile" accept="image/*"
+								class="file-input file-input-bordered w-full" />
 						</div>
 
 						<!-- 버튼 -->
@@ -1024,9 +1028,8 @@
 
 
 			<button
-				class="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-green-600 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-50"
+				class="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-50"
 				onclick="showPostModal()">+</button>
 		</main>
 	</div>
 </body>
-</html>

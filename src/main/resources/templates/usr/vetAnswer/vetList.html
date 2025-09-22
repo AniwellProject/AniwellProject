@@ -1,316 +1,324 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
-  <meta charset="UTF-8">
-  <title>수의사 질문 리스트</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<meta charset="UTF-8">
+	<title>수의사 질문 리스트</title>
+	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+
 </head>
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
-<div class="flex h-screen" >
-  <!-- Sidebar -->
-  <div th:replace="common :: siteHeader"></div>
 
-  <!-- Main content -->
-  <main class="main_page min-h-screen flex-1 p-6 grid grid-cols-12 gap-4">
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-[100dvh]">
+	<div class="flex h-screen">
+		<!-- Sidebar -->
+		<div th:replace="common :: siteHeader"></div>
 
-    <!-- ✅ 상단 제목 -->
-    <div class="col-span-12">
-      <h1 class="text-3xl font-bold text-lime-800">🩺 수의사용 질문 리스트</h1>
-    </div>
+		<!-- Main content -->
+		<main class="main_page  min-h-dvh flex-1 p-6 grid grid-cols-12 gap-4">
 
-    <div class="col-span-6 space-y-4 overflow-y-auto h-[600px]">
-      <h2 class="text-xl font-bold text-yellow-600 mb-2">📖 미답변 질문 목록</h2>
-      <div th:each="qna : ${questions}"
-           th:data-id="${qna.id}"
-           th:data-title="${qna.title}"
-           th:data-body="${qna.body}"
-           th:data-answer="${qna.answer}"
-           th:data-answered="${qna.answered}"
-           th:classappend="${qna.answered} ? 'bg-yellow-50' : 'bg-yellow-50'"
-           data-owner="others"
-           class="rounded-xl shadow-md p-4 flex items-center justify-between hover:shadow-lg transition qna-item cursor-pointer">
+			<!-- ✅ 상단 제목 -->
+			<div class="col-span-12">
+				<h1 class="text-3xl font-bold text-lime-800">🩺 수의사용 질문 리스트</h1>
+			</div>
 
-      <div>
-          <h3 class="text-lg font-semibold text-gray-800" th:text="${qna.title}">질문 제목</h3>
-          <p class="text-sm text-gray-600" th:text="'작성자: ' + ${qna.memberName} + ' · ' + ${qna.regDate}">작성자/날짜</p>
-        </div>
-        <div>
-          <span th:if="${qna.answered}" class="text-xs bg-green-200 text-green-800 px-3 py-1 rounded-full font-bold">답변 완료</span>
-          <span th:unless="${qna.answered}" class="text-xs bg-red-200 text-red-800 px-3 py-1 rounded-full font-bold">미답변</span>
-        </div>
-      </div>
-      <div th:if="${#lists.isEmpty(questions)}" class="text-center text-gray-500 mt-4">
-        등록된 질문이 없습니다.
-      </div>
-    </div>
+			<div class="col-span-6 space-y-4 overflow-y-auto h-[600px]">
+				<h2 class="text-xl font-bold text-yellow-600 mb-2">📖 미답변 질문 목록</h2>
+				<div th:each="qna : ${questions}" th:data-id="${qna.id}" th:data-title="${qna.title}"
+					th:data-body="${qna.body}" th:data-answer="${qna.answer}" th:data-answered="${qna.answered}"
+					th:classappend="${qna.answered} ? 'bg-yellow-50' : 'bg-yellow-50'" data-owner="others"
+					class="rounded-xl shadow-md p-4 flex items-center justify-between hover:shadow-lg transition qna-item cursor-pointer">
 
-
-    <!-- ✅ 우측: 내가 답변한 질문 -->
-    <div class="col-span-6 space-y-4 overflow-y-auto h-[600px]">
-      <h2 class="text-xl font-bold text-yellow-600 mb-2">🙋 내가 답변한 질문</h2>
-      <div th:each="qna : ${myAnsweredQnas}"
-           th:attr="data-id=${qna.id}, data-title=${qna.title}, data-body=${qna.body}, data-answer=${qna.answer}, data-answered=${qna.answered}, data-owner='mine'"
-           class="qna-item rounded-xl shadow-md p-4 flex items-center justify-between bg-yellow-50 hover:shadow-lg transition">
-
-      <div>
-          <h3 class="text-lg font-semibold text-gray-800" th:text="${qna.title}">질문 제목</h3>
-          <p class="text-sm text-gray-600" th:text="${qna.regDate}">날짜</p>
-        </div>
-        <div>
-          <span class="text-xs bg-green-200 text-green-800 px-3 py-1 rounded-full font-bold">답변 완료</span>
-        </div>
-      </div>
-      <div th:if="${#lists.isEmpty(myAnsweredQnas)}" class="text-center text-gray-500 mt-4">
-        답변한 질문이 없습니다.
-      </div>
-    </div>
-
-    <!-- ✅ QnA 상세 모달 -->
-    <div id="qna-detail-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-      <div class="bg-white w-full max-w-xl rounded-xl shadow-xl p-6 relative">
-        <button onclick="hideQnaModal()" class="absolute top-2 right-3 text-gray-500 hover:text-black text-2xl">&times;</button>
-
-        <h2 class="text-2xl font-bold mb-4">🙋 질문 상세</h2>
-
-        <input type="hidden" id="modal-qna-id">
-        <input type="hidden" id="answer-id">
-
-        <label class="font-semibold">제목</label>
-        <input type="text" id="modal-qna-title" class="w-full p-2 rounded bg-gray-100 mb-3" readonly>
-
-        <label class="font-semibold">내용</label>
-        <textarea id="modal-qna-body" class="w-full p-2 rounded bg-gray-100 mb-3" rows="4" readonly></textarea>
-
-        <div id="vet-answer-area" class="mb-3 hidden">
-          <label class="font-semibold">💬 수의사 답변</label>
-          <textarea id="modal-qna-answer" class="w-full p-2 rounded bg-gray-100" readonly rows="2"></textarea>
-
-        </div>
-
-        <div class="flex items-center gap-2 mt-4">
-          <input type="hidden" id="modal-qna-answered" disabled>
-          <!-- 상태 텍스트 -->
-          <div id="answer-status-badge" class="mt-4 text-lg"></div>
-
-        </div>
-
-        <div class="flex justify-end gap-2 mt-6">
-          <button id="modal-answer-create" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded hidden">등록</button>
-          <button id="modal-answer-update" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded hidden">수정</button>
-          <button id="modal-answer-delete" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">삭제</button>
-        </div>
-
-      </div>
-    </div>
+					<div>
+						<h3 class="text-lg font-semibold text-gray-800" th:text="${qna.title}">질문 제목</h3>
+						<p class="text-sm text-gray-600" th:text="'작성자: ' + ${qna.memberName} + ' · ' + ${qna.regDate}">
+							작성자/날짜</p>
+					</div>
+					<div>
+						<span th:if="${qna.answered}"
+							class="text-xs bg-green-200 text-green-800 px-3 py-1 rounded-full font-bold">답변 완료</span>
+						<span th:unless="${qna.answered}"
+							class="text-xs bg-red-200 text-red-800 px-3 py-1 rounded-full font-bold">미답변</span>
+					</div>
+				</div>
+				<div th:if="${#lists.isEmpty(questions)}" class="text-center text-gray-500 mt-4">
+					등록된 질문이 없습니다.
+				</div>
+			</div>
 
 
-    <script>
+			<!-- ✅ 우측: 내가 답변한 질문 -->
+			<div class="col-span-6 space-y-4 overflow-y-auto h-[600px]">
+				<h2 class="text-xl font-bold text-yellow-600 mb-2">🙋 내가 답변한 질문</h2>
+				<div th:each="qna : ${myAnsweredQnas}"
+					th:attr="data-id=${qna.id}, data-title=${qna.title}, data-body=${qna.body}, data-answer=${qna.answer}, data-answered=${qna.answered}, data-owner='mine'"
+					class="qna-item rounded-xl shadow-md p-4 flex items-center justify-between bg-yellow-50 hover:shadow-lg transition">
 
-      document.querySelectorAll('.qna-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const id = item.dataset.id;
-          const title = item.dataset.title;
-          const body = item.dataset.body;
-          const answer = item.dataset.answer;
-          const answered = item.dataset.answered === 'true';
+					<div>
+						<h3 class="text-lg font-semibold text-gray-800" th:text="${qna.title}">질문 제목</h3>
+						<p class="text-sm text-gray-600" th:text="${qna.regDate}">날짜</p>
+					</div>
+					<div>
+						<span class="text-xs bg-green-200 text-green-800 px-3 py-1 rounded-full font-bold">답변 완료</span>
+					</div>
+				</div>
+				<div th:if="${#lists.isEmpty(myAnsweredQnas)}" class="text-center text-gray-500 mt-4">
+					답변한 질문이 없습니다.
+				</div>
+			</div>
 
-          showQnaDetailModal(id, title, body, answer, answered);
-        });
-      });
-      function showQnaDetailModal(id, title, body, answer, answered, owner = 'others') {
-        document.getElementById('answer-id').value = answer?.id ?? '';
-        document.getElementById('modal-qna-id').value = id;
-        document.getElementById('modal-qna-title').value = title;
-        document.getElementById('modal-qna-body').value = body;
-        document.getElementById('modal-qna-answered').checked = answered;
+			<!-- ✅ QnA 상세 모달 -->
+			<div id="qna-detail-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+				<div class="bg-white w-full max-w-xl rounded-xl shadow-xl p-6 relative">
+					<button onclick="hideQnaModal()"
+						class="absolute top-2 right-3 text-gray-500 hover:text-black text-2xl">&times;</button>
 
-        const answerArea = document.getElementById('vet-answer-area');
-        const answerBox = document.getElementById('modal-qna-answer');
-        const createBtn = document.getElementById('modal-answer-create');
-        const updateBtn = document.getElementById('modal-answer-update');
-        const deleteBtn = document.getElementById('modal-answer-delete');
-        const statusBadge = document.getElementById('answer-status-badge'); // ✅ 상태 텍스트 영역
+					<h2 class="text-2xl font-bold mb-4">🙋 질문 상세</h2>
 
-        // 상태 텍스트 표시
-        if (statusBadge) {
-          if (answered) {
-            statusBadge.innerHTML = '✅ <span class="font-medium text-green-700">답변 완료</span>';
-          } else {
-            statusBadge.innerHTML = '⏳ <span class="font-medium text-gray-700">답변 대기</span>';
-          }
-        }
+					<input type="hidden" id="modal-qna-id">
+					<input type="hidden" id="answer-id">
 
-        // 기본 상태 초기화
-        createBtn.classList.add('hidden');
-        updateBtn.classList.add('hidden');
-        deleteBtn.classList.add('hidden');
-        answerArea.classList.remove('hidden');
+					<label class="font-semibold">제목</label>
+					<input type="text" id="modal-qna-title" class="w-full p-2 rounded bg-gray-100 mb-3" readonly>
 
-        if (owner === 'mine') {
-          // 내가 작성한 답변 → 수정/삭제 가능
-          answerBox.value = answer?.content ?? answer ?? ''; // 객체일 경우 대비
-          updateBtn.classList.remove('hidden');
-          deleteBtn.classList.remove('hidden');
-        } else {
-          // 미답변 → 등록만 가능
-          answerBox.value = '';
-          answerArea.classList.add('hidden');
-          createBtn.classList.remove('hidden');
-        }
+					<label class="font-semibold">내용</label>
+					<textarea id="modal-qna-body" class="w-full p-2 rounded bg-gray-100 mb-3" rows="4"
+						readonly></textarea>
 
-        document.getElementById('qna-detail-modal').classList.remove('hidden');
-      }
+					<div id="vet-answer-area" class="mb-3 hidden">
+						<label class="font-semibold">💬 수의사 답변</label>
+						<textarea id="modal-qna-answer" class="w-full p-2 rounded bg-gray-100" readonly
+							rows="2"></textarea>
 
+					</div>
 
+					<div class="flex items-center gap-2 mt-4">
+						<input type="hidden" id="modal-qna-answered" disabled>
+						<!-- 상태 텍스트 -->
+						<div id="answer-status-badge" class="mt-4 text-lg"></div>
 
+					</div>
 
-      document.querySelectorAll('.qna-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const id = item.dataset.id;
-          const title = item.dataset.title;
-          const body = item.dataset.body;
-          const answer = item.dataset.answer;
-          const answered = item.dataset.answered === 'true';
-          const owner = item.dataset.owner; // 'mine' or 'others'
+					<div class="flex justify-end gap-2 mt-6">
+						<button id="modal-answer-create"
+							class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded hidden">등록</button>
+						<button id="modal-answer-update"
+							class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded hidden">수정</button>
+						<button id="modal-answer-delete"
+							class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">삭제</button>
+					</div>
 
-          showQnaDetailModal(id, title, body, answer, answered, owner);
-        });
-      });
+				</div>
+			</div>
 
 
-      function hideQnaModal() {
-        document.getElementById('qna-detail-modal').classList.add('hidden');
-      }
+			<script>
 
-      let isRegisteringAnswer = false;
+				document.querySelectorAll('.qna-item').forEach(item => {
+					item.addEventListener('click', () => {
+						const id = item.dataset.id;
+						const title = item.dataset.title;
+						const body = item.dataset.body;
+						const answer = item.dataset.answer;
+						const answered = item.dataset.answered === 'true';
 
-      document.getElementById('modal-answer-create').addEventListener('click', () => {
-        const answerBox = document.getElementById('modal-qna-answer');
-        const answerArea = document.getElementById('vet-answer-area');
+						showQnaDetailModal(id, title, body, answer, answered);
+					});
+				});
+				function showQnaDetailModal(id, title, body, answer, answered, owner = 'others') {
+					document.getElementById('answer-id').value = answer?.id ?? '';
+					document.getElementById('modal-qna-id').value = id;
+					document.getElementById('modal-qna-title').value = title;
+					document.getElementById('modal-qna-body').value = body;
+					document.getElementById('modal-qna-answered').checked = answered;
 
-        // 최초 클릭 시 textarea 보이기
-        if (!isRegisteringAnswer) {
-          answerArea.classList.remove('hidden');
-          answerBox.removeAttribute('readonly');
-          answerBox.classList.remove('bg-gray-100');
-          answerBox.classList.add('bg-white');
-          answerBox.focus();
+					const answerArea = document.getElementById('vet-answer-area');
+					const answerBox = document.getElementById('modal-qna-answer');
+					const createBtn = document.getElementById('modal-answer-create');
+					const updateBtn = document.getElementById('modal-answer-update');
+					const deleteBtn = document.getElementById('modal-answer-delete');
+					const statusBadge = document.getElementById('answer-status-badge'); // ✅ 상태 텍스트 영역
 
-          isRegisteringAnswer = true;
-          return; // 두 번째 클릭 시 전송
-        }
+					// 상태 텍스트 표시
+					if (statusBadge) {
+						if (answered) {
+							statusBadge.innerHTML = '✅ <span class="font-medium text-green-700">답변 완료</span>';
+						} else {
+							statusBadge.innerHTML = '⏳ <span class="font-medium text-gray-700">답변 대기</span>';
+						}
+					}
 
-        // 두 번째 클릭 시: 서버 전송
-        const qnaId = document.getElementById('modal-qna-id').value;
-        const answer = answerBox.value.trim();
+					// 기본 상태 초기화
+					createBtn.classList.add('hidden');
+					updateBtn.classList.add('hidden');
+					deleteBtn.classList.add('hidden');
+					answerArea.classList.remove('hidden');
 
-        if (answer === '') {
-          alert('답변 내용을 입력해주세요.');
-          return;
-        }
+					if (owner === 'mine') {
+						// 내가 작성한 답변 → 수정/삭제 가능
+						answerBox.value = answer?.content ?? answer ?? ''; // 객체일 경우 대비
+						updateBtn.classList.remove('hidden');
+						deleteBtn.classList.remove('hidden');
+					} else {
+						// 미답변 → 등록만 가능
+						answerBox.value = '';
+						answerArea.classList.add('hidden');
+						createBtn.classList.remove('hidden');
+					}
 
-        fetch('/usr/vetAnswer/doWrite', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `qnaId=${encodeURIComponent(qnaId)}&answer=${encodeURIComponent(answer)}`
-        })
-                .then(res => res.text())
-                .then(jsCode => {
-                  location.reload();
-                });
-      });
-
-      let isEditingAnswer = false;
-
-      document.getElementById('modal-answer-update').addEventListener('click', () => {
-        const answerBox = document.getElementById('modal-qna-answer');
-        const updateBtn = document.getElementById('modal-answer-update');
-        const qnaId = document.getElementById('modal-qna-id').value;
-
-        // 처음 클릭 → 수정 모드 진입
-        if (!isEditingAnswer) {
-          answerBox.removeAttribute('readonly');
-          answerBox.classList.remove('bg-gray-100');
-          answerBox.classList.add('bg-white');
-          answerBox.focus();
-
-          updateBtn.textContent = '저장';
-          isEditingAnswer = true;
-          return;
-        }
-
-        // 두 번째 클릭 → 서버로 저장 요청
-        const newAnswer = answerBox.value.trim();
-
-        if (newAnswer === '') {
-          alert('수정할 답변 내용을 입력해주세요.');
-          return;
-        }
-
-        const answerId = document.getElementById('answer-id').value;  // ✅ 답변 ID
-
-        fetch('/usr/vetAnswer/doModify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `qnaId=${encodeURIComponent(qnaId)}&answer=${encodeURIComponent(newAnswer)}`
-        })
-
-                .then(res => res.json())
-                .then(data => {
-                  if (data.resultCode === 'S-1') {
-
-                    // 수정 완료 → 다시 읽기 모드
-                    answerBox.setAttribute('readonly', true);
-                    answerBox.classList.remove('bg-white');
-                    answerBox.classList.add('bg-gray-100');
-
-                    updateBtn.textContent = '수정';
-                    isEditingAnswer = false;
-                    location.reload();
-                  } else {
-                    alert('수정 실패: ' + (data.msg || '서버 오류'));
-                  }
-                });
-
-      });
-
-      document.getElementById('modal-answer-delete').addEventListener('click', () => {
-        const qnaId = document.getElementById('modal-qna-id').value;
-        const answer = document.getElementById('modal-qna-answer').value.trim();
-
-        if (!confirm('정말 이 답변을 삭제하시겠습니까?')) return;
-
-        fetch('/usr/vetAnswer/doDelete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `qnaId=${encodeURIComponent(qnaId)}`
-        })
-
-                .then(res => res.json())
-                .then(data => {
-                  if (data.resultCode === 'S-1') {
-                    location.reload();
-                  } else {
-                    alert(data.msg);
-                  }
-                });
-      });
+					document.getElementById('qna-detail-modal').classList.remove('hidden');
+				}
 
 
 
-    </script>
+
+				document.querySelectorAll('.qna-item').forEach(item => {
+					item.addEventListener('click', () => {
+						const id = item.dataset.id;
+						const title = item.dataset.title;
+						const body = item.dataset.body;
+						const answer = item.dataset.answer;
+						const answered = item.dataset.answered === 'true';
+						const owner = item.dataset.owner; // 'mine' or 'others'
+
+						showQnaDetailModal(id, title, body, answer, answered, owner);
+					});
+				});
 
 
-  </main>
+				function hideQnaModal() {
+					document.getElementById('qna-detail-modal').classList.add('hidden');
+				}
 
-</div>
+				let isRegisteringAnswer = false;
+
+				document.getElementById('modal-answer-create').addEventListener('click', () => {
+					const answerBox = document.getElementById('modal-qna-answer');
+					const answerArea = document.getElementById('vet-answer-area');
+
+					// 최초 클릭 시 textarea 보이기
+					if (!isRegisteringAnswer) {
+						answerArea.classList.remove('hidden');
+						answerBox.removeAttribute('readonly');
+						answerBox.classList.remove('bg-gray-100');
+						answerBox.classList.add('bg-white');
+						answerBox.focus();
+
+						isRegisteringAnswer = true;
+						return; // 두 번째 클릭 시 전송
+					}
+
+					// 두 번째 클릭 시: 서버 전송
+					const qnaId = document.getElementById('modal-qna-id').value;
+					const answer = answerBox.value.trim();
+
+					if (answer === '') {
+						alert('답변 내용을 입력해주세요.');
+						return;
+					}
+
+					fetch('/usr/vetAnswer/doWrite', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: `qnaId=${encodeURIComponent(qnaId)}&answer=${encodeURIComponent(answer)}`
+					})
+						.then(res => res.text())
+						.then(jsCode => {
+							location.reload();
+						});
+				});
+
+				let isEditingAnswer = false;
+
+				document.getElementById('modal-answer-update').addEventListener('click', () => {
+					const answerBox = document.getElementById('modal-qna-answer');
+					const updateBtn = document.getElementById('modal-answer-update');
+					const qnaId = document.getElementById('modal-qna-id').value;
+
+					// 처음 클릭 → 수정 모드 진입
+					if (!isEditingAnswer) {
+						answerBox.removeAttribute('readonly');
+						answerBox.classList.remove('bg-gray-100');
+						answerBox.classList.add('bg-white');
+						answerBox.focus();
+
+						updateBtn.textContent = '저장';
+						isEditingAnswer = true;
+						return;
+					}
+
+					// 두 번째 클릭 → 서버로 저장 요청
+					const newAnswer = answerBox.value.trim();
+
+					if (newAnswer === '') {
+						alert('수정할 답변 내용을 입력해주세요.');
+						return;
+					}
+
+					const answerId = document.getElementById('answer-id').value;  // ✅ 답변 ID
+
+					fetch('/usr/vetAnswer/doModify', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: `qnaId=${encodeURIComponent(qnaId)}&answer=${encodeURIComponent(newAnswer)}`
+					})
+
+						.then(res => res.json())
+						.then(data => {
+							if (data.resultCode === 'S-1') {
+
+								// 수정 완료 → 다시 읽기 모드
+								answerBox.setAttribute('readonly', true);
+								answerBox.classList.remove('bg-white');
+								answerBox.classList.add('bg-gray-100');
+
+								updateBtn.textContent = '수정';
+								isEditingAnswer = false;
+								location.reload();
+							} else {
+								alert('수정 실패: ' + (data.msg || '서버 오류'));
+							}
+						});
+
+				});
+
+				document.getElementById('modal-answer-delete').addEventListener('click', () => {
+					const qnaId = document.getElementById('modal-qna-id').value;
+					const answer = document.getElementById('modal-qna-answer').value.trim();
+
+					if (!confirm('정말 이 답변을 삭제하시겠습니까?')) return;
+
+					fetch('/usr/vetAnswer/doDelete', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: `qnaId=${encodeURIComponent(qnaId)}`
+					})
+
+						.then(res => res.json())
+						.then(data => {
+							if (data.resultCode === 'S-1') {
+								location.reload();
+							} else {
+								alert(data.msg);
+							}
+						});
+				});
+
+
+
+			</script>
+
+		</main>
+
+	</div>
 </body>
+
 </html>

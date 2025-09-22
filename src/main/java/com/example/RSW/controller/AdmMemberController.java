@@ -13,6 +13,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/adm/member")
@@ -41,6 +42,12 @@ public class AdmMemberController {
             memberService.updateAuthLevel(memberId, 3);
         } else if (approved == 2) {
             memberService.updateAuthLevel(memberId, 1);
+        }
+
+        Member loginedMember = rq.getLoginedMember();
+
+        if (loginedMember == null || loginedMember.getAuthLevel() != 7) {
+            return ResultData.from("F-1", "관리자만 접근할 수 있습니다.");
         }
 
         if (rq.getLoginedMemberId() == memberId) {
@@ -76,6 +83,11 @@ public class AdmMemberController {
             return ResultData.from("F-2", "본인의 관리자 권한은 스스로 해제할 수 없습니다.");
         }
 
+        Member loginedMember = rq.getLoginedMember();
+
+        if (loginedMember == null || loginedMember.getAuthLevel() != 7) {
+            return ResultData.from("F-3", "관리자만 접근할 수 있습니다.");
+        }
 
         // 4. 권한 업데이트
         memberService.updateAuthLevel(memberId, newLevel);

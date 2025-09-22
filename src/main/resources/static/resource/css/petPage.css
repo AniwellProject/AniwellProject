@@ -2,10 +2,6 @@
 	margin-top: 10px;
 }
 
-.main_page>section {
-	width: 100%;
-}
-
 .pet_img {
 	margin-left: auto;
 	margin-top: 50px;
@@ -15,10 +11,16 @@
 	border-top: 2px solid lemonchiffon;
 }
 
-.tD_ani{
+.tD_ani {
 	min-height: 200px;
 }
 
-.ani-card {
-	max-height: 230px;
+.pet_card {
+	aspect-ratio: 1.8/1;
+	width: auto;
+}
+
+.card_photo {
+	aspect-ratio: 1/1;
+	width: auto;
 }

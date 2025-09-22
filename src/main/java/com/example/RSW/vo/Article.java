@@ -23,6 +23,7 @@ public class Article {
     private int hitCount;
     private int goodReactionPoint;
     private int badReactionPoint;
+    private Integer crewId;
 
     private String imageUrl;
     private Date scheduleDate;

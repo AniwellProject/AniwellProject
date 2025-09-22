@@ -1,196 +1,532 @@
+<!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <meta charset="UTF-8">
-  <title>회원가입</title>
-  <style>
-    body {
-      background-color: #999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: 'Arial';
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" th:href="@{/resource/css/login_join.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .form-panel-slide {
+            display: flex;
+            transition: transform 0.3s ease;
+        }
 
-    .signup-wrapper {
-      width: 700px;
-      max-height: 90vh;   /* ✅ 높이 제한 */
-      background: white;
-      border-radius: 15px;
-      display: flex;
-      overflow: hidden;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    }
+        .form-step {
+            width: 100%;
+            padding: 1rem;
+        }
 
-    .left-panel {
-      width: 40%;
-      background: linear-gradient(135deg, #f0eb94, #bdd1c6);
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 20px;
-    }
+        @keyframes slide-up {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+                /* 살짝만 내려온 상태에서 */
+            }
 
-    .left-panel button {
-      background-color: #f5d76e;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    .form-panel {
-      width: 60%;
-      padding: 30px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      overflow-y: auto;  /* ✅ 스크롤 생기도록 */
-    }
+        .animate-slide-up {
+            animation: slide-up 0.3s ease-out forwards;
+        }
 
-    .form-step {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      animation: fadeIn 0.3s ease-in;
-    }
+        .animate-slide-up {
+            animation: slide-up 0.3s ease-out forwards;
+        }
+    </style>
 
-    .form-step.active {
-      display: flex;
-    }
+</head>
 
-    input, select {
-      border: none;
-      border-bottom: 1px solid #aaa;
-      background: transparent;
-      padding: 8px;
-      outline: none;
-    }
+<body class="bg-white">
 
-    button.next-button, button.prev-button, button.submit-button {
-      background-color: #a8cbb5;
-      border: none;
-      padding: 10px;
-      border-radius: 10px;
-      margin-top: 10px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+<div class="min-h-[680px] opacity-0 animate-slide-up form-wrapper flex-row overflow-hidden min-w-content relative"
+     id="form-wrapper">
 
-    .logo-img {
-      width: 80px;
-      margin-top: 20px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
+    <div class="form-slider w-[200%] flex transition-transform duration-300">
 
-    .timeline {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-    }
+        <!-- 회원가입 화면 -->
+        <div class="sign-up flex w-full relative">
+            <!-- 왼쪽 로그인으로 돌아가기 -->
+            <div class="left-panel w-2/5 flex items-center justify-center bg-yellow-100">
+					<span class="sign-in-button cursor-pointer text-lg font-semibold text-gray-700"
+                          id="show-sign-in">로그인</span>
+            </div>
 
-    .paw-icon {
-      width: 24px;
-    }
+            <!-- 오른쪽 회원가입 -->
+            <form class="form-panel w-3/5 relative " th:action="@{/usr/member/doJoin}" method="post"
+                  onsubmit="return validateForm()">
 
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(10px);}
-      to {opacity: 1; transform: translateY(0);}
-    }
+                <div class="form-panel-slide h-full flex relative" id="slide-panel">
+                    <!-- STEP 1 -->
+                    <div class="form-step flex flex-col justify-around" id="step1">
+                        <h2>회원가입</h2>
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="text" name="loginId" placeholder="ID" required th:value="${param.loginId}" />
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="password" name="loginPw" placeholder="PW" required />
+                        <input class="w-full text-center py-2 focus:border-yellow-400"
+                               type="password" name="loginPwConfirm" placeholder="비밀번호 확인" required />
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="text" name="name" placeholder="NAME" required th:value="${param.name}" />
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="text" name="nickname" placeholder="NICKNAME" required
+                               th:value="${param.nickname}" />
+                        <button type="button" class="next-button w-[75%] min-w-[100px] hover:bg-[#88AD96]" onclick="goToStep(2)">다음
+                        </button>
+                    </div>
 
-    .error-message {
-      color: red;
-      text-align: center;
-      font-size: 13px;
-      margin-bottom: 10px;
-    }
-  </style>
+                    <!-- STEP 2 -->
+                    <div class="form-step flex flex-col justify-around" id="step2">
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="text" name="cellphone" placeholder="PHONE NUMBER" required
+                               th:value="${param.cellphone}">
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="email" name="email" placeholder="EMAIL" required th:value="${param.email}" />
+                        <input class="w-full text-center py-2 focus:border-yellow-400" type="text" name="address" id="address" placeholder="ADDRESS" required
+                               th:value="${param.address}" />
 
-  <script>
+                        <select name="authName" onchange="updateAuthLevel()" required>
+                            <option value="일반" th:selected="${param.authName == '일반'}">일반</option>
+                            <option value="수의사" th:selected="${param.authName == '수의사'}">수의사</option>
+                        </select>
+
+                        <input type="hidden" id="authLevel" name="authLevel" th:value="${param.authLevel ?: 1}" />
+                        <button type="button" button" class="next-button w-[75%] min-w-[100px] hover:bg-[#88AD96] onclick="goToStep(1)">뒤로가기</button>
+                        <button type="submit" class="w-[75%] min-w-[100px] sign-in-button">sign
+                            up</button>
+                    </div>
+                </div>
+
+                <!-- 🐾 발바닥 타임라인 -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
+                    <img id="paw1" src="/img/paw_active.png" class="w-10 h-10 transition-transform duration-300" />
+                    <img id="paw2" src="/img/paw_inactive.png"
+                         class="w-10 h-10 transition-transform duration-300" />
+                </div>
+            </form>
+        </div>
+        <!-- 로그인 화면 -->
+        <div class="sign-in flex w-full relative">
+            <!-- 로그인 폼 -->
+            <form class="left-panel w-3/5 p-6 gap-3" th:action="@{/usr/member/doLogin}" method="post">
+                <h1>
+                    <a href="/">
+                        <img class="logo-img mt-4" th:src="@{/img/logo.png}" alt="Aniwell Logo">
+                    </a>
+                </h1>
+
+                <div class="w-[75%] mx-auto space-y-4">
+                    <input type="text" name="loginId" placeholder="아이디" required th:value="${param.loginId}"
+                           class="w-full text-center py-2 focus:border-yellow-400" />
+
+                    <input type="password" name="loginPw" placeholder="비밀번호" required
+                           class="w-full text-center py-2 focus:border-yellow-400" />
+                </div>
+
+                <div class="flex justify-center items-center mt-3 space-x-4 text-gray-700 text-sm font-medium">
+                    <a href="/find-id">아이디 찾기</a>
+                    <span class="text-gray-400">|</span>
+                    <a href="/find-password">비밀번호 찾기</a>
+                </div>
+
+                <button class="w-[75%] min-w-[100px] sign-in-button" type="submit">sign in</button>
+                <!-- 소셜 로그인 버튼 영역 -->
+                <div class="social-login-buttons flex flex-col gap-1 mt-4">
+                    <a href="javascript:loginWithGoogle()"
+                       class="flex items-center border px-4 py-2 rounded-xl shadow hover:shadow-md bg-white">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo"
+                             class="w-8 h-8" />
+                        <span class="text-sm font-medium text-gray-700 w-full text-center">구글 로그인</span>
+                    </a>
+
+                    <!-- 네이버  -->
+                    <a href="javascript:loginWithGoogle()"
+                       class="flex items-center border px-4 py-2 rounded-xl shadow hover:shadow-md bg-white">
+                        <img th:src="@{/img.socialLogin/btnG_아이콘사각.png}" alt="네이버 로그인" class="w-8 h-8" />
+                        <span class="text-sm font-medium text-gray-700 w-full text-center">네이버 로그인</span>
+                    </a>
+
+                    <!-- 카카오 (팝업 방식) -->
+                    <a href="javascript:openKakaoPopup()">
+                        <img th:src="@{/img.socialLogin/kakao_login_medium_wide.png}" alt="카카오 로그인"
+                             class="flex items-center border rounded-xl shadow hover:shadow-md bg-white h-[50px]" />
+                    </a>
+                </div>
+            </form>
+
+            <!-- 회원가입 버튼 -->
+            <div class="right-panel h-full w-2/5 flex items-center justify-center bg-yellow-100">
+					<span class="sign-up-button cursor-pointer text-lg font-semibold text-gray-700"
+                          id="show-sign-up">회원가입</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // 로그인 ↔ 회원가입 전환
+    $(document).ready(function () {
+        $('#show-sign-up').on('click', function () {
+            $('.form-slider').css('transform', 'translateX(-50%)');
+        });
+        $('#show-sign-in').on('click', function () {
+            $('.form-slider').css('transform', 'translateX(0)');
+        });
+    });
+
+    let currentStep = 1;
+
     function goToStep(step) {
-      document.getElementById('step1').classList.remove('active');
-      document.getElementById('step2').classList.remove('active');
-      document.getElementById('step' + step).classList.add('active');
+        currentStep = step;
+        const slide = document.querySelector('.form-panel-slide');
+        slide.style.transform = `translateX(${step === 1 ? '0' : '-100%'})`;
 
-      // 발바닥 이미지 교체
-      document.getElementById('paw1').src = step === 1 ? '/img/paw_active.png' : '/img/paw_inactive.png';
-      document.getElementById('paw2').src = step === 2 ? '/img/paw_active.png' : '/img/paw_inactive.png';
+        // 발바닥 이미지 변경
+        document.getElementById('paw1').src = step === 1 ? '/img/paw_active.png' : '/img/paw_inactive.png';
+        document.getElementById('paw2').src = step === 2 ? '/img/paw_active.png' : '/img/paw_inactive.png';
     }
+
+    // 드래그 이벤트
+    const panel = document.getElementById('slide-panel');
+    let startX = 0, isDragging = false;
+
+    panel.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        isDragging = true;
+    });
+
+    panel.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        if (deltaX < -50 && currentStep === 1) goToStep(2);
+        else if (deltaX > 50 && currentStep === 2) goToStep(1);
+        isDragging = false;
+    });
+
+    // 모바일 터치
+    panel.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+    });
+
+    panel.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        const endX = e.changedTouches[0].clientX;
+        const deltaX = endX - startX;
+        if (deltaX < -50 && currentStep === 1) goToStep(2);
+        else if (deltaX > 50 && currentStep === 2) goToStep(1);
+        isDragging = false;
+    });
 
     function updateAuthLevel() {
-      const auth = document.querySelector('[name="authName"]').value;
-      document.getElementById('authLevel').value = auth === '수의사' ? 9 : 1;
+        const auth = document.querySelector('[name="authName"]').value;
+        document.getElementById('authLevel').value = auth === '수의사' ? 9 : 1;
     }
 
     function validateForm() {
-      const phone = document.querySelector('[name="cellphone"]');
-      const phonePattern = /^\d{3}-\d{3,4}-\d{4}$/;
-      if (!phonePattern.test(phone.value)) {
-        alert("전화번호 형식이 올바르지 않습니다. 예: 000-0000-0000");
-        return false;
-      }
-      return true;
+        const phone = document.querySelector('[name="cellphone"]');
+        const phonePattern = /^\d{3}-\d{3,4}-\d{4}$/;
+        if (!phonePattern.test(phone.value)) {
+            alert("전화번호 형식이 올바르지 않습니다. 예: 000-0000-0000");
+            return false;
+        }
+
+        const addressInput = document.getElementById("address");
+        console.log("🚨 address.value:", addressInput?.value);
+
+        if (!addressInput || addressInput.value.trim() === "") {
+            alert("주소를 입력해주세요. 우편번호 찾기를 사용하세요.");
+            return false;
+        }
+        return true;
     }
-  </script>
-</head>
-<body>
 
-<div class="signup-wrapper">
-  <!-- 왼쪽 패널 -->
-  <div class="left-panel">
-    <button onclick="location.href='/usr/member/login'">sign up</button>
-  </div>
+    // step1에서 Enter 키로 다음 단계 이동
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('#step1 input').forEach(input => {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    goToStep(2);
+                }
+            });
+        });
 
-  <!-- 오른쪽 패널 -->
-  <form class="form-panel" action="/usr/member/doJoin" method="post" onsubmit="return validateForm()">
-    <c:if test="${param.error != null}">
-      <div class="error-message">${param.error}</div>
-    </c:if>
+        const phoneInput = document.querySelector('[name="cellphone"]');
+        phoneInput.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            let result = '';
+            if (value.length < 4) {
+                result = value;
+            } else if (value.length < 7) {
+                result = value.slice(0, 3) + '-' + value.slice(3);
+            } else if (value.length < 11) {
+                result = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6);
+            } else {
+                result = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+            }
+            e.target.value = result;
+        });
+    });
+</script>
 
-    <!-- STEP 1 -->
-    <div class="form-step active" id="step1">
-      <h2>Create Account</h2>
-      <input type="text" name="loginId" placeholder="ID" required>
-      <input type="password" name="loginPw" placeholder="PW" required>
-      <input type="text" name="name" placeholder="NAME" required>
-      <input type="text" name="nickname" placeholder="NICKNAME" required>
-      <button type="button" class="next-button" onclick="goToStep(2)">다음</button>
-    </div>
+
+<!--카카오-->
+<script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+<script>
+    function openKakaoPopup() {
+        const popup = window.open(
+            "https://kauth.kakao.com/oauth/authorize?" +
+            new URLSearchParams({
+                response_type: "code",
+                client_id: "79f2a3a73883a82595a2202187f96cc5",
+                redirect_uri: "http://localhost:8080/usr/member/kakao",
+                state: "randomString",
+                prompt: "login"
+            }),
+            "kakaoLoginPopup",
+            "width=500,height=600"
+        );
+
+        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
+        }
+    }
+</script>
+
+<!--구글-->
+<script>
+
+    window.loginWithGoogle = async function () {
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        try {
+            const result = await firebase.auth().signInWithPopup(provider);
+            const user = result.user;
+
+            const uid = user.uid;
+            const email = user.email;
+            const displayName = user.displayName;
+
+            const db = firebase.firestore();
+            await db.collection("users").doc(uid).set({
+                uid: uid,
+                email: email,
+                displayName: displayName,
+                provider: "google",
+                lastLogin: new Date().toISOString()
+            }, {merge: true});
+
+            // 서버 세션 연동이 필요하면 여기서 idToken 전달 가능
+            // const idToken = await user.getIdToken();
+
+            window.location.href = "/";
+
+        } catch (error) {
+            console.error("❌ Google 로그인 실패", error);
+            alert("Google 로그인 중 오류가 발생했습니다.");
+        }
+    }
+</script>
+
+<!--네이버-->
+<script>
+    function openNaverPopup() {
+        const popup = window.open(
+            "https://nid.naver.com/oauth2.0/authorize?" +
+            new URLSearchParams({
+                response_type: "code",
+                client_id: "ZdyW5GGtNSgCCaduup7_",
+                redirect_uri: "http://localhost:8080/usr/member/naver",
+                state: "randomString"
+            }),
+            "naverLoginPopup",
+            "width=500,height=600"
+        );
+
+        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+            alert("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
+        }
+    }
+</script>
+
+<!-- ✅ Firebase 라이브러리 로드 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- ✅ Firebase 초기화 -->
+<script>
 
 
-    <!-- STEP 2 -->
-    <div class="form-step" id="step2">
-      <h2>Contact Info</h2>
-      <input type="text" name="cellphone" placeholder="PHONE NUMBER (000-0000-0000)" required>
-      <input type="email" name="email" placeholder="EMAIL" required>
-      <input type="text" name="address" placeholder="ADDRESS" required>
+    firebase.initializeApp(firebaseConfig);
+    console.log("🔥 Firebase 초기화 완료:", firebase.apps.length);
 
-      <select name="authName" onchange="updateAuthLevel()" required>
-        <option value="일반">일반</option>
-        <option value="수의사">수의사</option>
-      </select>
-      <input type="hidden" id="authLevel" name="authLevel" value="1">
+    // 전역 오류 감지
+    window.addEventListener('error', function (e) {
+        console.error("❌ 전역 오류 발생:", e.message, " at ", e.filename, ":", e.lineno);
+    });
+</script>
 
-      <button type="button" class="prev-button" onclick="goToStep(1)">뒤로가기</button>
-      <button type="submit" class="submit-button">sign up</button>
-    </div>
+<script>
+    let isGooglePopupInProgress = false;
 
-    <!-- 발바닥 타임라인 -->
-    <div class="timeline">
-      <img id="paw1" class="paw-icon" src="/img/paw_active.png">
-      <img id="paw2" class="paw-icon" src="/img/paw_inactive.png">
-    </div>
+    // ✅ Firebase Custom Token 로그인 공통 함수
+    async function firebaseLoginWithServerToken(email) {
+        try {
 
-    <!-- 로고 -->
-    <img class="logo-img" src="/img/logo.png" alt="Aniwell Logo">
-  </form>
-</div>
+            const res = await fetch(`/usr/member/social-login?email=${encodeURIComponent(email)}`);
+            const result = await res.json();
+
+            if (result.resultCode !== "S-1") {
+                alert(result.msg || "로그인 실패");
+                return;
+            }
+
+            const customToken = result.data1;
+            if (!customToken || (customToken.match(/\./g) || []).length !== 2) return;
+
+            // Firebase 로그인
+            const userCredential = await firebase.auth().signInWithCustomToken(customToken);
+            const user = userCredential.user;
+
+            // ✅ 로그인 성공 → 메인 화면 즉시 이동
+            window.location.href = "/";
+
+            // ✅ Firestore 저장 & 서버 세션 설정은 백그라운드 실행
+            const db = firebase.firestore();
+            const idTokenPromise = user.getIdToken();
+
+            Promise.all([
+                db.collection("users").doc(user.uid).set({
+                    uid: user.uid,
+                    email: user.email || '',
+                    displayName: user.displayName || '',
+                    provider: result.data2 || '',
+                    lastLogin: new Date().toISOString()
+                }, {merge: true}),
+                idTokenPromise.then((idToken) => fetch("/usr/member/firebase-session-login", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({idToken}),
+                    credentials: "include"
+                }))
+            ]);
+
+
+        } catch (err) {
+            alert("로그인 중 오류가 발생했습니다.");
+        }
+    }
+
+    // ✅ Google 로그인 (Popup 방식)
+    window.loginWithGoogle = async function () {
+        if (isGooglePopupInProgress) return;
+        isGooglePopupInProgress = true;
+
+        try {
+            await firebase.auth().signOut();
+            await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({prompt: 'select_account'});
+
+            const result = await firebase.auth().signInWithPopup(provider);
+            const email = result.user.email;
+
+            await firebase.auth().signOut();
+            await firebaseLoginWithServerToken(email);
+        } catch {
+            alert("Google 로그인 중 오류 발생");
+        } finally {
+            isGooglePopupInProgress = false;
+        }
+    };
+
+    // ✅ 일반 로그인 + Firebase 커스텀 토큰 로그인
+    async function handleFirebaseLogin() {
+        try {
+            console.time("🔄 [일반] 전체 로그인 시간");
+
+            const response = await fetch('/usr/member/firebase-token', {method: 'POST'});
+            const result = await response.json();
+
+            if (result.resultCode !== 'S-1') {
+                alert(result.msg || "토큰 발급 실패");
+                return;
+            }
+
+            const customToken = result.data1;
+            const userCredential = await firebase.auth().signInWithCustomToken(customToken);
+            const user = userCredential.user;
+
+            // ✅ 로그인 성공 → 메인 화면 즉시 이동
+            window.location.replace("/");
+
+            // ✅ Firestore 저장 & 세션 설정은 백그라운드 실행
+            const db = firebase.firestore();
+            const idTokenPromise = user.getIdToken();
+
+            Promise.all([
+                db.collection("users").doc(user.uid).set({
+                    uid: user.uid,
+                    email: user.email || '',
+                    displayName: user.displayName || '',
+                    provider: result.data1.provider || "email",
+                    lastLogin: new Date().toISOString()
+                }, {merge: true}),
+                idTokenPromise.then((idToken) => fetch("/usr/member/firebase-session-login", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({idToken}),
+                    credentials: "include"
+                }))
+            ]);
+
+            console.timeEnd("🔄 [일반] 전체 로그인 시간");
+        } catch {
+            alert("Firebase 로그인 중 오류 발생");
+        }
+    }
+
+    // ✅ 로그인 폼 제출 이벤트
+    document.addEventListener("DOMContentLoaded", function () {
+        const loginForm = document.querySelector('form[action="/usr/member/doLogin"]');
+        if (loginForm) {
+            loginForm.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(loginForm);
+                try {
+                    const response = await fetch(loginForm.getAttribute("action"), {
+                        method: "POST",
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (result.resultCode !== "S-1") {
+                        alert(result.msg || "로그인 실패");
+                        return;
+                    }
+                    await handleFirebaseLogin();
+                } catch {
+                    alert("서버 오류가 발생했습니다.");
+                }
+            });
+        }
+
+        // 소셜 로그인 후 자동 Firebase 연동
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("social") === "1") handleFirebaseLogin();
+    });
+
+    // ✅ 카카오/네이버 팝업 메시지 수신
+    window.addEventListener("message", function (event) {
+        if (event.data && event.data.email) firebaseLoginWithServerToken(event.data.email);
+    });
+</script>
 
 </body>
+
 </html>

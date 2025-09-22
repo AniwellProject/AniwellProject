@@ -24,7 +24,8 @@
 	<select id="findById" resultType="com.example.RSW.vo.WalkCrew">
 		SELECT *
 		FROM walk_crew
-		WHERE id =
+		WHERE id
+		=
 		#{id}
 	</select>
 
@@ -195,7 +196,8 @@
 		FROM walk_crew
 		WHERE 1=1
 		<if test="searchKeyword != null and searchKeyword != ''">
-			AND ${searchKeywordTypeCode} LIKE CONCAT('%', #{searchKeyword}, '%')
+			AND ${searchKeywordTypeCode} LIKE CONCAT('%',
+			#{searchKeyword}, '%')
 		</if>
 		<if test="dong != null and dong != ''">
 			AND dong LIKE CONCAT('%', #{dong}, '%') <!-- 여기 -->
@@ -237,5 +239,39 @@
 			</choose>
 		</if>
 	</select>
+
+	<!-- walk_crew의 리더 변경 -->
+	<update id="updateCrewLeader">
+		UPDATE walk_crew
+		SET leaderId = #{newLeaderId}
+		WHERE id
+		= #{crewId}
+	</update>
+
+	<!-- 크루 소개글 수정하기 -->
+	<update id="updateDescriptionById">
+		UPDATE walk_crew
+		SET description = #{newDescription}
+		WHERE id = #{crewId}
+	</update>
+
+	<!-- 내가 리더로 있는 모든 크루 조회 -->
+	<select id="findCrewsByLeaderId" parameterType="int"
+		resultType="com.example.RSW.vo.WalkCrew">
+		SELECT *
+		FROM walk_crew
+		WHERE leaderId = #{memberId}
+	</select>
+
+	<select id="findJoinedCrewsByMemberId" resultType="WalkCrew">
+		SELECT C.*
+		FROM walk_crew_member M
+		JOIN walk_crew C ON M.crewId = C.id
+		WHERE
+		M.memberId = #{memberId}
+		AND M.status COLLATE utf8mb4_general_ci =
+		'approved'
+	</select>
+
 
 </mapper>

@@ -6,6 +6,7 @@ import com.example.RSW.vo.PetBleActivity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,5 +39,9 @@ public class PetBleActivityService {
 
     public PetBleActivity findLatestByPetId(int petId) {
         return bleRepo.findLatestByPetId(petId);
+    }
+
+    public List<PetBleActivity> getByPetIdAndDate(int petId, LocalDate targetDate) {
+         return bleRepo.getByPetIdAndDate(petId,targetDate);
     }
 }

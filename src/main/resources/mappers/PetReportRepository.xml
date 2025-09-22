@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.example.RSW.repository.PetReportRepository">
+
+	<select id="selectWeightTimeline"
+		resultType="com.example.RSW.dto.WeightPoint">
+        <![CDATA[
+        SELECT
+            DATE_FORMAT(w.measuredAt, '%Y-%m-%d %H:%i:%s') AS measuredAt,
+            w.weightKg                                   AS weightKg,
+            pf.foodType                                  AS foodType,
+            pf.brand                                     AS brand,
+            pf.productName                               AS productName,
+            pf.flavor                                    AS flavor,
+            pf.lifeStage                                 AS lifeStage
+        FROM pet_weight_log w
+                 LEFT JOIN pet_food pf
+                           ON pf.petId = w.petId
+                               AND DATE(w.measuredAt) >= pf.startedAt
+            AND (pf.endedAt IS NULL OR DATE(w.measuredAt) <= pf.endedAt)
+            AND pf.isPrimary = 1
+        WHERE w.petId = #{petId}
+        ORDER BY w.measuredAt ASC
+        ]]>
+	</select>
+
+</mapper>

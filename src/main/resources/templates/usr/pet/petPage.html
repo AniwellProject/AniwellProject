@@ -2,6 +2,7 @@
 <html lang="ko">
 
 <head>
+
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Aniwell Dashboard</title>
@@ -9,62 +10,108 @@
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 	<link rel="stylesheet" th:href="@{/resource/css/petPage.css}">
 	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
 	<script th:src="@{/resource/js/calendar.js}"></script>
+
+	<style>
+		#activityTimeline .bar-row {
+			position: relative;
+			height: 50px;
+			background: #fff;
+		}
+
+		#activityTimeline .bars {
+			height: 30px;
+			border-radius: 20px;
+			position: absolute;
+		}
+
+		#activityTimeline .time-label {
+			position: absolute;
+			font-size: 12px;
+			color: #666;
+			top: 0;
+			transform: translateX(-50%);
+		}
+
+		#activityTimeline .bars:hover::after {
+			content: attr(data-tooltip);
+			position: absolute;
+			top: -35px;
+			left: 0;
+			white-space: nowrap;
+			background: #444;
+			color: #fff;
+			padding: 5px 8px;
+			border-radius: 5px;
+			font-size: 12px;
+			z-index: 10;
+		}
+	</style>
 
 
 </head>
 
-<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] font-sans">
-	<div class="flex h-screen">
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+	<div class="flex h-screen w-full">
 		<!-- Sidebar -->
-		<div th:replace="common :: siteHeader"></div>
+		<div th:replace="common :: siteHeader" class=""></div>
 
 		<!-- Main content -->
-		<main class="main_page min-h-screen flex-1 p-6 grid grid-cols-12 gap-4">
+		<!-- Main content -->
+		<main class="main_page h-full overflow-y-auto min-h-dvh box-border grid-cols-12 flex-1 p-6 pt-8 grid  gap-8">
 
 			<!-- 왼쪽 8칸: 차트 + 감정분석 + 캘린더 -->
-			<section class="col-span-8 flex flex-col gap-4 h-full">
-
-				<!-- 차트 -->
-				<div class="bg-white p-4 rounded-xl shadow h-60">
-					<canvas id="myChart" class="w-full h-full"></canvas>
-				</div>
-
+			<section class="col-span-12 xl:col-span-8 flex flex-col gap-2  w-full">
 				<!-- 감정분석 카드 -->
-				<div class="grid grid-cols-2 gap-4 h-3/5">
-					<!-- 분석 버튼 -->
-					<div class="bg-[#e0eadf] rounded-xl p-4 text-center font-semibold cursor-pointer"
-						 onclick="openEmotionPanel()">
-						우리아이 감정분석하기
+				<div class="grid grid-cols-2 gap-2">
+					<div class="relative group overflow-hidden bg-gradient-to-r from-[#DFF8E5] to-[#F4FBCC] rounded-xl p-4 text-center shadow hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer w-full"
+						onclick="openEmotionPanel()">
+
+						<!-- ✅ 배경 이미지 -->
+						<div
+							class="absolute p-3 pr-6 inset-0 z-0 flex justify-end items-end pointer-events-none transition-all duration-300 group-hover:opacity-60 group-hover:scale-95">
+							<img src="/img/emo-cat.png" alt="감정 아이콘"
+								class="h-32 select-none transition-all duration-300 transform" />
+						</div>
+
+						<!-- ✅ 텍스트 -->
+						<div class="relative z-10 text-left text-3xl font-bold text-black leading-snug">
+							우리아이
+							<br />
+							감정분석하기
+						</div>
+
 					</div>
 
 					<!-- 슬라이드 감정 분석 패널 -->
 					<div id="emotionPanel"
-						 class="fixed top-0 right-0 w-[92%] h-full bg-[white] shadow-xl z-50 transform translate-x-full transition-transform duration-300 rounded-l-[40px] flex flex-col p-6">
+						class="fixed row-span-3 top-0 right-0 w-[95%] h-full bg-[white] shadow-xl z-50 transform translate-x-full transition-transform duration-300 rounded-l-[40px] flex flex-col p-6">
 
 						<!-- 닫기 버튼 -->
 						<button onclick="closeEmotionPanel()"
-								class="absolute top-4 left-4 text-3xl text-gray-500 hover:text-black font-bold">×</button>
+							class="absolute top-4 left-4 text-3xl text-gray-500 hover:text-black font-bold">×</button>
 
 						<!-- 제목 -->
 						<h2 class="text-xl font-bold text-gray-700 text-center mb-4 mt-10">감정 분석하기</h2>
 
-						<button id="retryButton"
-								onclick="resetEmotionPanel()"
-								class="hidden mt-6 mx-auto px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold hover:bg-gray-400 transition">
-							🔁 다시 분석하기
-						</button>
+						<button id="retryButton" onclick="resetEmotionPanel()"
+							class="hidden mt-6 mx-auto px-6 py-2 rounded-full bg-gray-300 text-gray-700 font-semibold hover:bg-gray-400 transition">
+							🔁 다시 분석하기</button>
 
 						<!-- 🐶 동물 종 선택 -->
 						<div class="flex justify-center gap-4 mb-4">
 							<button onclick="selectSpecies('강아지')"
-									class="species-btn px-4 py-2 rounded-full border border-yellow-400 text-yellow-600 font-semibold bg-white hover:bg-yellow-100">🐶 강아지</button>
+								class="species-btn px-4 py-2 rounded-full border border-yellow-400 text-yellow-600 font-semibold bg-white hover:bg-yellow-100">🐶
+								강아지</button>
 							<button onclick="selectSpecies('고양이')"
-									class="species-btn px-4 py-2 rounded-full border border-yellow-400 text-yellow-600 font-semibold bg-white hover:bg-yellow-100">🐱 고양이</button>
+								class="species-btn px-4 py-2 rounded-full border border-yellow-400 text-yellow-600 font-semibold bg-white hover:bg-yellow-100">🐱
+								고양이</button>
 						</div>
 
 						<!-- 이미지 미리보기 -->
-						<div id="imageContainer" class="w-[100%] h-[80%] mx-auto rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+						<div id="imageContainer"
+							class="w-[100%] h-[80%] mx-auto rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
 							<img id="emotionPreview" class="w-full h-full object-cover">
 						</div>
 
@@ -76,10 +123,8 @@
 
 						<!-- 감정 분석 버튼 -->
 						<button
-								class="analyze-btn mt-6 mx-auto px-6 py-2 rounded-full bg-yellow-300 text-white font-semibold hover:bg-yellow-400 transition"
-								onclick="analyzeEmotion()">
-							감정 분석하기
-						</button>
+							class="analyze-btn mt-6 mx-auto px-6 py-2 rounded-full bg-yellow-300 text-white font-semibold hover:bg-yellow-400 transition"
+							onclick="analyzeEmotion()">감정 분석하기</button>
 
 						<!-- 분석 결과 -->
 						<!-- 🐾 결과 표시 영역 (처음에는 hidden) -->
@@ -99,309 +144,863 @@
 					</div>
 
 
-					<div class="bg-[#e0eadf] rounded-xl p-4 text-sm text-center">
-						어제보다 오늘 물을 <span class="font-bold">3ml</span> 더 먹었어요!<br>
-						<button class="text-blue-600 mt-2 underline">행동분석보기 &gt;</button>
-					</div>
-				</div>
-
-				<!-- 캘린더 -->
-				<div class="flex gap-4">
-
-					<!-- 왼쪽: 일정/버튼 -->
-					<div class="flex flex-col gap-4 w-[300px] relative">
-						<!-- 상단 + 버튼 포함한 헤더 -->
-						<div class="flex justify-between items-center absoiute">
-							<span id="current-month-label" class="text-sm font-bold">JULY 5</span>
-							<button
-									class="w-6 h-6 rounded-full bg-[#fdf6c2] shadow flex items-center justify-center text-lg font-bold"
-									onclick="openTodayVaccineModal()">+</button>
-
-						</div>
-
-						<!-- 일정 목록 -->
-						<div class="bg-[#fdf6c2] rounded-xl shadow text-sm h-full py-3">
-							<!-- 🐾 리스트 헤더 -->
-							<div class="px-4 py-2 font-bold text-gray-700">
-								예방접종 리스트
-							</div>
-							<!-- ✅ 실제 리스트가 여기에 동적으로 들어감 -->
-							<div id="monthly-vaccine-list"
-								 class="px-4 pt-2 space-y-2 overflow-y-auto"
-								 style="height: 200px;">
-								<!-- 자바스크립트에서 appendChild로 추가됨 -->
-							</div>
-						</div>
-
-					</div>
-
-					<!-- 오른쪽: 캘린더 -->
-					<div class="bg-[#fdf6c2] rounded-xl p-4 flex-1 shadow">
-						<div id="calendar-container" class="w-full"></div>
+					<div id="summaryCardMain"
+						class="relative bg-gradient-to-r from-[#DFF8E5] to-[#F4FBCC] rounded-xl p-4 text-center shadow hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer">
+				
 					</div>
 
 				</div>
+
+
+				<!-- 주변 펫살 보기 -->
+				<div class="flex gap-2 w-full grid-cols-2 ">
+					<a th:href="@{/usr/pet/explain(petId=${pet.id})}"
+						class="flex-1 hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer shadow block bg-gradient-to-r from-[#EEE8CD] to-[#F4FBCC] rounded-xl p-3 text-sm text-center font-semibold transition">
+						검사 결과 분석</a>
+					<a th:href="@{/usr/pet/qr(petId=${pet.id})}"
+						class="flex-1 hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer shadow block bg-gradient-to-r from-[#EEE8CD] to-[#F4FBCC] rounded-xl p-3 text-sm text-center font-semibold transition">
+						QR 레포트</a>
+					<a th:href="@{/usr/pet/ocr(petId=${pet.id})}"
+						class="flex-1 hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer shadow block bg-gradient-to-r from-[#EEE8CD] to-[#F4FBCC] rounded-xl p-3 text-sm text-center font-semibold transition">
+						OCR 읽기 </a>
+					<a th:href="@{/usr/pet/petPlace}"
+						class="flex-1 hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer shadow block bg-gradient-to-r from-[#EEE8CD] to-[#F4FBCC] rounded-xl p-3 text-sm text-center font-semibold transition">
+						주변 펫샵 알아보기 </a>
+					<a th:href="@{/usr/pet/daily(petId=${pet.id})}"
+						class="flex-1 hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer shadow block bg-gradient-to-r from-[#EEE8CD] to-[#F4FBCC] rounded-xl p-3 text-sm text-center font-semibold transition">
+						감정 일기 </a>
+
+				</div>
+
+
+
+				<div class=" bg-white h-1/3 flex ">
+					<div class="w-full rounded-xl p-2 shadow overflow-x-auto">
+						<canvas id="myChart" class="w-full h-full"></canvas>
+					</div>
+
+					<div id="feedingPanel" class="fixed top-0 right-0 
+					w-[95%] h-full bg-white shadow-xl 
+					z-40 transform translate-x-full 
+					transition-transform duration-300 
+					rounded-l-[40px] flex flex-col p-6 overflow-auto">
+
+						<!-- 닫기 버튼 -->
+						<button onclick="closeFeedingPanel()"
+							class="absolute top-4 left-4 text-3xl text-gray-500 hover:text-black font-bold">×</button>
+
+						<h2 class="text-xl font-bold text-gray-700 text-center mb-6 mt-10">📝 하루 건강 리포트</h2>
+
+						<!-- 날짜 선택 -->
+						<div class="text-center mb-4">
+							<input type="date" id="datePicker" class="border rounded px-3 py-2 shadow-sm" />
+						</div>
+
+						<!-- 1. 사료 차트 -->
+						<div class="h-[200px] mb-10 w-full px-4">
+							<h3 class="text-lg font-bold text-gray-800 mb-2">🍚 사료</h3>
+							<div class="w-full h-full bg-white rounded-xl shadow p-4">
+								<canvas id="weightChart" class="w-full h-full"></canvas>
+							</div>
+						</div>
+
+						<!-- 2. 물 섭취량 차트 -->
+						<div class="h-[200px] mb-10 w-full px-4">
+							<h3 class="text-lg font-bold text-gray-800 mb-2">💧 물</h3>
+							<div class="w-full h-full bg-white rounded-xl shadow p-4">
+								<canvas id="waterChart" class="w-full h-full"></canvas>
+							</div>
+						</div>
+
+						<!-- 3. 배변 횟수 -->
+						<div class="h-[300px]">
+							<h3 class="text-lg font-bold text-gray-800 mb-2">🚽 배변</h3>
+							<div class="overflow-y-auto max-h-[250px]">
+								<table class="w-full max-w-2xl mx-auto text-sm border border-gray-300 rounded-lg">
+									<thead class="bg-gray-100">
+										<tr>
+											<th class="p-2 border">시간</th>
+											<th class="p-2 border">배변 종류</th>
+										</tr>
+									</thead>
+									<tbody id="poopTableBody">
+										<!-- JavaScript로 행 추가됨 -->
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
+
+
+				</div>
+
+
+				<div class="bg-white p-4 rounded-xl shadow min-h-content flex relative ">
+					<!-- ⛳️ 기존: <canvas id="myChart_Sc" ...> 제거 -->
+					<!-- ✅ 활동 타임라인 시작 -->
+					<div id="activityTimeline" class="w-full">
+						<div class="flex items-center justify-between mb-2">
+							<h3 class="text-lg font-bold text-gray-800">🕒 활동 타임라인</h3>
+							<!-- 패널에 이미 #datePicker 가 있으니 여기선 안 넣습니다 -->
+						</div>
+						<!-- ✅ 범례 -->
+						<div id="activityLegend" class="flex items-center gap-6 text-gray-600 text-sm mb-1"></div>
+
+						<div id="activityChartWrapper"
+							class="overflow-x-auto mt-2 border-t border-dashed border-gray-300">
+							<!-- 시간 눈금 -->
+							<div id="activityTimeGrid" class="relative h-5 border-b border-dashed min-w-[1920px]"></div>
+							<!-- 바 차트 행들이 들어갈 영역 -->
+							<div id="activityChartArea" class="min-w-[1920px] flex flex-col gap-2 py-4"></div>
+						</div>
+
+					</div>
+					<div id="activityNoData" class="hidden text-center text-gray-500 left-[45%] top-[45%] absolute">
+						오늘 활동이 없습니다
+					</div>
+				</div>
+				<!-- ✅ 활동 타임라인 끝 -->
+
 
 
 			</section>
 
 			<!-- 오른쪽 4칸: 고양이 정보 + 주변 펫살 -->
-			<aside class="col-span-4 flex flex-col gap-4">
+			<div class="col-span-4 hidden xl:flex min-w-[150px] h-full flex flex-col gap-2 min-h-0 overflow-hidden">
 
-				<!-- 고양이 일러스트 -->
-				<div class="tD_ani bg-white rounded-xl p-4 flex flex-col items-center shadow h-full">
-					<p class="text-sm text-gray-600 mb-2">똥냥이!</p>
-					<img src="https://i.imgur.com/qYhSSXR.png" alt="cat" class="w-24">
-				</div>
 
-				<!-- 등록증 -->
-				<div class="ani-card bg-white rounded-xl max-w-md min-w-full p-6 shadow">
-					<!-- 제목 -->
-					<h2 class="text-2xl font-bold flex items-center gap-1 mb-4 justify-center">
-						<span class="text-3xl">🐾</span> 반려동물등록증
-					</h2>
+				<!-- 왼쪽: 일정/버튼 -->
+				<div
+					class="flex min-w-[150px] h-1/4 flex-1 rounded-xl flex-col gap-2 w-full shadow relative bg-gradient-to-b from-[#FFFFFF] to-[#FFFCEF]">
+					<!-- 상단 + 버튼 포함한 헤더 -->
 
-					<!-- 3열 Grid -->
-					<div class="grid grid-cols-3">
+					<!-- 일정 목록 -->
+					<div class="w-full py-3">
+						<!-- 🐾 리스트 헤더 -->
+						<div class="px-4 py-1 font-bold text-gray-700">
+							<div class="flex pb-1 mb-1 justify-between items-center border-b-2 border-gray-200">
+								<span id="current-month-label" class="pl-6 text-lg font-bold"></span>
+								<button
+									class="mr-3 shadow hover:shadow-md transition-shadow duration-300 font-semibold cursor-pointer w-8 h-6 rounded-full bg-[#fdf6c2] shadow flex items-center justify-center text-lg font-bold"
+									onclick="openTodayVaccineModal()">+</button>
 
-						<!-- 1열 -->
-						<div>
-							<div class="space-y-1 text-sm">
-								<div><span class="font-semibold mr-2">이름:</span> <span th:text="${pet.name}">떡걸룩</span>
-								</div>
-								<div><span class="font-semibold mr-2">번호:</span> <span
-										th:text="${pet.id}">12345</span></div>
-								<div><span class="font-semibold mr-2">품종:</span> <span
-										th:text="${pet.breed}">코리안숏헤어</span></div>
-								<div><span class="font-semibold mr-2">성별:</span> <span th:text="${pet.gender}">암컷</span>
-								</div>
 							</div>
-
-							<!-- 특징: grid 밖에 위치 -->
-							<div class="mt-1 text-sm">
-								<span class="font-semibold mr-2">특징:</span>
-								<span th:text="${pet.species}">겁이 많고 높은 데를 아주 좋아해요</span>
-							</div>
-						</div>
-
-						<!-- 2열 -->
-						<div class="space-y-1 text-sm">
-							<div><span class="font-semibold mr-2">생일:</span> <span
-									th:text="${pet.birthDate}">2020.01.01</span></div>
-							<div><span class="font-semibold mr-2">중성화:</span> <span>완료</span>
-							</div>
-						</div>
-
-						<!-- 3열: 사진 -->
-						<div class="flex justify-center items-start">
-							<img src="https://i.imgur.com/vTaaRnh.png" alt="cat"
-								class="w-30 h-30 object-cover rounded-xl border" />
+							예방접종 리스트
 						</div>
 					</div>
-
-					<!-- 등록일 -->
-					<div class="createdAt text-right text-xs text-gray-500 mt-2">2025.07.05</div>
-				</div>
-
-
-				<!-- 주변 펫살 보기 -->
-				<div class="grid grid-row-3 gap-2 h-full">
-					<a th:href="@{/usr/pet/petPlace}" class="block bg-gray-300 rounded-xl p-3 text-sm text-center font-semibold transition">
-						주변 펫샵 알아보기
-					</a>
-					<a th:href="@{/usr/pet/gallery(petId=${pet.id})}"
-					   class="block bg-gray-300 rounded-xl p-3 text-sm text-center font-semibold transition">
-						감정 갤러리
-					</a>
-
-					<a th:href="@{/usr/pet/daily(petId=${pet.id})}"
-					   class="block bg-gray-300 rounded-xl p-3 text-sm text-center font-semibold transition">
-						감정 일기
-					</a>
+					<!-- ✅ 실제 리스트가 여기에 동적으로 들어감 -->
+					<div id="monthly-vaccine-list" class="px-4 pt-2 space-y-2 overflow-y-auto h-[80%]">
+						<!-- 자바스크립트에서 appendChild로 추가됨 -->
+					</div>
 
 				</div>
-			</aside>
+				<!-- 캘린더 -->
+				<div class="flex gap-2 flex-1">
+
+					<!-- 오른쪽: 캘린더 -->
+					<div
+						class=" min-w-[170px] h-[325px] bg-gradient-to-r from-[#F4FBCC] to-[#FDF7DA] rounded-xl p-4 flex-1 shadow">
+						<div id="calendar-container" class="w-full"></div>
+					</div>
+
+				</div>
+			</div>
+
+
+
+			<!-- 백신 등록 모달 -->
+			<div id="vaccineModal"
+				class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50">
+				<div class="bg-white rounded-2xl p-6 w-[400px] relative shadow-lg">
+					<!-- 닫기 버튼 -->
+					<button onclick="closeVaccineModal()"
+						class="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl">×</button>
+
+					<h2 class="text-xl font-bold mb-4 text-yellow-700 text-center">🐾 백신 등록</h2>
+
+					<form id="vaccineForm">
+						<input type="hidden" name="petId" th:value="${petId}" />
+
+						<div class="mb-4">
+							<label class="block font-semibold text-sm mb-1">백신 이름</label>
+							<select name="vaccineName" required class="w-full border px-3 py-2 rounded">
+								<option value="">선택하세요</option>
+								<option value="Rabies">Rabies</option>
+								<option value="Parvovirus">Parvovirus</option>
+								<option value="Distemper">Distemper</option>
+								<option value="Feline Distemper">Feline Distemper</option>
+								<option value="Feline Leukemia">Feline Leukemia</option>
+								<option value="Leptospirosis">Leptospirosis</option>
+								<option value="Bordetella">Bordetella</option>
+								<option value="Feline Panleukopenia">Feline Panleukopenia</option>
+								<option value="FIP">FIP</option>
+							</select>
+						</div>
+
+						<div class="mb-4">
+							<label class="block font-semibold text-sm mb-1">접종 날짜</label>
+							<input type="date" name="injectionDate" id="injectionDateInput" required
+								class="w-full border px-3 py-2 rounded" />
+						</div>
+
+						<div class="mb-4">
+							<label class="block font-semibold text-sm mb-1">비고</label>
+							<textarea name="notes" rows="3" class="w-full border px-3 py-2 rounded"></textarea>
+						</div>
+
+						<div class="flex justify-between mt-6">
+							<button type="submit"
+								class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded">💾
+								등록</button>
+							<button type="button" onclick="closeVaccineModal()"
+								class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">❌
+								취소</button>
+						</div>
+					</form>
+				</div>
+			</div>
+
+			<!-- ✅ 백신 상세/수정 모달 -->
+			<div id="vaccineDetailModal"
+				class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+				<div class="bg-white p-6 rounded-2xl w-[400px] relative">
+					<button onclick="closeVaccineDetailModal()"
+						class="absolute top-3 right-3 text-gray-500 hover:text-red-500">×</button>
+
+					<div id="vaccineDetailView">
+						<h2 class="text-lg font-bold text-center mb-4">💉 백신 상세정보</h2>
+						<p>
+							<b>이름:</b>
+							<span id="detailName"></span>
+						</p>
+						<p>
+							<b>접종일:</b>
+							<span id="detailDate"></span>
+						</p>
+						<p>
+							<b>비고:</b>
+							<span id="detailNotes"></span>
+						</p>
+
+						<div class="flex justify-between mt-4">
+							<button id="editBtn" onclick="enterEditMode()"
+								class="bg-yellow-400 px-3 py-2 rounded text-white">✏ 수정</button>
+							<button id="deleteBtn" onclick="deleteVaccination()"
+								class="bg-red-400 px-3 py-2 rounded text-white">🗑
+								삭제</button>
+						</div>
+
+					</div>
+
+					<form id="vaccineEditForm" class="hidden mt-4">
+						<input type="hidden" name="vaccinationId" />
+						<label class="block mt-2">이름</label>
+						<input type="text" name="vaccineName" class="border w-full px-2 py-1 rounded" required />
+
+						<label class="block mt-2">접종일</label>
+						<input type="date" name="injectionDate" class="border w-full px-2 py-1 rounded" required />
+
+						<label class="block mt-2">비고</label>
+						<textarea name="notes" rows="3" class="border w-full px-2 py-1 rounded"></textarea>
+
+						<div class="flex justify-between mt-4">
+							<button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">💾 저장</button>
+							<button type="button" onclick="cancelEdit()"
+								class="bg-gray-400 text-white px-4 py-2 rounded">취소</button>
+						</div>
+					</form>
+				</div>
+			</div>
+
+
+			<div id="multiEventModal"
+				class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center hidden">
+				<div class="bg-white rounded-lg p-4 w-80">
+					<h2 class="font-bold text-lg mb-2">💉 백신 접종 리스트</h2>
+					<div class="event-list space-y-2"></div>
+					<div class="text-right mt-4">
+						<button onclick="document.getElementById('multiEventModal').classList.add('hidden')"
+							class="text-sm text-gray-500 hover:underline">닫기</button>
+					</div>
+				</div>
+			</div>
+
 
 
 		</main>
+		<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+		<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
 
-		<!-- 백신 등록 모달 -->
-		<div id="vaccineModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50">
-			<div class="bg-white rounded-2xl p-6 w-[400px] relative shadow-lg">
-				<!-- 닫기 버튼 -->
-				<button onclick="closeVaccineModal()" class="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl">×</button>
+		<script th:inline="javascript">
+			const todayStr = new Date().toISOString().split("T")[0];
+			const dateInput = document.getElementById("datePicker");
 
-				<h2 class="text-xl font-bold mb-4 text-yellow-700 text-center">🐾 백신 등록</h2>
+			const labels = [], deltas = [], bgColors = [], tooltipLabels = [], rawData = [];
 
-				<form id="vaccineForm">
-					<input type="hidden" name="petId" th:value="${petId}" />
+			const waterLabels = [], waterDeltas = [], waterBgColors = [], waterTooltipLabels = [];
 
-					<div class="mb-4">
-						<label class="block font-semibold text-sm mb-1">백신 이름</label>
-						<select name="vaccineName" required class="w-full border px-3 py-2 rounded">
-							<option value="">선택하세요</option>
-							<option value="Rabies">Rabies</option>
-							<option value="Parvovirus">Parvovirus</option>
-							<option value="Distemper">Distemper</option>
-							<option value="Feline Distemper">Feline Distemper</option>
-							<option value="Feline Leukemia">Feline Leukemia</option>
-							<option value="Leptospirosis">Leptospirosis</option>
-							<option value="Bordetella">Bordetella</option>
-							<option value="Feline Panleukopenia">Feline Panleukopenia</option>
-							<option value="FIP">FIP</option>
-						</select>
-					</div>
+			let weightChart = null;
+			let waterChart = null;
+			let stompClient = null;
+			let subscription = null;
 
-					<div class="mb-4">
-						<label class="block font-semibold text-sm mb-1">접종 날짜</label>
-						<input type="date" name="injectionDate" id="injectionDateInput" required class="w-full border px-3 py-2 rounded" />
-					</div>
+			function renderFeedingCharts(data) {
+				if (!window.Chart) { console.error('Chart.js 로드 실패'); return; }
 
-					<div class="mb-4">
-						<label class="block font-semibold text-sm mb-1">비고</label>
-						<textarea name="notes" rows="3" class="w-full border px-3 py-2 rounded"></textarea>
-					</div>
+				// 전역 배열/참조 사용
+				labels.length = deltas.length = bgColors.length = tooltipLabels.length = 0;
+				waterLabels.length = waterDeltas.length = waterBgColors.length = waterTooltipLabels.length = 0;
+				rawData.length = 0;
 
-					<div class="flex justify-between mt-6">
-						<button type="submit" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded">💾 등록</button>
-						<button type="button" onclick="closeVaccineModal()" class="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded">❌ 취소</button>
-					</div>
-				</form>
-			</div>
-		</div>
+				if (!Array.isArray(data)) {
+					try { weightChart?.destroy(); } catch {}
+					try { waterChart?.destroy(); } catch {}
+					weightChart = null; waterChart = null;
+					showEmptyState('weightChart', '데이터 형식 오류');
+					showEmptyState('waterChart',  '데이터 형식 오류');
+					return;
+				}
 
-		<!-- ✅ 백신 상세/수정 모달 -->
-		<div id="vaccineDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-			<div class="bg-white p-6 rounded-2xl w-[400px] relative">
-				<button onclick="closeVaccineDetailModal()" class="absolute top-3 right-3 text-gray-500 hover:text-red-500">×</button>
+				rawData.push(...data);
+				data.sort((a, b) => new Date(a.logDate) - new Date(b.logDate));
 
-				<div id="vaccineDetailView">
-					<h2 class="text-lg font-bold text-center mb-4">💉 백신 상세정보</h2>
-					<p><b>이름:</b> <span id="detailName"></span></p>
-					<p><b>접종일:</b> <span id="detailDate"></span></p>
-					<p><b>비고:</b> <span id="detailNotes"></span></p>
+				for (const cur of data) {
+					const t = cur?.logDate ? new Date(cur.logDate).toTimeString().slice(0,5) : null;
 
-					<div class="flex justify-between mt-4">
-						<button onclick="enterEditMode()" class="bg-yellow-400 px-3 py-2 rounded text-white">✏ 수정</button>
-						<button onclick="deleteVaccination()" class="bg-red-400 px-3 py-2 rounded text-white">🗑 삭제</button>
-					</div>
-				</div>
+					if (t !== null && cur.foodWeight !== null && cur.foodWeight !== undefined && !Number.isNaN(+cur.foodWeight)) {
+						const v = +(+cur.foodWeight).toFixed(2);
+						labels.push(t);
+						deltas.push(v);
+						bgColors.push('rgba(255, 193, 7, 0.4)');
+						tooltipLabels.push(`사료 섭취량: ${v}g`);
+					}
+					if (t !== null && cur.waterWeight !== null && cur.waterWeight !== undefined && !Number.isNaN(+cur.waterWeight)) {
+						const v = +(+cur.waterWeight).toFixed(2);
+						waterLabels.push(t);
+						waterDeltas.push(v);
+						waterBgColors.push('rgba(30, 144, 255, 0.4)');
+						waterTooltipLabels.push(`물 섭취량: ${v}g`);
+					}
+				}
 
-				<form id="vaccineEditForm" class="hidden mt-4">
-					<input type="hidden" name="vaccinationId" />
-					<label class="block mt-2">이름</label>
-					<input type="text" name="vaccineName" class="border w-full px-2 py-1 rounded" required />
+				const hasFood  = labels.length > 0;
+				const hasWater = waterLabels.length > 0;
 
-					<label class="block mt-2">접종일</label>
-					<input type="date" name="injectionDate" class="border w-full px-2 py-1 rounded" required />
+				let foodCtx = null, waterCtx = null;
+				try { foodCtx  = sizeCanvasAndGetCtx('weightChart'); } catch (e) { console.warn(e); }
+				try { waterCtx = sizeCanvasAndGetCtx('waterChart'); } catch (e) { console.warn(e); }
 
-					<label class="block mt-2">비고</label>
-					<textarea name="notes" rows="3" class="border w-full px-2 py-1 rounded"></textarea>
+				if (!hasFood) {
+					try { weightChart?.destroy(); } catch {}
+					weightChart = null; showEmptyState('weightChart', '사료 데이터가 없어요');
+				} else {
+					clearEmptyState('weightChart');
+				}
+				if (!hasWater) {
+					try { waterChart?.destroy(); } catch {}
+					waterChart = null; showEmptyState('waterChart', '물 데이터가 없어요');
+				} else {
+					clearEmptyState('waterChart');
+				}
 
-					<div class="flex justify-between mt-4">
-						<button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">💾 저장</button>
-						<button type="button" onclick="cancelEdit()" class="bg-gray-400 text-white px-4 py-2 rounded">취소</button>
-					</div>
-				</form>
-			</div>
-		</div>
+				const yFoodMin  = hasFood  ? Math.min(0, Math.min(...deltas)) : 0;
+				const yFoodMax  = hasFood  ? Math.max(0, Math.max(...deltas)) : 0;
+				const yWaterMin = hasWater ? Math.min(0, Math.min(...waterDeltas)) : 0;
+				const yWaterMax = hasWater ? Math.max(0, Math.max(...waterDeltas)) : 0;
+
+				if (hasFood && foodCtx) {
+					if (!weightChart) {
+						weightChart = new Chart(foodCtx, {
+							type: 'bar',
+							data: {
+								labels,
+								datasets: [{
+									label: '사료 섭취량',
+									data: deltas,
+									backgroundColor: bgColors,
+									borderColor: bgColors.map(c => c.replace('0.4', '1')),
+									borderWidth: 1
+								}]
+							},
+							options: {
+								responsive: false,
+								maintainAspectRatio: false,
+								scales: {
+									y: {
+										beginAtZero: false,
+										suggestedMin: yFoodMin - Math.abs(yFoodMax - yFoodMin) * 0.1,
+										suggestedMax: yFoodMax + Math.abs(yFoodMax - yFoodMin) * 0.1,
+										title: { display: true, text: 'g' }
+									},
+									x: { title: { display: true, text: '시간 (HH:MM)' } }
+								},
+								plugins: { tooltip: { callbacks: { label: ctx => tooltipLabels[ctx.dataIndex] } } }
+							}
+						});
+					} else {
+						weightChart.data.labels = labels;
+						weightChart.data.datasets[0].data = deltas;
+						weightChart.data.datasets[0].backgroundColor = bgColors;
+						weightChart.data.datasets[0].borderColor = bgColors.map(c => c.replace('0.4', '1'));
+						weightChart.options.scales.y.suggestedMin = yFoodMin - Math.abs(yFoodMax - yFoodMin) * 0.1;
+						weightChart.options.scales.y.suggestedMax = yFoodMax + Math.abs(yFoodMax - yFoodMin) * 0.1;
+						weightChart.update();
+						setTimeout(() => { try { weightChart.resize(); } catch {} }, 0);
+					}
+				}
+
+				if (hasWater && waterCtx) {
+					if (!waterChart) {
+						waterChart = new Chart(waterCtx, {
+							type: 'bar',
+							data: {
+								labels: waterLabels,
+								datasets: [{
+									label: '물 섭취량',
+									data: waterDeltas,
+									backgroundColor: waterBgColors,
+									borderColor: waterBgColors.map(c => c.replace('0.4', '1')),
+									borderWidth: 1
+								}]
+							},
+							options: {
+								responsive: false,
+								maintainAspectRatio: false,
+								scales: {
+									y: {
+										beginAtZero: false,
+										suggestedMin: yWaterMin - Math.abs(yWaterMax - yWaterMin) * 0.1,
+										suggestedMax: yWaterMax + Math.abs(yWaterMax - yWaterMin) * 0.1,
+										title: { display: true, text: 'g' }
+									},
+									x: { title: { display: true, text: '시간 (HH:MM)' } }
+								},
+								plugins: { tooltip: { callbacks: { label: ctx => waterTooltipLabels[ctx.dataIndex] } } }
+							}
+						});
+					} else {
+						waterChart.data.labels = waterLabels;
+						waterChart.data.datasets[0].data = waterDeltas;
+						waterChart.data.datasets[0].backgroundColor = waterBgColors;
+						waterChart.data.datasets[0].borderColor = waterBgColors.map(c => c.replace('0.4', '1'));
+						waterChart.options.scales.y.suggestedMin = yWaterMin - Math.abs(yWaterMax - yWaterMin) * 0.1;
+						waterChart.options.scales.y.suggestedMax = yWaterMax + Math.abs(yWaterMax - yWaterMin) * 0.1;
+						waterChart.update();
+						setTimeout(() => { try { waterChart.resize(); } catch {} }, 0);
+					}
+				}
+			}
 
 
-		<div id="multiEventModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center hidden">
-			<div class="bg-white rounded-lg p-4 w-80">
-				<h2 class="font-bold text-lg mb-2">💉 백신 접종 리스트</h2>
-				<div class="event-list space-y-2"></div>
-				<div class="text-right mt-4">
-					<button onclick="document.getElementById('multiEventModal').classList.add('hidden')" class="text-sm text-gray-500 hover:underline">닫기</button>
-				</div>
-			</div>
-		</div>
+			function openFeedingPanel(e) {
+				if (e) e.stopPropagation();
+				const panel = document.getElementById('feedingPanel');
+
+				// 보이게 만들고 슬라이드 시작
+				panel.classList.remove('invisible', 'pointer-events-none');
+				panel.getBoundingClientRect();                 // reflow
+				panel.classList.remove('translate-x-full');    // 슬라이드
+
+				let fired = false;
+				const afterOpen = async () => {
+					if (fired) return; fired = true;
+
+					// 패널이 펼쳐져 부모 width/height가 생길 때까지 대기
+					await waitForCanvasReady('weightChart');
+					await waitForCanvasReady('waterChart');
+
+					// 날짜 기본값 + 데이터 로드
+					if (dateInput) {
+						dateInput.value = todayStr;
+						loadDataAndDraw(todayStr);
+						loadLitterEvents(todayStr);
+						loadLitterSummary(todayStr);
+
+						if (!dateInput.__bound) {
+							dateInput.addEventListener('change', () => {
+								disconnectWebSocket();
+								loadDataAndDraw(dateInput.value);
+								loadLitterEvents(dateInput.value);
+								loadLitterSummary(dateInput.value);
+							});
+							dateInput.__bound = true;
+						}
+					}
+
+					// 혹시 이미 만들어진 차트가 있으면 사이즈 재계산
+					setTimeout(() => {
+						try { weightChart && weightChart.resize(); } catch {}
+						try { waterChart && waterChart.resize(); } catch {}
+					}, 0);
+				};
+
+				panel.addEventListener('transitionend', afterOpen, { once: true });
+				setTimeout(afterOpen, 500); // transition 이벤트 누락 대비
+			}
 
 
 
-	</div>
+
+			// 창 크기 바뀌면 다시 맞추기
+			window.addEventListener('resize', () => {
+				try { weightChart && weightChart.resize(); } catch {}
+				try { waterChart && waterChart.resize(); } catch {}
+			});
+
+			function connectWebSocket() {
+				const socket = new SockJS('/ws');
+				stompClient = Stomp.over(socket);
+				stompClient.connect({}, () => {
+					console.log('🔌 WebSocket 연결됨');
+					subscription = stompClient.subscribe(`/topic/health/${petId}`, (message) => {
+						const newLog = JSON.parse(message.body);
+						updateChartWithNewLog(newLog);
+					});
+				});
+			}
+
+			function disconnectWebSocket() {
+				if (subscription) subscription.unsubscribe();
+				if (stompClient) stompClient.disconnect();
+			}
+
+			function updateChartWithNewLog(newLog) {
+				const timeLabel = new Date(newLog.logDate).toTimeString().slice(0, 5);
+				rawData.push(newLog);
+
+				if (newLog.foodWeight !== null) {
+					const foodValue = parseFloat(newLog.foodWeight).toFixed(2);
+					labels.push(timeLabel);
+					deltas.push(foodValue);
+					bgColors.push('rgba(255, 193, 7, 0.4)');
+					tooltipLabels.push(`사료 남은 양: ${foodValue}g`);
+					weightChart.options.scales.x.display = true;
+					weightChart.update();
+				}
+
+				if (newLog.waterWeight !== null) {
+					const waterValue = parseFloat(newLog.waterWeight).toFixed(2);
+					waterLabels.push(timeLabel);
+					waterDeltas.push(waterValue);
+					waterBgColors.push('rgba(30, 144, 255, 0.4)');
+					waterTooltipLabels.push(`물 남은 양: ${waterValue}g`);
+					waterChart.options.scales.x.display = true;
+					waterChart.update();
+				}
+			}
+
+			function sizeCanvasAndGetCtx(id) {
+				const c = document.getElementById(id);
+				if (!c) throw new Error(`#${id} 캔버스 없음`);
+
+				// 캔버스는 block으로
+				c.style.display = 'block';
+
+				const parent = c.parentElement;
+				if (!parent) throw new Error(`#${id} 부모 없음`);
+
+				// 부모가 translate로 화면 밖이거나 아직 레이아웃 0일 수 있음 → 안전한 최소값
+				const box = parent.getBoundingClientRect();
+				const safeW = Math.max(240, Math.floor(box.width  || 0));
+				const safeH = Math.max(160, Math.floor(box.height || 0));
+
+				// 속성(width/height)로 지정해야 Chart.js가 정확히 그림
+				c.width  = safeW;
+				c.height = safeH;
+
+				const ctx = c.getContext('2d');
+				if (!ctx) throw new Error(`#${id} 2D 컨텍스트 없음`);
+				return ctx;
+			}
 
 
-	<script th:inline="javascript">
-		/*<![CDATA[*/
-		var events = [[${eventsJson}]];
-		/*]]>*/
-	</script>
+			function loadDataAndDraw(dateStr) {
+				if (!dateStr) dateStr = todayStr;
+
+				// 캐시 방지 쿼리(_=timestamp) + no-store
+				const url = `/usr/pet/health/logs?petId=${petId}&date=${dateStr}&_=${Date.now()}`;
+				console.log('[LOAD]', dateStr, url);
+
+				fetch(url, { cache: 'no-store', headers: { 'Accept': 'application/json' } })
+						.then(res => {
+							if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
+							return res.json();
+						})
+						.then(data => {
+							// 날짜가 오늘이면 실시간, 아니면 끊기
+							if (dateStr === todayStr) connectWebSocket();
+							else disconnectWebSocket();
+
+							// 항상 “파괴 후 재생성” 전략을 쓰도록 renderChart가 destroy → create 하게 구현되어 있음
+							renderFeedingCharts(data)
+						})
+						.catch(err => {
+							console.error("🚨 데이터 로딩 실패:", err);
+							renderFeedingCharts([]) // 비어도 축/프레임은 보이게
+						});
+			}
+
+		</script>
+
+		<script>
+
+			async function waitForCanvasReady(id, tries = 40){
+				// 40회 × 25ms ≈ 1초 대기
+				for (let i = 0; i < tries; i++) {
+					const c = document.getElementById(id);
+					const p = c?.parentElement;
+					if (c && p) {
+						const r = p.getBoundingClientRect();
+						// translate-x-full 이면 width가 0에 가깝습니다
+						if (r.width > 20 && r.height > 20) return true;
+					}
+					await new Promise(r => setTimeout(r, 25));
+				}
+				return false;
+			}
 
 
-	<script>
-		var urlParams = new URLSearchParams(window.location.search);
-		var petId = urlParams.get("petId");
-	</script>
+			function showEmptyState(canvasId, text){
+				const c = document.getElementById(canvasId);
+				if(!c) return;
+				const parent = c.parentElement;
+				if(!parent) return;
 
-	<script>
-		document.addEventListener("DOMContentLoaded", function () {
-			fetch('/usr/pet/vaccination/events?petId=' + petId)
+				// 오버레이 기준점
+				const cs = getComputedStyle(parent);
+				if (cs.position === 'static') parent.style.position = 'relative';
+
+				// 기존 힌트 제거
+				parent.querySelector('[data-empty-hint="1"]')?.remove();
+
+				const hint = document.createElement('div');
+				hint.setAttribute('data-empty-hint', '1');
+				hint.style.position = 'absolute';
+				hint.style.inset = '0';
+				hint.style.display = 'flex';
+				hint.style.alignItems = 'center';
+				hint.style.justifyContent = 'center';
+				hint.style.fontSize = '14px';
+				hint.style.color = '#6b7280';
+				hint.style.pointerEvents = 'none'; // 차트 동작 방해 X
+				hint.textContent = text || '데이터 없음';
+				parent.appendChild(hint);
+			}
+			function clearEmptyState(canvasId){
+				const parent = document.getElementById(canvasId)?.parentElement;
+				parent?.querySelector('[data-empty-hint="1"]')?.remove();
+			}
+
+
+
+			async function debugFeedingPanel() {
+				const foodC  = document.getElementById('weightChart');
+				const waterC = document.getElementById('waterChart');
+
+				// 1) DOM/사이즈 확인 + 강제 세팅
+				function forceSize(c) {
+					if (!c) return;
+					const box = c.parentElement.getBoundingClientRect();
+					c.width  = Math.max(120, Math.floor(box.width  || 0));
+					c.height = Math.max(160, Math.floor(box.height || 0));
+				}
+				forceSize(foodC);
+				forceSize(waterC);
+
+				console.log('[DEBUG] feeding panel canvases:',
+						{ foodW: foodC?.width, foodH: foodC?.height, waterW: waterC?.width, waterH: waterC?.height });
+
+				// 2) API 실제 응답 확인
+				try {
+					const r = await fetch(`/usr/pet/health/logs?petId=${petId}&date=${dateInput?.value || todayStr}`, {
+						cache: 'no-store', headers: { 'Accept': 'application/json' }
+					});
+					console.log('[DEBUG] fetch status:', r.status);
+					const js = await r.json();
+					console.log('[DEBUG] api json length:', Array.isArray(js) ? js.length : 'N/A');
+
+					if (Array.isArray(js) && js.length) {
+						renderFeedingCharts(js);              // ✅ 실제 데이터로 바로 렌더
+					} else {
+						// ✅ 데이터 없음 → 차트 파괴 + 힌트
+						try { weightChart && weightChart.destroy(); } catch {}
+						try { waterChart  && waterChart.destroy(); } catch {}
+						weightChart = null; waterChart = null;
+						showEmptyState('weightChart', '사료 데이터가 없어요');
+						showEmptyState('waterChart',  '물 데이터가 없어요');
+					}
+				} catch (e) {
+					console.error('[DEBUG] fetch/json error:', e);
+					try { weightChart && weightChart.destroy(); } catch {}
+					try { waterChart  && waterChart.destroy(); } catch {}
+					weightChart = null; waterChart = null;
+					showEmptyState('weightChart', '데이터 응답 오류');
+					showEmptyState('waterChart',  '데이터 응답 오류');
+				}
+			}
+
+		</script>
+
+
+		<script>
+			// 패널 열기: 완전히 열린 뒤 load + 렌더
+			function openFeedingPanel(e) {
+				// URL에 ?debugCharts=1 있을 때만 디버그 호출
+				if (new URLSearchParams(location.search).get('debugCharts') === '1') {
+					setTimeout(debugFeedingPanel, 0);
+				}
+
+				if (e) e.stopPropagation();
+				const panel = document.getElementById('feedingPanel');
+
+				// 처음엔 클릭 막고 숨김 상태 해제
+				panel.classList.remove('invisible', 'pointer-events-none');
+				panel.getBoundingClientRect();                 // reflow
+				panel.classList.remove('translate-x-full');    // 슬라이드 시작
+
+				let fired = false;
+				const afterOpen = () => {
+					if (fired) return; fired = true;
+
+					// 날짜 기본값 + 데이터 로드
+					if (dateInput) {
+						dateInput.value = todayStr;
+						loadDataAndDraw(todayStr);
+						loadLitterEvents(todayStr);
+						loadLitterSummary(todayStr);
+
+						if (!dateInput.__bound) {
+							dateInput.addEventListener('change', () => {
+								disconnectWebSocket();
+								loadDataAndDraw(dateInput.value);
+								loadLitterEvents(dateInput.value);
+								loadLitterSummary(dateInput.value);
+							});
+							dateInput.__bound = true;
+						}
+					}
+
+					// 혹시 이미 만들어진 차트가 있으면 사이즈 재계산
+					setTimeout(() => {
+						try { weightChart && weightChart.resize(); } catch {}
+						try { waterChart && waterChart.resize(); } catch {}
+					}, 0);
+				};
+
+				panel.addEventListener('transitionend', afterOpen, { once: true });
+				setTimeout(afterOpen, 400); // transition 이벤트 누락 대비 폴백
+			}
+
+			// 패널 닫기 그대로 사용해도 OK (원하면 invisible/pointer-events-none 추가)
+			function closeFeedingPanel() {
+				const panel = document.getElementById('feedingPanel');
+				panel.classList.add('translate-x-full');
+				const onEnd = () => {
+					panel.removeEventListener('transitionend', onEnd);
+					panel.classList.add('invisible', 'pointer-events-none');
+					disconnectWebSocket();
+					if (window.__reloadActivityTimeline) window.__reloadActivityTimeline();
+				};
+				panel.addEventListener('transitionend', onEnd, { once: true });
+			}
+
+		</script>
+
+		<script th:inline="javascript">
+			/*<![CDATA[*/
+			var events = [[${eventsJson}]];
+			/*]]>*/
+		</script>
+
+
+		<script>
+			var urlParams = new URLSearchParams(window.location.search);
+			var petId = urlParams.get("petId");
+		</script>
+
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				fetch('/usr/pet/vaccination/events?petId=' + petId)
 					.then(res => res.json())
 					.then(freshEvents => {
 						renderMiniCalendar('calendar-container', freshEvents, new Date());
 					});
-		});
+			});
 
-	</script>
+		</script>
 
-	<script>
-		function openVaccineModal(petId, dateStr) {
-			document.getElementById('injectionDateInput').value = dateStr;
+		<script>
+			function openVaccineModal(petId, dateStr) {
+				document.getElementById('injectionDateInput').value = dateStr;
 
-			// 👉 여기가 중요!
-			const petInput = document.querySelector('#vaccineForm input[name="petId"]');
-			if (petInput) {
-				petInput.value = petId;
+				// 👉 여기가 중요!
+				const petInput = document.querySelector('#vaccineForm input[name="petId"]');
+				if (petInput) {
+					petInput.value = petId;
+				}
+
+				document.getElementById('vaccineModal').classList.remove('hidden');
 			}
 
-			document.getElementById('vaccineModal').classList.remove('hidden');
-		}
+			function closeVaccineModal() {
+				document.getElementById('vaccineModal').classList.add('hidden');
+			}
 
-		function closeVaccineModal() {
-			document.getElementById('vaccineModal').classList.add('hidden');
-		}
+			function openVaccineDetailModal(data) {
+				document.getElementById('vaccineDetailModal').classList.remove('hidden');
 
-		function openVaccineDetailModal(data) {
-			document.getElementById('vaccineDetailModal').classList.remove('hidden');
+				document.getElementById('detailName').textContent = data.title;
+				document.getElementById('detailDate').textContent = data.start;
+				document.getElementById('detailNotes').textContent = data.notes || '없음';
 
-			document.getElementById('detailName').textContent = data.title;
-			document.getElementById('detailDate').textContent = data.start;
-			document.getElementById('detailNotes').textContent = data.notes || '없음';
+				// 수정용 hidden 값 세팅
+				const form = document.getElementById('vaccineEditForm');
+				form.vaccinationId.value = data.id;
+				form.vaccineName.value = data.title.replace(' 접종', '');
+				form.injectionDate.value = data.start;
+				form.notes.value = data.notes || '';
 
-			// 수정용 hidden 값 세팅
-			const form = document.getElementById('vaccineEditForm');
-			form.vaccinationId.value = data.id;
-			form.vaccineName.value = data.title.replace(' 접종', '');
-			form.injectionDate.value = data.start;
-			form.notes.value = data.notes || '';
-		}
+				// 🔽 수정/삭제 버튼 처리
+				const editBtn = document.getElementById('editBtn');
+				const deleteBtn = document.getElementById('deleteBtn');
 
-		function closeVaccineDetailModal() {
-			document.getElementById('vaccineDetailModal').classList.add('hidden');
-			cancelEdit();
-		}
+				if (data.title.includes("예정")) {
+					editBtn.classList.add('hidden');
+					deleteBtn.classList.add('hidden');
+				} else {
+					editBtn.classList.remove('hidden');
+					deleteBtn.classList.remove('hidden');
+				}
+			}
 
-		function enterEditMode() {
-			document.getElementById('vaccineDetailView').classList.add('hidden');
-			document.getElementById('vaccineEditForm').classList.remove('hidden');
-		}
 
-		function cancelEdit() {
-			document.getElementById('vaccineEditForm').classList.add('hidden');
-			document.getElementById('vaccineDetailView').classList.remove('hidden');
-		}
+			function closeVaccineDetailModal() {
+				document.getElementById('vaccineDetailModal').classList.add('hidden');
+				cancelEdit();
+			}
 
-		document.getElementById('vaccineEditForm').addEventListener('submit', function(e) {
-			e.preventDefault();
+			function enterEditMode() {
+				document.getElementById('vaccineDetailView').classList.add('hidden');
+				document.getElementById('vaccineEditForm').classList.remove('hidden');
+			}
 
-			const formData = new FormData(this);
+			function cancelEdit() {
+				document.getElementById('vaccineEditForm').classList.add('hidden');
+				document.getElementById('vaccineDetailView').classList.remove('hidden');
+			}
 
-			fetch('/usr/pet/vaccination/doModify', {
-				method: 'POST',
-				body: formData
-			})
+			document.getElementById('vaccineEditForm').addEventListener('submit', function (e) {
+				e.preventDefault();
+
+				const formData = new FormData(this);
+
+				fetch('/usr/pet/vaccination/doModify', {
+					method: 'POST',
+					body: formData
+				})
 					.then(res => res.json())
 					.then(result => {
 						if (result.success) {
@@ -411,13 +1010,13 @@
 							alert(result.msg);
 						}
 					});
-		});
+			});
 
-		function deleteVaccination() {
-			const id = document.querySelector('#vaccineEditForm input[name="vaccinationId"]').value;
-			if (!confirm("정말 삭제하시겠습니까?")) return;
+			function deleteVaccination() {
+				const id = document.querySelector('#vaccineEditForm input[name="vaccinationId"]').value;
+				if (!confirm("정말 삭제하시겠습니까?")) return;
 
-			fetch('/usr/pet/vaccination/delete?vaccinationId=' + id)
+				fetch('/usr/pet/vaccination/delete?vaccinationId=' + id)
 					.then(res => res.json())
 					.then(result => {
 						if (result.resultCode?.startsWith('S-')) {
@@ -432,53 +1031,53 @@
 						alert("❌ 삭제 중 오류 발생: " + err.message);
 					});
 
-		}
+			}
 
-		function refreshCalendar() {
-			fetch('/usr/pet/vaccination/events?petId=' + petId)
+			function refreshCalendar() {
+				fetch('/usr/pet/vaccination/events?petId=' + petId)
 					.then(res => res.json())
 					.then(freshEvents => {
 						renderMiniCalendar('calendar-container', freshEvents); // 최신 데이터로 다시 그림
 					});
-		}
-
-		function openEventListModal(events) {
-			const modal = document.getElementById('multiEventModal');
-			const container = modal.querySelector('.event-list');
-			container.innerHTML = '';
-
-			events.forEach(e => {
-				const btn = document.createElement('button');
-				btn.textContent = `${e.title} (${e.start})`;
-				btn.className = 'block w-full text-left px-4 py-2 hover:bg-yellow-100';
-				btn.onclick = () => {
-					modal.classList.add('hidden');
-					openVaccineDetailModal(e);
-				};
-				container.appendChild(btn);
-			});
-
-			modal.classList.remove('hidden');
-		}
-	</script>
-
-	<script>
-		document.getElementById("vaccineForm").addEventListener("submit", function (e) {
-			e.preventDefault();
-
-			const form = e.target;
-			const formData = new FormData(form);
-
-			// FormData에 실제 데이터 찍어보기 (디버깅용)
-			console.log("🔍 전송 데이터:");
-			for (const [key, value] of formData.entries()) {
-				console.log(`${key}: ${value}`);
 			}
 
-			fetch("/usr/pet/vaccination/doRegistration", {
-				method: "POST",
-				body: formData
-			})
+			function openEventListModal(events) {
+				const modal = document.getElementById('multiEventModal');
+				const container = modal.querySelector('.event-list');
+				container.innerHTML = '';
+
+				events.forEach(e => {
+					const btn = document.createElement('button');
+					btn.textContent = `${e.title} (${e.start})`;
+					btn.className = 'block w-full text-left px-4 py-2 hover:bg-yellow-100';
+					btn.onclick = () => {
+						modal.classList.add('hidden');
+						openVaccineDetailModal(e);
+					};
+					container.appendChild(btn);
+				});
+
+				modal.classList.remove('hidden');
+			}
+		</script>
+
+		<script>
+			document.getElementById("vaccineForm").addEventListener("submit", function (e) {
+				e.preventDefault();
+
+				const form = e.target;
+				const formData = new FormData(form);
+
+				// FormData에 실제 데이터 찍어보기 (디버깅용)
+				console.log("🔍 전송 데이터:");
+				for (const [key, value] of formData.entries()) {
+					console.log(`${key}: ${value}`);
+				}
+
+				fetch("/usr/pet/vaccination/doRegistration", {
+					method: "POST",
+					body: formData
+				})
 					.then(res => {
 						if (!res.ok) throw new Error(`HTTP ${res.status}`);
 						return res.json();
@@ -499,31 +1098,31 @@
 						console.error("❌ 오류:", err);
 						alert("❌ 등록 중 오류 발생: " + err.message);
 					});
-		});
+			});
 
-		function updateVaccinationList(year, month) {
-			var monthStr = (month + 1 < 10 ? '0' : '') + (month + 1);
-			var target = document.getElementById('monthly-vaccine-list');
-			target.innerHTML = ''; // 초기화
+			function updateVaccinationList(year, month) {
+				var monthStr = (month + 1 < 10 ? '0' : '') + (month + 1);
+				var target = document.getElementById('monthly-vaccine-list');
+				target.innerHTML = ''; // 초기화
 
-			var yearMonth = year + '-' + monthStr;
+				var yearMonth = year + '-' + monthStr;
 
-			fetch('/usr/pet/vaccination/monthly?petId=' + petId + '&yearMonth=' + yearMonth)
-					.then(function(res) {
+				fetch('/usr/pet/vaccination/monthly?petId=' + petId + '&yearMonth=' + yearMonth)
+					.then(function (res) {
 						return res.json();
 					})
-					.then(function(data) {
+					.then(function (data) {
 						if (data.length === 0) {
 							target.innerHTML = '<div class="text-gray-500">등록된 접종 기록이 없습니다.</div>';
 							return;
 						}
 
-						data.forEach(function(item) {
+						data.forEach(function (item) {
 							var div = document.createElement('div');
 							div.className = 'bg-white p-2 rounded shadow border-l-4 border-yellow-400 text-sm';
 							div.innerHTML =
-									'💉 <b>' + item.vaccineName + '</b> (' + item.injectionDate + ')<br>' +
-									'<span class="text-xs text-gray-500">다음 접종: ' + (item.nextDueDate || '미정') + '</span>';
+								'💉 <b>' + item.vaccineName + '</b> (' + item.injectionDate + ')<br>' +
+								'<span class="text-xs text-gray-500">다음 접종: ' + (item.nextDueDate || '미정') + '</span>';
 							div.onclick = function () {
 								openVaccineDetailModal({
 									id: item.id,
@@ -535,88 +1134,96 @@
 							target.appendChild(div);
 						});
 					});
-		}
+			}
 
-		function openTodayVaccineModal() {
-			const today = new Date();
+			function openTodayVaccineModal() {
+				const today = new Date();
 
-			const year = today.getFullYear();
-			const month = today.getMonth() + 1;
-			const day = today.getDate();
+				const year = today.getFullYear();
+				const month = today.getMonth() + 1;
+				const day = today.getDate();
 
-			const monthStr = month < 10 ? '0' + month : '' + month;
-			const dayStr = day < 10 ? '0' + day : '' + day;
+				const monthStr = month < 10 ? '0' + month : '' + month;
+				const dayStr = day < 10 ? '0' + day : '' + day;
 
-			const dateStr = `${year}-${monthStr}-${dayStr}`;
+				const dateStr = `${year}-${monthStr}-${dayStr}`;
 
-			openVaccineModal(petId, dateStr); // 기존 함수 사용
-		}
+				openVaccineModal(petId, dateStr); // 기존 함수 사용
+			}
 
 
-	</script>
+		</script>
 
-	<script>
-		let selectedSpecies = null;  // 강아지/고양이 선택
-		let uploadedFile = null;     // 업로드된 파일
-		let emotionChart = null;     // Chart.js 인스턴스
+		<script>
+			let selectedSpecies = null;  // 강아지/고양이 선택
+			let uploadedFile = null;     // 업로드된 파일
+			let emotionChart = null;     // Chart.js 인스턴스
 
-		// 종 선택 버튼 클릭 시 호출
-		function selectSpecies(species) {
-			selectedSpecies = species;
+			// 종 선택 버튼 클릭 시 호출
+			function selectSpecies(species) {
+				selectedSpecies = species;
 
-			document.querySelectorAll('.species-btn').forEach(btn => {
-				btn.classList.remove('bg-yellow-300', 'text-white');
-			});
+				document.querySelectorAll('.species-btn').forEach(btn => {
+					btn.classList.remove('bg-yellow-300', 'text-white');
+				});
 
-			const selectedBtn = Array.from(document.querySelectorAll('.species-btn'))
+				const selectedBtn = Array.from(document.querySelectorAll('.species-btn'))
 					.find(btn => btn.textContent.includes(species));
 
-			if (selectedBtn) {
-				selectedBtn.classList.add('bg-yellow-300', 'text-white');
-			}
-		}
-
-		// 이미지 업로드 시 미리보기
-		function previewImage(event) {
-			const file = event.target.files[0];
-			if (!file) return;
-
-			uploadedFile = file;
-
-			const reader = new FileReader();
-			reader.onload = function (e) {
-				document.getElementById('emotionPreview').src = e.target.result;
-			};
-			reader.readAsDataURL(file);
-		}
-
-		// 감정 분석 요청
-		function analyzeEmotion() {
-			if (!selectedSpecies) {
-				alert("🐾 강아지 또는 고양이를 선택해주세요!");
-				return;
+				if (selectedBtn) {
+					selectedBtn.classList.add('bg-yellow-300', 'text-white');
+				}
 			}
 
-			if (!uploadedFile) {
-				alert("📷 사진을 먼저 업로드해주세요!");
-				return;
+			// 이미지 업로드 시 미리보기
+			function previewImage(event) {
+				console.log("✅ previewImage 호출됨");
+
+				const file = event.target.files[0];
+				if (!file) return;
+
+				uploadedFile = file;
+
+				const reader = new FileReader();
+				reader.onload = function (e) {
+					const previewImg = document.getElementById('emotionPreview');
+					previewImg.src = e.target.result;
+
+					// ✅ 꼭 필요: 이미지가 숨겨져 있었다면 다시 보여주기
+					previewImg.classList.remove('hidden');
+				};
+				reader.readAsDataURL(file);
 			}
 
-			const petId = new URLSearchParams(window.location.search).get('petId'); // URL에서 petId 추출
-			if (!petId) {
-				alert("❌ petId가 없습니다.");
-				return;
-			}
 
-			const formData = new FormData();
-			formData.append("petId", petId);
-			formData.append("species", selectedSpecies);
-			formData.append("imageFile", uploadedFile);
 
-			fetch("/usr/pet/analysis/do", {
-				method: "POST",
-				body: formData
-			})
+			// 감정 분석 요청
+			function analyzeEmotion() {
+				if (!selectedSpecies) {
+					alert("🐾 강아지 또는 고양이를 선택해주세요!");
+					return;
+				}
+
+				if (!uploadedFile) {
+					alert("📷 사진을 먼저 업로드해주세요!");
+					return;
+				}
+
+				const petId = new URLSearchParams(window.location.search).get('petId'); // URL에서 petId 추출
+				if (!petId) {
+					alert("❌ petId가 없습니다.");
+					return;
+				}
+
+				const formData = new FormData();
+				formData.append("petId", petId);
+				formData.append("species", selectedSpecies);
+				formData.append("imageFile", uploadedFile);
+
+				fetch("/usr/pet/analysis/do", {
+					method: "POST",
+					body: formData
+				})
 					.then(res => {
 						if (!res.ok) throw new Error("서버 오류 발생");
 						return res.json();
@@ -627,7 +1234,7 @@
 						document.getElementById('resultImage').src = data.imagePath;
 
 						document.querySelectorAll('.species-btn, .upload-label, .analyze-btn')
-								.forEach(el => el.classList.add('hidden'));
+							.forEach(el => el.classList.add('hidden'));
 
 						document.getElementById('imageContainer').classList.add('hidden');
 
@@ -666,8 +1273,8 @@
 							},
 							options: {
 								plugins: {
-									legend: { position: 'bottom' },
-									title: { display: true, text: '감정 비율 분석' }
+									legend: {position: 'bottom'},
+									title: {display: true, text: '감정 비율 분석'}
 								}
 							}
 						});
@@ -677,107 +1284,471 @@
 						console.error("❌ 분석 중 오류:", err);
 						alert("분석 요청 중 문제가 발생했습니다.");
 					});
-		}
+			}
 
-		function resetEmotionPanel() {
-			document.querySelectorAll('.species-btn, .upload-label, .analyze-btn')
+			function resetEmotionPanel() {
+				document.querySelectorAll('.species-btn, .upload-label, .analyze-btn')
 					.forEach(el => el.classList.remove('hidden'));
 
-			document.getElementById('imageContainer').classList.remove('hidden');
+				document.getElementById('imageContainer').classList.remove('hidden');
+				document.getElementById('resultArea').classList.add('hidden');
+				document.getElementById('retryButton').classList.add('hidden');
 
-			document.getElementById('resultArea').classList.add('hidden');
-			document.getElementById('retryButton').classList.add('hidden');
+				document.getElementById('emotionPreview').src = '';
+				document.getElementById('resultText').textContent = '';
 
-			document.getElementById('emotionPreview').src = '';
-			document.getElementById('resultText').textContent = '';
-			if (emotionChart) {
-				emotionChart.destroy();
-				emotionChart = null;
+				if (emotionChart) {
+					emotionChart.destroy();
+					emotionChart = null;
+				}
+
+				uploadedFile = null;
+
+				// ✅ 완전히 새로운 input 생성 후 다시 label 안에 삽입
+				const uploadLabel = document.querySelector('.upload-label');
+				const newInput = document.createElement('input');
+				newInput.type = 'file';
+				newInput.accept = 'image/*';
+				newInput.className = 'hidden';
+				newInput.onchange = previewImage;
+
+				// 기존 input 제거하고 새 input 삽입
+				const oldInput = uploadLabel.querySelector('input[type="file"]');
+				if (oldInput) oldInput.remove();
+				uploadLabel.appendChild(newInput);
 			}
-		}
 
 
 
 
-		// 슬라이드 닫기
-		function closeEmotionPanel() {
-			document.getElementById("emotionPanel").classList.add("translate-x-full");
-		}
-
-		// 슬라이드 열기 (필요한 경우)
-		function openEmotionPanel() {
-			document.getElementById("emotionPanel").classList.remove("translate-x-full");
-		}
-	</script>
 
 
-	<script>
-		const ctx = document.getElementById('myChart').getContext('2d');
-		const myChart = new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: ['월', '화', '수', '목', '금', '토', '일'],
-				datasets: [
-					{
-						label: '식사량',
-						data: [4, 5, 3, 4.5, 5, 6, 4.8],
-						backgroundColor: 'rgba(244, 211, 94, 0.8)',
-						borderRadius: {
-							topLeft: 100,
-							bottomRight: 40
+
+
+
+			// 슬라이드 닫기
+			function closeEmotionPanel() {
+				document.getElementById("emotionPanel").classList.add("translate-x-full");
+			}
+
+			// 슬라이드 열기 (필요한 경우)
+			function openEmotionPanel() {
+				document.getElementById("emotionPanel").classList.remove("translate-x-full");
+			}
+		</script>
+
+		<script>
+			const ctx = document.getElementById('myChart').getContext('2d');
+
+			const myChart = new Chart(ctx, {
+				type: 'bar',
+				data: {
+					labels: ['월', '화', '수', '목', '금', '토', '일'], // 초기값
+					datasets: [
+						{
+							label: '식사량',
+							data: [], // 서버에서 채움
+							backgroundColor: 'rgba(244, 211, 94, 0.8)',
+							borderRadius: {topLeft: 100, bottomRight: 40},
+							barPercentage: 0.6,
+							borderSkipped: false,
+							categoryPercentage: 0.7
 						},
-						barPercentage: 0.6,
-						borderSkipped: false,
-						categoryPercentage: 0.7
-					},
-					{
-						label: '물 섭취량',
-						data: [3, 2.5, 4, 3.5, 4, 5, 4.2],
-						backgroundColor: 'rgba(127, 176, 105, 0.8)',
-						borderRadius: {
-							topLeft: 100,
-							bottomRight: 40
+						{
+							label: '물 섭취량',
+							data: [],
+							backgroundColor: 'rgba(127, 176, 105, 0.8)',
+							borderRadius: {topLeft: 100, bottomRight: 40},
+							barPercentage: 0.6,
+							borderSkipped: false,
+							categoryPercentage: 0.7
 						},
-						barPercentage: 0.6,
-						borderSkipped: false,
-						categoryPercentage: 0.7
-					},
-					{
-						label: '최종 점수',
-						data: [7, 7.5, 7, 8, 9, 10, 9],
-						backgroundColor: 'rgba(79, 109, 122, 0.8)',
-						borderRadius: {
-							topLeft: 100,
-							bottomRight: 40
-						},
-						borderSkipped: false,
-						barPercentage: 0.6,
-						categoryPercentage: 0.7
-					}
-				]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				plugins: {
-					legend: {
-						position: 'top'
-					},
-					title: {
-						display: false
-					}
+						{
+							label: '최종 점수',
+							data: [],
+							backgroundColor: 'rgba(79, 109, 122, 0.8)',
+							borderRadius: {topLeft: 100, bottomRight: 40},
+							borderSkipped: false,
+							barPercentage: 0.6,
+							categoryPercentage: 0.7
+						}
+					]
 				},
-				scales: {
-					y: {
-						beginAtZero: true,
-						max: 10
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: {
+						legend: {position: 'top'},
+						title: {display: false}
+					},
+					scales: {
+						y: {
+							beginAtZero: true,
+							max: 20
+						}
 					}
 				}
-			}
-		});
+			});
 
-	</script>
-	<script th:src="@{/resource/js/calendar.js}"></script>
+			// ✅ 실제 데이터 fetch 및 적용
+			fetch(`/usr/pet/health/week-stats?petId=${petId}`)
+				.then(res => res.json())
+				.then(data => {
+					myChart.data.labels = data.labels;
+					myChart.data.datasets[0].data = data.food;
+					myChart.data.datasets[1].data = data.water;
+					myChart.data.datasets[2].data = data.score;
+					myChart.update();
+
+					const todayIdx = new Date().getDay();
+					const yesterdayIdx = (todayIdx + 6) % 7;
+
+					const foodDiff = (data.food[todayIdx] ?? 0) - (data.food[yesterdayIdx] ?? 0);
+					const waterDiff = (data.water[todayIdx] ?? 0) - (data.water[yesterdayIdx] ?? 0);
+					const scoreDiff = (data.score[todayIdx] ?? 0) - (data.score[yesterdayIdx] ?? 0);
+
+					const diffs = [
+						{
+							type: 'water',
+							label: '물을',
+							value: waterDiff,
+							unit: 'ml',
+							upText: '더 마셨어요',
+							downText: '덜 마셨어요'
+						},
+						{
+							type: 'food',
+							label: '사료를',
+							value: foodDiff,
+							unit: 'g',
+							upText: '더 먹었어요',
+							downText: '덜 먹었어요'
+						},
+						{
+							type: 'score',
+							label: '점수가',
+							value: scoreDiff,
+							unit: '점',
+							upText: '올랐어요',
+							downText: '내려갔어요'
+						}
+					];
+
+					const maxDiff = diffs.reduce((prev, curr) => {
+						return Math.abs(curr.value) > Math.abs(prev.value) ? curr : prev;
+					});
+
+					let summary = '';
+					if (maxDiff.value === 0) {
+						summary = `오늘은 ${maxDiff.label} 어제와 같아요!`;
+					} else {
+						const amount = Math.abs(maxDiff.value).toFixed(1);
+						const direction = maxDiff.value > 0 ? maxDiff.upText : maxDiff.downText;
+						summary = `오늘은 어제보다 ${maxDiff.label} ${amount}${maxDiff.unit} ${direction}`;
+					}
+
+
+					document.getElementById("summaryCardMain").innerHTML = `
+					${summary}<br>
+					<button class="text-blue-600 mt-6 underline flex mx-auto"
+					        onclick="event.stopPropagation(); openFeedingPanel(event)">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"
+							                  className="w-6 h-6 text-gray-700 hover:text-yellow-400 transition-colors">
+							                <path
+							                        d="M19,10.5H10.207l2.439-2.439a1.5,1.5,0,0,0-2.121-2.122L6.939,9.525a3.505,3.505,0,0,0,0,4.95l3.586,3.586a1.5,1.5,0,0,0,2.121-2.122L10.207,13.5H19a1.5,1.5,0,0,0,0-3Z"/>
+							             </svg><p>상세보기</p>
+					</button>
+
+				`;
+				})
+				.catch(err => {
+					console.error("🚨 요약 데이터 실패:", err);
+				});
+
+
+
+		</script>
+
+
+		<script th:inline="javascript">
+			// DOM 참조
+			const legendEl = document.getElementById('activityLegend');
+			const timeGrid = document.getElementById('activityTimeGrid');
+			const chartArea = document.getElementById('activityChartArea');
+			const noDataEl = document.getElementById('activityNoData');
+
+			// 색상/상수
+			const COLORS = {"거실": "#fff8b5", "침실": "#d3f8e2", "기타": "#e0eafc"};
+			const PX_PER_HOUR = 80;
+			const MIN_BAR_PX = 4;
+
+			// 포맷터
+			const pad2 = n => String(n).padStart(2, '0');
+			const fmtTime = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+			const fmtDuration = sec => {
+				sec = Math.max(0, sec | 0);
+				const m = Math.floor(sec / 60), s = sec % 60;
+				return `${m}분 ${s}초 머묾`;
+			};
+
+			// 시간 눈금
+			function renderTimeGrid() {
+				timeGrid.innerHTML = '';
+				for (let h = 0; h <= 24; h++) {
+					const label = document.createElement('div');
+					label.className = 'absolute text-xs text-gray-600 -translate-x-1/2';
+					label.style.left = `${h * PX_PER_HOUR}px`;
+					label.textContent = `${pad2(h)}:00`;
+					timeGrid.appendChild(label);
+				}
+			}
+
+			// 범례
+			function renderLegend(zones) {
+				legendEl.innerHTML = '';
+				const ORDER = ['거실', '침실', '기타'];
+				const sorted = ORDER.filter(z => zones.includes(z)).concat(zones.filter(z => !ORDER.includes(z)));
+				sorted.forEach(z => {
+					const item = document.createElement('div');
+					item.className = 'flex items-center gap-2';
+					const swatch = document.createElement('span');
+					swatch.className = 'inline-block w-8 h-3 rounded';
+					swatch.style.backgroundColor = COLORS[z] || COLORS['기타'];
+					const label = document.createElement('span');
+					label.textContent = z;
+					item.appendChild(swatch);
+					item.appendChild(label);
+					legendEl.appendChild(item);
+				});
+			}
+
+			// 커스텀 툴팁
+			const tooltipEl = (() => {
+				const el = document.createElement('div');
+				el.id = 'activityTooltip';
+				el.className = 'hidden fixed z-50 bg-gray-900/95 text-white text-xs px-2.5 py-2 rounded-lg shadow-lg pointer-events-none';
+				document.body.appendChild(el);
+				return el;
+			})();
+			function showTip(evt, html) {
+				tooltipEl.innerHTML = html;
+				tooltipEl.classList.remove('hidden');
+				const offset = 14;
+				tooltipEl.style.left = `${evt.clientX + offset}px`;
+				tooltipEl.style.top = `${evt.clientY - offset}px`;
+			}
+			function hideTip() {tooltipEl.classList.add('hidden');}
+
+			// 차트 렌더 (존별 1줄)
+			function renderChart(list) {
+				chartArea.innerHTML = '';
+				const wrapper = document.getElementById('activityChartWrapper'); // ✅ 추가
+
+				if (!Array.isArray(list) || list.length === 0) {
+					noDataEl?.classList.remove('hidden');
+					wrapper?.classList.add('hidden');      // ✅ 그리드/눈금 숨김
+					renderLegend([]);
+					return;
+				}
+				noDataEl?.classList.add('hidden');
+				wrapper?.classList.remove('hidden');
+
+				list.sort((a, b) => new Date(a.enteredAt) - new Date(b.enteredAt));
+				const SOD = new Date(); SOD.setHours(0,0,0,0);
+
+				const ORDER = ['거실', '침실', '기타'];
+				const zones = Array.from(new Set(list.map(x => x.zoneName)))
+					.sort((a, b) => {
+						const ai = ORDER.indexOf(a), bi = ORDER.indexOf(b);
+						return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+					});
+
+				renderLegend(zones);
+
+				zones.forEach(() => {
+					const row = document.createElement('div');
+					row.className = 'relative h-[44px] bg-white';
+					chartArea.appendChild(row);
+				});
+
+				list.forEach(it => {
+					const zIdx = zones.indexOf(it.zoneName);
+					if (zIdx < 0) return;
+					const rowEl = chartArea.children[zIdx];
+
+					const entered = new Date(it.enteredAt);
+					const exited = new Date(it.exitedAt);
+					const durSec = Math.max(0, (exited - entered) / 1000);
+					const offSec = Math.max(0, (entered - SOD) / 1000);
+
+					const leftPx = (offSec / 3600) * PX_PER_HOUR;
+					const widthPx = Math.max((durSec / 3600) * PX_PER_HOUR, MIN_BAR_PX);
+
+					const bar = document.createElement('div');
+					bar.className = 'absolute h-[26px] rounded-[16px] z-10';
+					bar.style.top = '9px';
+					bar.style.left = `${leftPx}px`;
+					bar.style.width = `${widthPx}px`;
+					bar.style.backgroundColor = COLORS[it.zoneName] || COLORS['기타'];
+
+					const tipHtml = `
+		        <div class="font-medium">${it.zoneName}</div>
+		        <div class="opacity-80">${fmtTime(entered)} ~ ${fmtTime(exited)}</div>
+		        <div class="opacity-80">${fmtDuration(durSec)}</div>
+		      `;
+					bar.addEventListener('mouseenter', (e) => showTip(e, tipHtml));
+					bar.addEventListener('mousemove', (e) => showTip(e, tipHtml));
+					bar.addEventListener('mouseleave', hideTip);
+
+					rowEl.appendChild(bar);
+				});
+			}
+
+			// 서버 호출
+			// 최소 머문 시간(초) — 필요하면 60, 120 등으로 조절
+			const MIN_DUR_SEC = 30;
+
+			function normalizeRow(x) {
+				const s = new Date(x.enteredAt);
+				let e = x.exitedAt ? new Date(x.exitedAt) : null;
+
+				if (!e || e < s) {
+					if (x.durationSec && !Number.isNaN(+x.durationSec)) {
+						e = new Date(s.getTime() + (+x.durationSec) * 1000);
+					} else {
+						e = new Date(s.getTime() + 60 * 1000); // 최소 1분짜리로 가드
+					}
+				}
+				return { ...x, _in: s, _out: e };
+			}
+
+			function startOfDayLocal(d){
+				const x = new Date(d);
+				x.setHours(0,0,0,0);
+				return x;
+			}
+			function endOfDayLocal(d){
+				const x = new Date(d);
+				x.setHours(23,59,59,999);
+				return x;
+			}
+
+			async function loadActivities() {
+				try {
+					const pid = window.petId ?? (Number(localStorage.getItem('selectedPetId')) || null);
+					const url = `/usr/petJ/activity${pid ? `?petId=${pid}` : ''}`;
+					const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+					if (!res.ok) throw new Error(`HTTP ${res.status}`);
+					const json = await res.json();
+
+					// 오늘 0~24시
+					const SOD = new Date(); SOD.setHours(0,0,0,0);
+					const EOD = new Date(); EOD.setHours(23,59,59,999);
+
+					let list = [];
+					if (Array.isArray(json?.data1)) list = json.data1;
+					else if (typeof json?.data2 === 'string' && json.data2.trim()) {
+						try { list = JSON.parse(json.data2); } catch {}
+					}
+
+					list = (list || [])
+							.filter(x => x?.zoneName && x?.enteredAt)       // 최소 필드
+							.map(normalizeRow)                               // 종료시각 보정
+							.filter(x => x._out > SOD && x._in < EOD)        // ✅ 오늘과 '겹치면' 통과
+							// 오늘 범위로 클램프
+							.map(x => {
+								const cin  = x._in  < SOD ? new Date(SOD) : x._in;
+								const cout = x._out > EOD ? new Date(EOD) : x._out;
+								return { ...x, enteredAt: cin.toISOString(), exitedAt: cout.toISOString() };
+							})
+							// 최소 지속시간(보정 후 기준)
+							.filter(x => (new Date(x.exitedAt) - new Date(x.enteredAt)) / 1000 >= MIN_DUR_SEC);
+
+					renderChart(list);
+				} catch (e) {
+					console.error('[loadActivities] error:', e);
+					renderChart([]);
+				}
+			}
+
+
+			(function initActivityTimeline() {
+				const run = () => {
+					renderTimeGrid();
+					loadActivities();
+					// 패널 닫을 때 새로고침용
+					window.__reloadActivityTimeline = loadActivities;
+				};
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', run);
+				} else {
+					run();
+				}
+			})();
+
+		</script>
+
+		<script>
+			// 한글 라벨 매핑
+			const TYPE_LABEL = { pee: '소변', poop: '대변', unknown: '미확인' };
+
+			function fmtTimeHHMM(iso) {
+				const d = new Date(iso);
+				return d.toTimeString().slice(0,5);
+			}
+
+			async function loadLitterEvents(dateStr) {
+				const tbody = document.getElementById('poopTableBody');
+				tbody.innerHTML = '<tr><td class="p-2 border text-gray-500" colspan="2">불러오는 중...</td></tr>';
+
+				try {
+					const url = `/api/litter/events?petId=${petId}&date=${dateStr}&_=${Date.now()}`;
+					const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+					if (!res.ok) throw new Error(`HTTP ${res.status}`);
+					const list = await res.json();
+
+					if (!Array.isArray(list) || list.length === 0) {
+						tbody.innerHTML = '<tr><td class="p-2 border text-gray-500 text-center" colspan="2">기록 없음</td></tr>';
+						return;
+					}
+
+					// 렌더링
+					tbody.innerHTML = list.map(ev => {
+						const t = TYPE_LABEL[ev.type] ?? ev.type;
+						return `
+          <tr>
+            <td class="p-2 border">${fmtTimeHHMM(ev.detectedAt)}</td>
+            <td class="p-2 border">${t}</td>
+          </tr>
+        `;
+					}).join('');
+				} catch (e) {
+					console.error('[loadLitterEvents] error:', e);
+					tbody.innerHTML = '<tr><td class="p-2 border text-red-500 text-center" colspan="2">불러오기 실패</td></tr>';
+				}
+			}
+
+			async function loadLitterSummary(dateStr) {
+				try {
+					const url = `/api/litter/summary?petId=${petId}&date=${dateStr}&_=${Date.now()}`;
+					const res = await fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+					if (!res.ok) throw new Error(`HTTP ${res.status}`);
+					const sum = await res.json();
+					// 필요하다면 어디에든 표시하세요. 예) 콘솔/배지 등
+					console.log('🚽 요약:', sum); // {date, pee, poop, unknown, total}
+				} catch (e) {
+					console.error('[loadLitterSummary] error:', e);
+				}
+			}
+		</script>
+
+
+
+
+
+
+
+		<script th:src="@{/resource/js/calendar.js}"></script>
 
 
 

@@ -34,4 +34,32 @@ public interface WalkCrewMemberRepository {
 
 	// 멤버리스트 조회
 	List<WalkCrewMember> findMembersByCrewId(int crewId);
+
+	// 크루멤버 id 전체 리스트 조회
+	List<Integer> intFindMembersByCrewId(int crewId);
+
+	int updateRole(@Param("memberId") int memberId, @Param("crewId") int crewId, @Param("role") String role);
+
+	// 특정 크루에서 해당 멤버의 역할(role)을 조회합니다.
+	String findRoleByMemberIdAndCrewId(@Param("memberId") int memberId, @Param("crewId") int crewId);
+
+	// 특정 크루에서 해당 멤버의 신청 상태(status)를 조회합니다.
+	String findStatusByMemberIdAndCrewId(@Param("crewId") int crewId, @Param("memberId") int memberId);
+
+	int countPendingRequest(int crewId, int memberId);
+
+	void approveMember(int crewId, int memberId);
+
+	boolean exists(int crewId, int memberId);
+
+	void insert(WalkCrewMember leader);
+
+	void setPendingStatus(int id, int crewId, int memberId);
+
+	// 크루 신청 취소하기
+	int cancelJoin(@Param("crewId") int crewId, @Param("memberId") int memberId);
+
+	// WalkCrewMemberRepository.java
+	List<WalkCrew> findCrewsByMemberId(@Param("memberId") int memberId);
+
 }

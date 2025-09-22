@@ -11,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.RSW.service.ArticleService;
+import com.example.RSW.service.NotificationService;
 import com.example.RSW.service.WalkCrewMemberService;
 import com.example.RSW.service.WalkCrewService;
 import com.example.RSW.vo.Article;
@@ -28,6 +29,9 @@ public class UsrWalkCrewMemberController {
 
 	@Autowired
 	ArticleService articleService;
+
+	@Autowired
+	NotificationService notificationService;
 
 	private final WalkCrewService walkCrewService;
 	private final WalkCrewMemberService walkCrewMemberService;
@@ -91,9 +95,19 @@ public class UsrWalkCrewMemberController {
 		}
 
 		int memberId = rq.getLoginedMemberId();
-		walkCrewMemberService.requestToJoinCrew(crewId, memberId);
 
-		// ✅ Java 8 호환: Map.of(...) → HashMap 사용
+		// ✅ 중복 신청 방지 로직을 포함한 서비스 호출
+		ResultData resultData = walkCrewMemberService.requestToJoinCrew(crewId, memberId);
+
+		// ✅ 실패 시 그대로 반환
+		if (resultData.isFail()) {
+			return resultData;
+		}
+
+		// ✅ 크루장에게 알림 전송
+		notificationService.notifyCrewLeaderOnRequest(crewId, memberId);
+
+		// ✅ 성공 시 응답 데이터 구성
 		Map<String, Object> data = new HashMap<>();
 		data.put("crewId", crewId);
 		data.put("memberId", memberId);
@@ -187,6 +201,9 @@ public class UsrWalkCrewMemberController {
 		// ✅ 수락 처리
 		walkCrewService.approveMember(crewId, memberId);
 
+		// ✅ 수락된 신청자에게 알림 전송
+		notificationService.notifyMemberOnCrewAccepted(crewId, memberId);
+
 		// ✅ Java 8 호환: Map.of(...) → HashMap
 		Map<String, Object> data = new HashMap<>();
 		data.put("crewId", crewId);
@@ -232,29 +249,32 @@ public class UsrWalkCrewMemberController {
 		return ResultData.from("S-1", "크루 멤버가 성공적으로 강퇴되었습니다.", data);
 	}
 
-	// ✅ 크루 탈퇴 (멤버 본인 요청)
 	@PostMapping("/leave")
 	@ResponseBody
 	public ResultData leaveCrew(@RequestParam int crewId, HttpServletRequest req) {
 		Rq rq = (Rq) req.getAttribute("rq");
 
-		// ✅ 로그인 확인
 		if (rq == null || !rq.isLogined()) {
 			return ResultData.from("F-1", "로그인이 필요합니다.");
 		}
 
 		int memberId = rq.getLoginedMemberId();
 
-		// ✅ 이미 크루에 없는 경우 예외 처리
-		boolean isMember = walkCrewMemberService.isJoinedCrew(memberId, crewId);
-		if (!isMember) {
+		// ✅ 현재 역할 확인
+		String role = walkCrewMemberService.getRole(memberId, crewId);
+		if (role == null) {
 			return ResultData.from("F-2", "해당 크루에 가입되어 있지 않습니다.");
 		}
 
-		// ✅ 탈퇴 처리 (삭제)
+		// ✅ 크루장은 탈퇴 불가 (위임 후 가능)
+		if (role.equals("leader")) {
+			return ResultData.from("F-3", "크루장은 위임 후에만 탈퇴할 수 있습니다.");
+		}
+
+		// ✅ 탈퇴 처리
 		boolean result = walkCrewMemberService.expelMemberFromCrew(crewId, memberId);
 		if (!result) {
-			return ResultData.from("F-3", "탈퇴 처리 중 오류가 발생했습니다.");
+			return ResultData.from("F-4", "탈퇴 처리 중 오류가 발생했습니다.");
 		}
 
 		Map<String, Object> data = new HashMap<>();
@@ -269,6 +289,67 @@ public class UsrWalkCrewMemberController {
 	public ResultData getMemberList(@RequestParam int crewId) {
 		List<WalkCrewMember> members = walkCrewMemberService.getMembersByCrewId(crewId);
 		return ResultData.from("S-1", "크루 멤버 리스트", members);
+	}
+
+	// ✅ 크루장 권한 위임 기능
+	@PostMapping("/transferLeadership")
+	@ResponseBody
+	public ResultData transferLeadership(@RequestParam int crewId, @RequestParam int newLeaderId,
+			HttpServletRequest req) {
+		Rq rq = (Rq) req.getAttribute("rq");
+		System.out.println("newLeaderId" + newLeaderId);
+		// 로그인 확인
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
+		}
+
+		int currentLeaderId = rq.getLoginedMemberId();
+
+		// 본인에게 위임 불가
+		if (currentLeaderId == newLeaderId) {
+			return ResultData.from("F-2", "본인에게는 위임할 수 없습니다.");
+		}
+
+		// 현재 리더인지 확인
+		String currentRole = walkCrewMemberService.getRole(currentLeaderId, crewId);
+		if (!"leader".equals(currentRole)) {
+			return ResultData.from("F-3", "크루장만 권한을 위임할 수 있습니다.");
+		}
+
+		// 대상 멤버가 크루 멤버인지 확인
+		if (!walkCrewMemberService.isMemberOfCrew(newLeaderId, crewId)) {
+			return ResultData.from("F-4", "해당 멤버는 이 크루의 멤버가 아닙니다.");
+		}
+
+		// 위임 처리
+		boolean success = walkCrewMemberService.transferLeadership(crewId, currentLeaderId, newLeaderId);
+		if (!success) {
+			return ResultData.from("F-5", "위임 처리에 실패했습니다.");
+		}
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("crewId", crewId);
+		data.put("newLeaderId", newLeaderId);
+
+		return ResultData.from("S-1", "크루장 권한이 성공적으로 위임되었습니다.", data);
+	}
+
+	// 크루가입 신청취소
+	@PostMapping("/cancelJoin")
+	@ResponseBody
+	public ResultData cancelJoin(@RequestParam int crewId, HttpServletRequest req) {
+		Rq rq = (Rq) req.getAttribute("rq");
+		if (rq == null || !rq.isLogined()) {
+			return ResultData.from("F-1", "로그인 후 이용해주세요.");
+		}
+
+		int memberId = rq.getLoginedMemberId();
+		boolean result = walkCrewMemberService.cancelJoin(crewId, memberId);
+		if (result) {
+			return ResultData.from("S-1", "신청이 취소되었습니다.");
+		} else {
+			return ResultData.from("F-2", "신청 취소에 실패했습니다.");
+		}
 	}
 
 }

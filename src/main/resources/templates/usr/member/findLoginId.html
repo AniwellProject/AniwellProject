@@ -1,50 +1,53 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
-<c:set var="pageTitle" value="아이디 찾기" />
-<%@ include file="../common/head.jspf" %>
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
-<script>
-	function MemberFindLoginId__submit(form) {
-		form.name.value = form.name.value.trim();
-		form.email.value = form.email.value.trim();
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title th:text="'아이디 찾기 - Aniwell'">아이디 찾기</title>
 
-		if (form.name.value.length == 0) {
-			alert('이름을 입력해주세요');
-			form.name.focus();
-			return false;
-		}
-		if (form.email.value.length == 0) {
-			alert('이메일을 입력해주세요');
-			form.email.focus();
-			return false;
-		}
-		return true;
-	}
-</script>
+  <!-- CSS & JS -->
+  <link rel="stylesheet" th:href="@{/resource/css/login_join.css}" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
 
-<section class="mt-24 text-lg px-4">
-	<div class="mx-auto max-w-xl bg-white p-6 rounded-xl shadow-md">
-		<h1 class="text-2xl font-bold mb-6 text-center">아이디 찾기</h1>
-		<form action="../member/doFindLoginId" method="POST" onsubmit="return MemberFindLoginId__submit(this);">
-			<input type="hidden" name="afterFindLoginIdUri" value="${param.afterFindLoginIdUri}" />
-			<div class="mb-4">
-				<label class="block mb-1">이름</label>
-				<input type="text" name="name" class="input input-bordered w-full" placeholder="이름을 입력해주세요" autocomplete="off">
-			</div>
-			<div class="mb-4">
-				<label class="block mb-1">이메일</label>
-				<input type="text" name="email" class="input input-bordered w-full" placeholder="이메일을 입력해주세요" autocomplete="off">
-			</div>
-			<div class="flex justify-between mt-6">
-				<button type="submit" class="btn btn-primary">아이디 찾기</button>
-				<a class="btn btn-outline" href="../member/login">로그인</a>
-				<a class="btn btn-outline btn-success" href="${rq.findLoginPwUri}">비밀번호 찾기</a>
-			</div>
-		</form>
-		<div class="text-center mt-4">
-			<button class="btn btn-outline" type="button" onclick="history.back();">뒤로가기</button>
-		</div>
-	</div>
-</section>
+<body class="bg-white min-w-[400px] w-screen">
 
-<%@ include file="../common/foot.jspf" %>
+  <div id="form-wrapper" class="w-full opacity-100 animate-slide-up flex flex-col items-center justify-center px-4">
+    <section class="w-full bg-white p-6">
+      <h1 class="text-2xl font-bold mb-6 text-center">아이디 찾기</h1>
+
+	  <form id="findIdForm">
+        <input type="hidden" name="afterFindLoginIdUri" th:value="${param.afterFindLoginIdUri}" />
+
+        <!-- 이름 입력 -->
+        <div class="block text-sm font-medium mb-1">
+          <label for="name" class="block mb-1 font-medium text-sm">이름</label>
+          <input type="text" name="name" id="name" class="w-full text-center py-2 focus:border-yellow-400w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none" placeholder="이름을 입력해주세요" autocomplete="off" />
+        </div>
+
+        <!-- 이메일 입력 -->
+        <div class="block text-sm font-medium mb-1">
+          <label for="email" class="block mb-1 font-medium text-sm">이메일</label>
+          <input type="text" name="email" id="email" class="w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none" placeholder="이메일을 입력해주세요" autocomplete="off" />
+        </div>
+
+        <!-- 버튼 영역 -->
+        <div class="text-center flex justify-center gap-2 pt-4">
+          <button type="submit" class="w-1/2 py-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded-md font-semibold transition">아이디 찾기</button>
+        </div>
+      </form>
+
+      <div class="text-center py-6 mt-6">
+        <button class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-100 transition" type="button" onclick="window.parent.closeFindIdIframe()">뒤로가기</button>
+      </div>
+    </section>
+  </div>
+
+
+  <script th:src="@{/resource/js/login_join.js}"></script>
+</body>
+
+</html>

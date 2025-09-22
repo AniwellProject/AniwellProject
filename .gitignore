@@ -34,4 +34,12 @@ build/
 .vscode/
 
 # Firebase 서비스 계정 키 #
-src/main/resources/firebase/aniwell-2a90b-firebase-adminsdk-fbsvc-3ed321093d.json
+
+src/main/resources/firebase/aniwell-2a90b-firebase-adminsdk-fbsvc-a0e7397002.json
+
+# Firebase/GCP 서비스 계정 키 (프로젝트 내 리소스 위치)
+src/main/resources/firebase/*.json
+
+# 로컬 개발용 키 보관 폴더 (레포 바깥/안 모두 대비)
+keys/**/*.json
+

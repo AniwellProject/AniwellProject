@@ -41,4 +41,6 @@ public interface NotificationRepository {
     int update(Notification notification);
 
     void deleteAllByMemberId(int loginedMemberId);
+
+    void deleteByLink(String link);
 }

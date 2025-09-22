@@ -26,4 +26,6 @@ public class WalkCrew {
 	private String city; // 시
 	private String district; // 구
 	private String dong; // 동
+	private Double latitude; // 위도
+	private Double longitude; // 경도
 }

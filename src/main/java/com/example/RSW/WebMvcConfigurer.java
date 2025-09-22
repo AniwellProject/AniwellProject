@@ -33,8 +33,7 @@ public class WebMvcConfigurer implements org.springframework.web.servlet.config.
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowCredentials(true);
     }
-    
-    
+
 
     // 인터셉터 등록(적용)
     public void addInterceptors(InterceptorRegistry registry) {
@@ -52,16 +51,13 @@ public class WebMvcConfigurer implements org.springframework.web.servlet.config.
 
         InterceptorRegistration ir;
 
+        // ✅ BeforeActionInterceptor
         ir = registry.addInterceptor(beforeActionInterceptor);
         ir.addPathPatterns("/**");
         ir.addPathPatterns("/favicon.ico");
-        ir.excludePathPatterns("/resource/**");
-        ir.excludePathPatterns("/error");
+        ir.excludePathPatterns( "/api/**","/**/api/**", "/resource/**", "/css/**", "/js/**", "/img/**", "/uploads/**", "/error", "/favicon.ico");
 
-//        ir.addPathPatterns("/usr/member/doLogout");
-
-
-//      펫 관련
+        // 펫 관련
         ir.addPathPatterns("/usr/pet/petPage");
         ir.addPathPatterns("/usr/pet/list");
         ir.addPathPatterns("/usr/pet/join");
@@ -83,7 +79,7 @@ public class WebMvcConfigurer implements org.springframework.web.servlet.config.
         ir.addPathPatterns("/usr/pet/daily/delete");
         ir.addPathPatterns("/usr/pet/daily/detail");
 
-        //      크루 관련
+        // 크루 관련
         ir.addPathPatterns("/usr/walkCrew/chat");
         ir.addPathPatterns("/usr/walkCrew/list");
         ir.addPathPatterns("/usr/walkCrew/create");
@@ -98,10 +94,7 @@ public class WebMvcConfigurer implements org.springframework.web.servlet.config.
         ir.addPathPatterns("/usr/article/detail");
         ir.addPathPatterns("/usr/notifications/list");
 
-
-
-
-//		로그아웃 필요
+        // ✅ NeedLogoutInterceptor
         ir = registry.addInterceptor(needLogoutInterceptor);
         ir.addPathPatterns("/usr/member/login");
         ir.addPathPatterns("/usr/member/doLogin");
@@ -111,12 +104,20 @@ public class WebMvcConfigurer implements org.springframework.web.servlet.config.
         ir.addPathPatterns("/usr/member/doFindLoginId");
         ir.addPathPatterns("/usr/member/findLoginPw");
         ir.addPathPatterns("/usr/member/doFindLoginPw");
-
+        // ✅ 정적 리소스 예외 강화
+        ir.excludePathPatterns(
+                "/usr/member/logout", "/api/**","/**/api/**",
+                "/resource/**", "/css/**", "/js/**", "/img/**", "/uploads/**", "/error", "/favicon.ico"
+        );
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")  // 웹에서 요청할 경로
                 .addResourceLocations("file:/Users/e-suul/Desktop/aniwell_uploads/"); // 실제 로컬 폴더
+
+        // ✅ HTML 경로 유지: /resource/** 요청을 static/resource/로 매핑
+        registry.addResourceHandler("/resource/**")
+                .addResourceLocations("classpath:/static/resource/");
     }
-    }
+}

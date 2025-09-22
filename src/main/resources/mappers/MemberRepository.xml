@@ -18,12 +18,11 @@
         SELECT LAST_INSERT_ID()
     </select>
 
-    <select id="getMemberByNameAndEmail" parameterType="string"
-            resultType="com.example.RSW.vo.Member">
+    <select id="getMemberByNameAndEmail" resultType="com.example.RSW.vo.Member">
         SELECT *
         FROM `member`
         WHERE `name` = #{name}
-          AND email = #{email}
+          AND LOWER(TRIM(email)) = LOWER(TRIM(#{email})) LIMIT 1
     </select>
 
     <select id="getMemberByLoginId" parameterType="string"
@@ -62,6 +61,9 @@
             </if>
             <if test="photo != null">
                 photo = #{photo},
+            </if>
+            <if test="address != null">
+                address = #{address},
             </if>
             updateDate = NOW()
         </set>
@@ -149,13 +151,14 @@
 
     <update id="updateVetCertInfo">
         UPDATE member
-        SET vetCertUrl = #{fileName},
+        SET vetCertUrl      = #{fileName},
             vetCertApproved = #{approved}
         WHERE id = #{memberId}
     </update>
 
     <select id="countByAuthLevel" resultType="int">
-        SELECT COUNT(*) FROM member
+        SELECT COUNT(*)
+        FROM member
         WHERE authLevel = #{authLevel}
     </select>
 
@@ -166,7 +169,8 @@
     </select>
 
     <select id="getMemberBySocial" resultType="Member">
-        SELECT * FROM member
+        SELECT *
+        FROM member
         WHERE socialProvider = #{socialProvider}
           AND socialId = #{socialId}
     </select>
@@ -176,25 +180,64 @@
         INSERT INTO `member`
         SET regDate = NOW(),
         updateDate = NOW(),
-        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{nickname},
-            email = #{email}, cellphone = '',
-            address = '',
-            photo = '',
-            authLevel = 1, authName = '일반회원', delStatus = 0
+        loginId = #{loginId}, loginPw = #{loginPw}, socialProvider = #{socialProvider}, socialId = #{socialId}, `name` = #{name}, nickname = #{nickname}, email = #{email}, cellphone = '', address = '', photo = '', authLevel = 1, authName = '일반회원', delStatus = 0
     </insert>
 
+
     <select id="findByEmail" parameterType="string" resultType="Member">
-        SELECT * FROM member WHERE email = #{email}
+        SELECT *
+        FROM member
+        WHERE email = #{email}
     </select>
 
     <insert id="insert" parameterType="Member">
         INSERT INTO member
         (regDate, updateDate, loginId, loginPw, name, email, authLevel, delStatus, socialProvider, socialId)
-        VALUES
-            (#{regDate}, #{updateDate}, #{loginId}, #{loginPw}, #{name}, #{email}, #{authLevel}, #{delStatus}, #{socialProvider}, #{socialId})
+        VALUES (#{regDate}, #{updateDate}, #{loginId}, #{loginPw}, #{name}, #{email}, #{authLevel}, #{delStatus},
+                #{socialProvider}, #{socialId})
     </insert>
 
     <select id="getAllMemberIds" resultType="int">
-        SELECT id FROM member WHERE delStatus = 0
+        SELECT id
+        FROM member
+        WHERE delStatus = 0
     </select>
+
+    <update id="updateUidById">
+        UPDATE member
+        SET uid = #{uid}
+        WHERE id = #{id}
+    </update>
+    <select id="findByUid" parameterType="string" resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM member
+        WHERE uid = #{uid}
+    </select>
+
+    <!-- 소셜 정보 업데이트 -->
+    <update id="updateSocialInfo" parameterType="com.example.RSW.vo.Member">
+        UPDATE `member`
+        SET socialProvider = #{socialProvider},
+            socialId       = #{socialId}
+        WHERE id = #{id}
+    </update>
+
+    <select id="getMemberByNickname" resultType="Member">
+        SELECT *
+        FROM member
+        WHERE nickname = #{nickname} LIMIT 1
+    </select>
+
+    <select id="getMemberByEmail" resultType="Member">
+        SELECT *
+        FROM member
+        WHERE email = #{email} LIMIT 1
+    </select>
+
+    <select id="getMemberByCellphone" resultType="Member">
+        SELECT *
+        FROM member
+        WHERE REPLACE(cellphone, '-', '') = #{cellphone} LIMIT 1
+    </select>
+
 </mapper>

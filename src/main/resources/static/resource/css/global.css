@@ -1,0 +1,136 @@
+button:focus {
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+@font-face {
+	font-family: 'Ownglyph_ParkDaHyun';
+	src:
+		url('https://fastly.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2')
+		format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@import url('http://fonts.googleapis.com/earlyaccess/nanumgothic.css');
+
+@font-face {
+	font-family: 'EF_jejudoldam';
+	src:
+		url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2210-EF@1.0/EF_jejudoldam.woff2')
+		format('woff2');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'MaplestoryOTFBold';
+	src:
+		url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/MaplestoryOTFBold.woff')
+		format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'MaplestoryOTFLight';
+	src:
+		url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/MaplestoryOTFLight.woff')
+		format('woff');
+	font-weight: normal;
+	font-style: normal;
+}
+
+/*
+
+body {
+  font-family: 'Ownglyph_ParkDaHyun', sans-serif;
+  font-size: 20px;
+}
+*/
+
+/* body {
+	font-family: 'MaplestoryOTFBold', sans-serif;
+	font-size: 20px;
+	letter-spacing: 0.05em; 🔹 자간을 약간 넓힘
+} */
+body {
+	font-family: 'MaplestoryOTFLight', sans-serif;
+	font-size: 20px;
+	width: 100%; /* 부모 요소 기준으로 꽉 차게 */
+}
+
+/*
+body {
+	font-family: 'Nanum Gothic', sans-serif;
+}
+*/
+
+/*
+body {
+	font-family: 'EF_jejudoldam', sans-serif;
+
+}
+*/
+
+
+
+/*
+아래는 마우스커서
+*/
+
+
+/* 전체 페이지 */
+html, body {
+  cursor: url("/img/cat-32px.png") 4 8, auto;
+}
+
+/* 클릭 가능한 요소는 fallback을 pointer로 */
+a, button, [role="button"] {
+  cursor: url("/img/cat-32px.png") 4 8, pointer;
+}
+
+/* 클릭 가능한 요소들: Tailwind .cursor-pointer 포함해서 전부 덮어쓰기 */
+a, a:any-link,
+button, button:enabled,
+[role="button"],
+input[type="button"], input[type="submit"],
+label,
+.cursor-pointer {
+  cursor: url("/img/cat-32px.png") 1 4, pointer !important;
+}
+
+/* 비활성 상태는 예외 처리(원하면 유지/삭제) */
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+}
+
+
+
+/*
+아래는 비율요
+*/
+
+/* 1) 폴백: 모든 브라우저 공통 */
+main { min-height: 100vh; }
+
+/* 2) dvh 지원 브라우저에서 덮어쓰기 */
+@supports (min-height: 100dvh) {
+  main { min-height: 100dvh; }
+}
+/* 화면이 상대적으로 세로가 긴 경우(예: 3:4보다 좁을 때) */
+@media (max-aspect-ratio: 3/4) {
+  .hero { grid-template-columns: 1fr; } /* 1열 */
+}
+
+/* 화면이 가로가 긴 경우(예: 16:9보다 넓을 때) */
+@media (min-aspect-ratio: 16/9) {
+  .hero { grid-template-columns: 1.2fr 0.8fr; } /* 2열 */
+}
+
+@media (orientation: portrait)  { /* 세로 레이아웃 */ }
+@media (orientation: landscape) { /* 가로 레이아웃 */ }
+
+
+

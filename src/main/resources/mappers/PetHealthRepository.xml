@@ -5,17 +5,45 @@
 
 <mapper namespace="com.example.RSW.repository.PetHealthRepository">
 
-    <insert id="insertLog" parameterType="map">
+    <insert id="insertLog" parameterType="com.example.RSW.vo.PetHealthLog">
         INSERT INTO pet__health_log
         (petId, logDate, foodWeight, waterWeight, litterCount, soundLevel, notes)
         VALUES
             (#{petId}, #{logDate}, #{foodWeight}, #{waterWeight}, #{litterCount}, #{soundLevel}, #{notes})
     </insert>
 
+
     <select id="findLogsByPetId" parameterType="int" resultType="com.example.RSW.vo.PetHealthLog">
         SELECT * FROM pet__health_log
         WHERE petId = #{petId}
         ORDER BY logDate DESC
     </select>
+
+    <select id="findByPetIdAndDate" resultType="com.example.RSW.vo.PetHealthLog">
+        SELECT *
+        FROM pet__health_log
+        WHERE petId = #{petId}
+          AND DATE(logDate) = #{date}
+        ORDER BY logDate
+    </select>
+
+    <!-- FoodLogMapper.xml -->
+    <select id="getWeeklyStats" resultType="map">
+  <![CDATA[
+        SELECT
+            WEEKDAY(logDate) AS dayOfWeek,
+            SUM(IFNULL(foodWeight, 0)) AS foodTotal,
+            SUM(IFNULL(waterWeight, 0)) AS waterTotal
+        FROM pet__health_log
+        WHERE petId = #{petId}
+          AND DATE(logDate) >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
+          AND DATE(logDate) <= CURDATE() + INTERVAL (6 - WEEKDAY(CURDATE())) DAY
+        GROUP BY WEEKDAY(logDate)
+        ORDER BY dayOfWeek
+        ]]>
+</select>
+
+
+
 
 </mapper>

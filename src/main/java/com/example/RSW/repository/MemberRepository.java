@@ -11,21 +11,41 @@ import java.util.Optional;
 @Mapper
 public interface MemberRepository {
 
-    int doJoin(String loginId, String loginPw, String name, String nickname, String cellphone,
-               String email, String address, String authName, int authLevel);
+    int doJoin(@Param("loginId") String loginId, @Param("loginPw") String loginPw, @Param("name") String name, @Param("nickname") String nickname,
+               @Param("cellphone") String cellphone,
+               @Param("email") String email,
+               @Param("address") String address,
+               @Param("authName") String authName,
+               @Param("authLevel") int authLevel);
 
-    public Member getMemberById(int id);
+    Member getMemberById(int id);
 
-    public int getLastInsertId();
+    int getLastInsertId();
 
-    public Member getMemberByLoginId(String loginId);
+    Member getMemberByLoginId(String loginId);
 
-    public Member getMemberByNameAndEmail(String name, String email);
+    Member getMemberByNameAndEmail(@Param("name") String name, @Param("email") String email);
 
-    public void modify(int loginedMemberId, String loginPw, String name, String nickname, String cellphone,
-                       String email, String photo);
+    int modify(
+            @Param("loginedMemberId") int loginedMemberId,
+            @Param("loginPw") String loginPw,
+            @Param("name") String name,
+            @Param("nickname") String nickname,
+            @Param("cellphone") String cellphone,
+            @Param("email") String email,
+            @Param("photo") String photo,
+            @Param("address") String address
+    );
 
-    public void modifyWithoutPw(int loginedMemberId, String name, String nickname, String cellphone, String email, String photo, String address);
+    int modifyWithoutPw(
+            @Param("loginedMemberId") int loginedMemberId,
+            @Param("name") String name,
+            @Param("nickname") String nickname,
+            @Param("cellphone") String cellphone,
+            @Param("email") String email,
+            @Param("photo") String photo,
+            @Param("address") String address
+    );
 
     void withdraw(int id);
 
@@ -67,4 +87,15 @@ public interface MemberRepository {
 
     List<Integer> getAllMemberIds();
 
+    int updateUidById(@Param("id") int id, @Param("uid") String uid);
+
+    Member findByUid(String uid);
+
+    void updateSocialInfo(Member emailMember);
+
+    Member getMemberByNickname(String nickname);
+
+    Member getMemberByEmail(String email);
+
+    Member getMemberByCellphone(String cellphone);
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
 
 @Controller
@@ -72,7 +73,23 @@ public class UsrNotificationController {
 
         return "usr/notification/list";
     }
+  
+    
+    // 모달용
+    @GetMapping("/modal")
+    public String getNotificationModalFragment(HttpServletRequest request, Model model) {
+        if (!rq.isLogined()) {
+            return "common/needLogin"; // 로그인 필요 안내용 fragment 또는 에러 처리
+        }
 
+        int memberId = rq.getLoginedMemberId();
+        List<Notification> notifications = notificationService.getNotificationsByMemberId(memberId);
+
+        model.addAttribute("notifications", notifications);
+        model.addAttribute("contextPath", request.getContextPath());
+
+        return "fragments/notificationModal :: alarmModalContent"; // fragment만 반환
+    }
 
 
 //    개별 알림 읽음 처리
@@ -178,6 +195,21 @@ public class UsrNotificationController {
         notificationService.deleteAllByMemberId(rq.getLoginedMemberId());
         return ResultData.from("S-1", "모든 알림을 삭제했습니다.");
     }
+
+    @GetMapping("/list/json")
+    @ResponseBody
+    public List<Notification> getNotificationListJson() {
+        if (!rq.isLogined()) {
+            return Collections.emptyList(); // 또는 401 에러 처리 가능
+        }
+
+        int memberId = rq.getLoginedMemberId();
+
+        List<Notification> notifications = notificationService.getNotificationsByMemberId(memberId);
+
+        return notifications;
+    }
+
 
 
 }

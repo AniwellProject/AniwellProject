@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Aniwell Dashboard</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/petPage.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<script th:src="@{/resource/js/calendar.js}"></script>
+	   <style>
+	        .skel {
+	            background: #e6e6e6;
+	        }
+
+	        /* ▼ main 내부 전용 레이아웃 로직 (main의 class는 변경 안 함) */
+	        #mainSplit .split-row {
+	            display: flex;
+	            height: 100%;
+	        }
+
+	        #mainSplit .split-left {
+	            flex: 1 1 auto;
+	            min-width: 0;
+	        }
+
+	        #mainSplit .split-right {
+	            /* 오른쪽 패널 기본(닫힘) 상태 */
+	            width: 0;
+	            overflow: auto;
+	            opacity: 0;
+	            transform: translateX(12px);
+	            transition: width .45s ease, opacity .35s ease, transform .45s ease;
+	            /* 여백: 위/아래/오른쪽 */
+	            margin: 1.5rem 1.5rem 1.5rem 0;
+	            /* mt-6 mr-6 mb-6 */
+	        }
+
+	        /* 열림 상태: main에 data-side="open" 속성만 토글 */
+	        #mainSplit[data-side="open"] .split-right {
+	            width: 360px;
+	            opacity: 1;
+	            transform: translateX(0);
+	        }
+
+	        /* 반응형: 너무 좁을 때 패널 폭 제한(최대 50vw) */
+	        @media (min-width: 768px) {
+	            #mainSplit[data-side="open"] .split-right {
+	                max-width: 50vw;
+	            }
+	        }
+
+	        #mainSplit .split-row {
+	            display: flex;
+	            height: 100%;
+	            gap: 1.5rem;
+	            /* 왼쪽-오른쪽 사이 공간 */
+	        }
+	    </style>
+	</head>
+
+	<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+	    <div class="flex h-screen w-full">
+	        <!-- 좌측 고정 메뉴가 있다면 유지 -->
+	        <div class="w-20" th:replace="common :: siteHeader"></div>
+
+	        <!-- ✅ main: class는 그대로, data-side만 토글 -->
+	        <main id="mainSplit" data-side="close"
+	            class="main_page h-full overflow-y-auto min-h-0 box-border grid-cols-12 flex-1 p-6 pt-8 grid gap-8">
+
+	            <!-- 우상단 토글 버튼 (main 안) -->
+	            <button id="toggleBtn"
+	                class="absolute right-6 top-6 z-10 rounded-full bg-black/70 text-white px-3 py-2 text-sm hover:bg-black/80">
+	                패널 열기/닫기
+	            </button>
+
+	            <!-- 📌 main 내부에서만 양쪽을 구성 -->
+	            <div class="split-row col-span-12 gap-x-3">
+	                <!-- LEFT -->
+	                <section class="split-left p-6">
+	                    <div class="flex flex-col gap-6 w-full flex-1">
+	                        <header class="skel h-40 md:h-48 rounded-xl"> 종합 변화 ajax?</header>
+
+	                        <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+	                            <div class="skel h-32 rounded-xl">예시 패널 기입된 사료?</div>
+	                            <div class="skel h-32 rounded-xl">예시 패널 기입된 체중?</div>
+	                            <div class="skel h-32 rounded-xl">예시 패널</div>
+	                        </div>
+
+	                        <section class="mt-2 skel h-56 md:h-64 rounded-xl"> 예시 패널 (사료 변경 일시 알려주기? 등)</section>
+	                    </div>
+	                </section>
+
+	                <!-- RIGHT -->
+	                <aside class="split-right skel p-2 rounded-xl">
+	                    <h2 class="font-semibold mb-4">오른쪽 패널</h2>
+	                    <div class="h-40 skel rounded-xl mb-4">
+
+	                        게시글 작성 구현안됨
+	                        <br>
+	                        오른쪽 패널에서 작성하고 왼쪽에서 유동적으로 확인할 수있도록
+	                        <br>
+	                        카테고리 분류열어서 어느 카테고리에 입력되는지 구분할 수 있도록?
+	                        <br>
+	                        기입란 별로 오른쪽 패널 내용만 달라지도록도 가능
+	                    </div>
+	                    <div class="h-40 skel rounded-xl"></div>
+	                </aside>
+	            </div>
+	        </main>
+	    </div>
+
+	    <script>
+	        // main의 data-side 속성만 토글 (class 건드리지 않음)
+	        const mainSplit = document.getElementById('mainSplit');
+	        const toggleBtn = document.getElementById('toggleBtn');
+
+	        function togglePanel() {
+	            const open = mainSplit.getAttribute('data-side') === 'open';
+	            mainSplit.setAttribute('data-side', open ? 'close' : 'open');
+	        }
+	        toggleBtn.addEventListener('click', togglePanel);
+	    </script>
+	</body>
+
+	</html>	<!DOCTYPE html>
+	<html lang="ko">
+
+	<head>
+
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Aniwell Dashboard</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<link rel="stylesheet" th:href="@{/resource/css/petPage.css}">
+		<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+		<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+		<script th:src="@{/resource/js/calendar.js}"></script>
+		   <style>
+		        .skel {
+		            background: #e6e6e6;
+		        }
+
+		        /* ▼ main 내부 전용 레이아웃 로직 (main의 class는 변경 안 함) */
+		        #mainSplit .split-row {
+		            display: flex;
+		            height: 100%;
+		        }
+
+		        #mainSplit .split-left {
+		            flex: 1 1 auto;
+		            min-width: 0;
+		        }
+
+		        #mainSplit .split-right {
+		            /* 오른쪽 패널 기본(닫힘) 상태 */
+		            width: 0;
+		            overflow: auto;
+		            opacity: 0;
+		            transform: translateX(12px);
+		            transition: width .45s ease, opacity .35s ease, transform .45s ease;
+		            /* 여백: 위/아래/오른쪽 */
+		            margin: 1.5rem 1.5rem 1.5rem 0;
+		            /* mt-6 mr-6 mb-6 */
+		        }
+
+		        /* 열림 상태: main에 data-side="open" 속성만 토글 */
+		        #mainSplit[data-side="open"] .split-right {
+		            width: 360px;
+		            opacity: 1;
+		            transform: translateX(0);
+		        }
+
+		        /* 반응형: 너무 좁을 때 패널 폭 제한(최대 50vw) */
+		        @media (min-width: 768px) {
+		            #mainSplit[data-side="open"] .split-right {
+		                max-width: 50vw;
+		            }
+		        }
+
+		        #mainSplit .split-row {
+		            display: flex;
+		            height: 100%;
+		            gap: 1.5rem;
+		            /* 왼쪽-오른쪽 사이 공간 */
+		        }
+		    </style>
+		</head>
+
+		<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+		    <div class="flex h-screen w-full">
+		        <!-- 좌측 고정 메뉴가 있다면 유지 -->
+		        <div class="w-20" th:replace="common :: siteHeader"></div>
+
+		        <!-- ✅ main: class는 그대로, data-side만 토글 -->
+		        <main id="mainSplit" data-side="close"
+		            class="main_page h-full overflow-y-auto min-h-0 box-border grid-cols-12 flex-1 p-6 pt-8 grid gap-8">
+
+		            <!-- 우상단 토글 버튼 (main 안) -->
+		            <button id="toggleBtn"
+		                class="absolute right-6 top-6 z-10 rounded-full bg-black/70 text-white px-3 py-2 text-sm hover:bg-black/80">
+		                패널 열기/닫기
+		            </button>
+
+		            <!-- 📌 main 내부에서만 양쪽을 구성 -->
+		            <div class="split-row col-span-12 gap-x-3">
+		                <!-- LEFT -->
+		                <section class="split-left p-6">
+		                    <div class="flex flex-col gap-6 w-full flex-1">
+		                        <header class="skel h-40 md:h-48 rounded-xl"> 종합 변화 ajax?</header>
+
+		                        <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+		                            <div class="skel h-32 rounded-xl">예시 패널 기입된 사료?</div>
+		                            <div class="skel h-32 rounded-xl">예시 패널 기입된 체중?</div>
+		                            <div class="skel h-32 rounded-xl">예시 패널</div>
+		                        </div>
+
+		                        <section class="mt-2 skel h-56 md:h-64 rounded-xl"> 예시 패널 (사료 변경 일시 알려주기? 등)</section>
+		                    </div>
+		                </section>
+
+		                <!-- RIGHT -->
+		                <aside class="split-right skel p-2 rounded-xl">
+		                    <h2 class="font-semibold mb-4">오른쪽 패널</h2>
+		                    <div class="h-40 skel rounded-xl mb-4">
+
+		                        게시글 작성 구현안됨
+		                        <br>
+		                        오른쪽 패널에서 작성하고 왼쪽에서 유동적으로 확인할 수있도록
+		                        <br>
+		                        카테고리 분류열어서 어느 카테고리에 입력되는지 구분할 수 있도록?
+		                        <br>
+		                        기입란 별로 오른쪽 패널 내용만 달라지도록도 가능
+		                    </div>
+		                    <div class="h-40 skel rounded-xl"></div>
+		                </aside>
+		            </div>
+		        </main>
+		    </div>
+
+		    <script>
+		        // main의 data-side 속성만 토글 (class 건드리지 않음)
+		        const mainSplit = document.getElementById('mainSplit');
+		        const toggleBtn = document.getElementById('toggleBtn');
+
+		        function togglePanel() {
+		            const open = mainSplit.getAttribute('data-side') === 'open';
+		            mainSplit.setAttribute('data-side', open ? 'close' : 'open');
+		        }
+		        toggleBtn.addEventListener('click', togglePanel);
+		    </script>
+		</body>
+
+		</html>
