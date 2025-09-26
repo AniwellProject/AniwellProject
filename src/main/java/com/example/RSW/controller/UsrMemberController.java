@@ -150,7 +150,7 @@ public class UsrMemberController {
         model.addAttribute("kakaoRestApiKey", kakaoRestApiKey);
         model.addAttribute("kakaoRedirectUri", kakaoRedirectUri);
 
-        return "/usr/member/login";
+        return "usr/member/login";
     }
 
     @RequestMapping("/usr/member/doLogin")
@@ -217,7 +217,7 @@ public class UsrMemberController {
 
     @RequestMapping("/usr/member/join")
     public String showJoin(HttpServletRequest req) {
-        return "/usr/member/join";
+        return "usr/member/join";
     }
 
     @RequestMapping("/usr/member/doJoin")

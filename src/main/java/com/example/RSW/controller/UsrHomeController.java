@@ -26,7 +26,7 @@ public class UsrHomeController {
 		List<Article> noticeArticles = articleService.getNoticeArticlesByBoardId(noticeBoardId, limit);
 		model.addAttribute("noticeArticles", noticeArticles);
 
-		return "/usr/home/main";
+		return "usr/home/main";
 	}
 
 	@RequestMapping("/")

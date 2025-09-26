@@ -43,3 +43,7 @@ src/main/resources/firebase/*.json
 # 로컬 개발용 키 보관 폴더 (레포 바깥/안 모두 대비)
 keys/**/*.json
 
+# teraform
+.idea
+.terraform
+

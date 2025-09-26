@@ -197,7 +197,7 @@ public class PetController {
 	// 펫등록 페이지 이동
 	@RequestMapping("/usr/pet/join")
 	public String showJoin() {
-		return "/usr/pet/join";
+		return "usr/pet/join";
 	}
 
 	// 펫 등록 로직

@@ -40,7 +40,7 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://aniwell.crg6u0s2maw3.ap-northeast-2.rds.amazonaws.com:3306/aniwell?serverTimezone=Asia/Seoul
-    username: KJM
+    username: RYU
     password: aniwell1234
 mybatis:
   type-aliases-package: com.example.RSW.vo
