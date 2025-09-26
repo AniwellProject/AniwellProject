@@ -97,6 +97,7 @@ jobs:
             ghcr.io/${{ env.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
             ghcr.io/${{ env.OWNER_LC }}/${{ env.IMAGE_NAME }}:latest
 
+
   # ───────────── EC2 배포 (SSM) ─────────────
   deploy:
     name: Deploy to EC2 via SSM
