@@ -110,15 +110,15 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          instance-ids: ${{ secrets.EC2_INSTANCE_ID }}
+          instance-ids: "${i-0cd7a1d64ad7b9e29}"
           working-directory: /
           comment: Deploy
           command: |
             set -euo pipefail
-            mkdir -p /dockerProjects/${{ env.IMAGE_NAME }}
-            curl -fsSL -o /dockerProjects/${{ env.IMAGE_NAME }}/zero_downtime_deploy.py \
-              https://raw.githubusercontent.com/${{ github.repository }}/main/infraScript/zero_downtime_deploy.py
-            chmod +x /dockerProjects/${{ env.IMAGE_NAME }}/zero_downtime_deploy.py
+            mkdir -p /dockerProjects/aniwell
+            curl -fsSL -o /dockerProjects/aniwell/zero_downtime_deploy.py \
+              https://raw.githubusercontent.com/doomdex84/aniwell_Finall/main/infraScript/zero_downtime_deploy.py
+            chmod +x /dockerProjects/aniwell/zero_downtime_deploy.py
             # python3가 확실하지 않으면 설치 확인 필요(AMZ Linux 2023)
             command -v python3 >/dev/null 2>&1 || sudo dnf install -y python3
-            python3 /dockerProjects/${{ env.IMAGE_NAME }}/zero_downtime_deploy.py
+            python3 /dockerProjects/aniwell/zero_downtime_deploy.py
