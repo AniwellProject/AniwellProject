@@ -1,0 +1,67 @@
+# --- 기본 ---
+HELP.md
+target/
+build/
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# --- Secrets / 환경 파일 ---
+*.env
+.env.*
+src/main/resources/application-secret.yml
+src/main/resources/aplication-secret.yml
+# (application.yml에 비밀이 있다면 이 줄 유지, 아니면 삭제)
+src/main/resources/application.yml
+
+# --- Firebase / GCP ---
+src/main/resources/firebase/aniwell-2a90b-firebase-adminsdk-fbsvc-a0e7397002.json
+src/main/resources/firebase/*.json
+keys/**/*.json
+
+# --- Terraform ---
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+# (참고) .terraform.lock.hcl 은 보통 커밋 유지 권장
+
+# --- Node/Next (있다면) ---
+node_modules/
+my-app/node_modules/
+my-app/.next/
+my-app/.env*
+my-app/.vercel/
+
+# --- OS / 기타 ---
+.DS_Store
+Thumbs.db
+
+# --- Maven wrapper (선택) ---
+# 레포 안 경로만 유효. 일반적으로 wrapper JAR은 커밋 권장.
+#.mvn/wrapper/maven-wrapper.jar

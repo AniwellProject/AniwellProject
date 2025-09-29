@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetBleActivityRepository">
+
+    <insert id="insertActivity" parameterType="map">
+        INSERT INTO pet_ble_activity (
+            petId, zoneName, enteredAt, exitedAt, durationSec, rssi
+        ) VALUES (
+                     #{petId}, #{zoneName}, #{enteredAt}, #{exitedAt}, #{durationSec}, #{rssi}
+                 )
+    </insert>
+
+    <select id="getActivitiesByPetId" parameterType="int" resultType="com.example.RSW.vo.PetBleActivity">
+        SELECT * FROM pet_ble_activity
+        WHERE petId = #{petId}
+        ORDER BY enteredAt DESC
+    </select>
+
+    <select id="findLatestByPetId" resultType="PetBleActivity">
+        SELECT *
+        FROM pet_ble_activity
+        WHERE petId = #{petId}
+        ORDER BY enteredAt DESC
+            LIMIT 1
+    </select>
+
+    <select id="getByPetIdAndDate" resultType="com.example.RSW.vo.PetBleActivity">
+        SELECT *
+        FROM pet_ble_activity
+        WHERE petId = #{petId}
+          AND DATE(enteredAt) = #{targetDate}
+        ORDER BY enteredAt ASC
+    </select>
+
+
+</mapper>

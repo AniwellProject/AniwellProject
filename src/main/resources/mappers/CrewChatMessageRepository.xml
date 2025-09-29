@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.CrewChatMessageRepository">
+
+    <insert id="insertMessage">
+        INSERT INTO crew_chat_message (crewId, senderId, nickname, content, sentAt)
+        VALUES (#{crewId}, #{senderId}, #{nickname}, #{content}, #{sentAt})
+    </insert>
+
+    <select id="getMessagesByCrewId" parameterType="int" resultType="CrewChatMessage">
+        SELECT * FROM crew_chat_message
+        WHERE crewId = #{crewId}
+        ORDER BY sentAt ASC
+    </select>
+
+</mapper>

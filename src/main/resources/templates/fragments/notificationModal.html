@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<title>알림함</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+
+	<style>
+		.scroll-box {
+			max-height: 80%;
+			overflow-y: auto;
+		}
+	</style>
+
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9]">
+	<div class="flex h-screen">
+		<!-- Sidebar -->
+		<div th:replace="common :: siteHeader"></div>
+
+		<!-- Main content -->
+		<main class="main_page min-h-screen flex-1 p-6 space-y-6">
+			<div th:fragment="alarmModalContent">
+				<div class="flex justify-between items-center">
+					<h2 class="text-2xl font-bold text-gray-800">📢 알림함</h2>
+					<div>
+						<button id="markAllAsRead" class="px-2 py-1 rounded font-semibold
+						         bg-transparent text-black
+						         hover:bg-[#bdd1c6] hover:text-white
+						         transition-colors duration-300">
+							모두 읽음
+						</button>
+						<button id="deleteAll" class="px-2 py-1 rounded font-semibold
+								bg-transparent text-black
+								hover:bg-[#1B475D] hover:text-white
+								transition-colors duration-300">
+							모두 삭제
+						</button>
+					</div>
+				</div>
+				<hr class="border-t border-yellow-400 mb-4 mt-2" />
+
+				<div class="notification-list space-y-4">
+					<div class="text-center text-gray-500" th:if="${#lists.isEmpty(notifications)}">
+						📭 알림이 없습니다.
+					</div>
+
+					<div th:each="noti : ${notifications}"
+						th:class="'flex gap-3 p-4 rounded-2xl shadow-sm hover:shadow-md border transition-all group cursor-pointer ' + (${noti.read} ? 'bg-white opacity-70' : 'bg-[#FFFBE8]')"
+						th:attr="data-id=${noti.id}" onclick="move(this)">
+
+						<!-- 아이콘 -->
+						<div class="flex-shrink-0 w-8 h-8">
+							<img th:src="@{/img/default-pet.png}" class="w-full h-full object-contain" />
+						</div>
+
+						<!-- 본문 -->
+						<div class="flex-1">
+							<a th:href="${noti.link}" class="notification-link">
+								<p class="text-sm text-gray-500 font-medium" th:text="${noti.title}">제목</p>
+								<div class="flex justify-between">
+									<div class="text-xs text-gray-400 mt-2"
+										th:text="${#dates.format(noti.regDate, 'yyyy.MM.dd HH:mm')}">1분 전</div>
+									<div class="text-xs text-gray-400 mt-2 time-ago"
+										th:attr="data-time=${noti.regDate.time}"></div>
+								</div>
+							</a>
+						</div>
+
+						<!-- 빨간 점 (안 읽었을 경우만 표시) -->
+						<div th:if="${!noti.read}" class="w-2 h-2 bg-red-500 rounded-full mt-1"></div>
+					</div>
+				</div>
+
+			</div>
+		</main>
+	</div>
+
+	<script th:inline="javascript">
+		const cp = /*[[${contextPath}]]*/ '';
+
+		function calcTimeAgo(ms) {
+			const diff = Date.now() - ms;
+			const sec = Math.floor(diff / 1000);
+			const min = Math.floor(sec / 60);
+			const hr = Math.floor(min / 60);
+			const day = Math.floor(hr / 24);
+			if (day > 0) return day + '일 전';
+			if (hr > 0) return hr + '시간 전';
+			if (min > 0) return min + '분 전';
+			if (sec > 5) return sec + '초 전';
+			return '방금 전';
+		}
+
+		function updateTimeAgo() {
+			document.querySelectorAll('.time-ago').forEach(el => {
+				const ms = parseInt(el.dataset.time, 10);
+				if (!isNaN(ms)) {
+					el.textContent = calcTimeAgo(ms);
+				}
+			});
+		}
+
+		document.addEventListener('DOMContentLoaded', () => {
+			updateTimeAgo();
+			setInterval(updateTimeAgo, 60 * 1000);
+
+			document.querySelectorAll('.notification-link').forEach(link => {
+				link.addEventListener('click', e => {
+					e.preventDefault();
+					const item = link.closest('[data-id]');
+					const id = item.dataset.id;
+					const url = link.href;
+
+					fetch('/usr/notifications/markAsRead?notificationId=' + id, {
+						method: 'POST'
+					})
+
+							.then(() => {
+								item.classList.replace('bg-yellow-100', 'bg-white');
+								item.classList.add('opacity-70');
+								window.location.href = url;
+							});
+				});
+			});
+
+
+		});
+
+		document.getElementById('markAllAsRead')?.addEventListener('click', () => {
+			if (!confirm('모든 알림을 읽음 처리하시겠습니까?')) return;
+
+			fetch('/usr/notifications/markAllAsRead', {
+				method: 'POST'
+			})
+					.then(res => res.json())
+					.then(json => {
+						if (json.resultCode && json.resultCode.startsWith('S-')) {
+							document.querySelectorAll('.notification-list [data-id]').forEach(item => {
+								item.classList.replace('bg-yellow-100', 'bg-white');
+								item.classList.add('opacity-70');
+							});
+						} else {
+							alert(json.msg || '처리에 실패했습니다.');
+						}
+					})
+					.catch(() => {
+						alert('서버 오류로 처리에 실패했습니다.');
+					});
+		});
+
+		document.getElementById('deleteAll')?.addEventListener('click', () => {
+			if (!confirm('모든 알림을 삭제하시겠습니까?')) return;
+
+			fetch('/usr/notifications/deleteAll', {
+				method: 'POST'
+			})
+					.then(res => res.json())
+					.then(json => {
+						if (json.resultCode && json.resultCode.startsWith('S-')) {
+							document.querySelectorAll('.notification-list [data-id]').forEach(item => item.remove());
+							const emptyMessage = document.querySelector('.notification-list > div.text-center');
+							if (emptyMessage) {
+								emptyMessage.style.display = 'block';
+							}
+						} else {
+							alert(json.msg || '삭제에 실패했습니다.');
+						}
+					})
+					.catch(() => alert('서버 오류로 삭제에 실패했습니다.'));
+		});
+
+
+		function move(el) {
+			console.log('clicked');
+			const link = el.querySelector('a');
+			const item = el.closest('[data-id]');
+			const id = item?.dataset?.id;
+
+			if (link && link.href) {
+				if (id) {
+					fetch('/usr/notifications/markAsRead?notificationId=' + id, {
+						method: 'POST'
+					}).then(() => {
+						item.classList.replace('bg-yellow-100', 'bg-white');
+						item.classList.add('opacity-70');
+						updateNotificationBadge();
+						window.location.href = link.href;
+					});
+				} else {
+					window.location.href = link.href;
+				}
+			}
+		}
+
+	</script>
+
+</body>
+
+</html>

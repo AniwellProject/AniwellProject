@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" th:href="@{/resource/css/global.css}">
+  <title>등록 완료</title>
+</head>
+<body>
+  <script>
+    alert("크루가 등록되었습니다!");
+
+    // 부모 창 접근해서 모달 닫고 리스트 새로고침
+    if (window.parent && window.parent.closeModal) {
+      window.parent.loadCrewList(); // 목록 갱신
+      window.parent.closeModal();   // 모달 닫기
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>산책 크루 채팅</title>
+  <script src="/webjars/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="/webjars/stomp-websocket/2.3.4/stomp.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" th:href="@{/resource/css/common.css}">
+  <link rel="stylesheet" th:href="@{/resource/css/global.css}">
+  <style>
+
+    #chatBox {
+      width: 90%; max-width: 500px; height: 500px;
+      margin: auto; padding: 20px;
+      background: #ffffffcc;
+      border-radius: 30px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .msg { display: flex; margin: 12px 0; align-items: flex-end; }
+    .msg.me { justify-content: flex-end; }
+
+    .profile {
+      width: 36px; height: 36px; border-radius: 50%;
+      margin-right: 8px; object-fit: cover;
+      border: 2px solid #eee4c1;
+    }
+
+    .profile-placeholder { width: 36px; height: 36px; margin-right: 8px; }
+
+    .bubble-wrap { max-width: 70%; }
+    .bubble {
+      padding: 10px; background-color: #fff9d4;
+      border-radius: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+    }
+
+    .msg.me .bubble { background-color: #d0f4e1; }
+
+    .nickname {
+      font-size: 13px; font-weight: bold;
+      margin-bottom: 4px; color: #585858;
+    }
+
+    .time {
+      font-size: 11px; color: #aaa;
+      text-align: right; margin-top: 4px;
+    }
+
+    .date-divider {
+      text-align: center; color: #888;
+      margin: 20px 0 10px; font-size: 13px;
+    }
+
+    #chatInput {
+      width: 80%; max-width: 400px;
+      padding: 10px; border-radius: 20px;
+      border: none; outline: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    #sendBtn {
+      padding: 10px 16px;
+      background-color: #A7CFB3;
+      color: white; border: none;
+      border-radius: 20px;
+      cursor: pointer; margin-left: 8px;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] min-h-[770px]">
+<div class="flex h-screen">
+  <!-- Sidebar -->
+  <div th:replace="common :: siteHeader"></div>
+
+  <!-- Main content -->
+  <main class="main_page min-h-[770px] flex-1 p-6 space-y-6">
+
+    <h2 style="text-align:center; margin-bottom:20px;">🗨️ 산책 크루 채팅</h2>
+    <div id="chatBox"></div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <input type="text" id="chatInput" placeholder="메시지를 입력하세요">
+      <button id="sendBtn">전송</button>
+    </div>
+
+    <input type="hidden" id="senderNickname" th:value="${loginedMember.nickname != null ? loginedMember.nickname : '익명'}" />
+
+
+    <script th:inline="javascript">
+      const crewId = [[${crewId} ?: -1]];
+      const senderId = [[${loginedMember.id} ?: -1]];
+      const senderNickname = document.getElementById("senderNickname").value;
+      console.log("✅ senderNickname =", senderNickname);  // 여기서 한글이 깨졌는지 확인
+
+      const senderPhoto = [[${'"' + (pet != null and pet.photo != null ? pet.photo : '/img/default-pet.png') + '"'}]];
+
+      console.log("✅ crewId =", crewId);
+      console.log("✅ senderId =", senderId);
+      console.log("✅ senderNickname =", senderNickname);
+      console.log("✅ senderPhoto =", senderPhoto);
+
+
+      let stompClient = null;
+      let groupBuffer = [];
+      let lastDate = "";
+      let lastGroupKey = "";
+      let flushTimeout = null;
+      let isSending = false;
+      let enterPressed = false;
+      let isComposing = false;
+
+      function connect() {
+        const socket = new SockJS("/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function () {
+          stompClient.subscribe("/topic/crew/" + crewId, function (msg) {
+            const message = JSON.parse(msg.body);
+            renderMessage(message);
+          });
+        });
+      }
+
+      function sendMessage() {
+        if (isSending) return;
+
+        const input = document.getElementById("chatInput");
+        const content = input.value.trim();
+        if (!content) return;
+
+        const message = {
+          crewId: crewId,
+          senderId: senderId,
+          nickname: senderNickname,
+          content: content,
+          photo: senderPhoto
+        };
+
+        stompClient.send("/app/chat.send/" + crewId, {}, JSON.stringify(message));
+        input.value = "";
+        isSending = true;
+        setTimeout(function () { isSending = false; }, 200);
+      }
+
+      // 메세지 불러오기
+      function renderMessage(msg) {
+        const timeKey = msg.sentAt.slice(0, 16); // "2025-07-25T17:04"
+        const groupKey = msg.senderId + "_" + timeKey;
+
+        if (groupKey === lastGroupKey) {
+          // 👉 같은 그룹: 버퍼에 추가만
+          groupBuffer.push(msg);
+          clearTimeout(flushTimeout);
+          flushTimeout = setTimeout(() => {
+            if (groupBuffer.length > 0) {
+              renderGroup(groupBuffer);
+              groupBuffer = [];
+            }
+          }, 500);
+        } else {
+          // 👉 다른 그룹: 기존 그룹 먼저 렌더링 후 새 그룹 시작
+          if (groupBuffer.length > 0) {
+            renderGroup(groupBuffer);
+          }
+          groupBuffer = [msg];
+          lastGroupKey = groupKey;
+        }
+      }
+
+
+
+
+      function renderGroup(messages) {
+        if (!messages.length) return;
+
+        const lastMsg = messages[messages.length - 1];
+        const msgDate = formatDateOnly(lastMsg.sentAt);
+
+        if (lastDate !== msgDate) {
+          const divider = document.createElement("div");
+          divider.className = "date-divider";
+          divider.textContent = msgDate;
+          document.getElementById("chatBox").appendChild(divider);
+          lastDate = msgDate;
+        }
+
+        const currentTimeKey = formatTime(messages[0].sentAt);
+        const allMsgs = document.querySelectorAll(".msg");
+        let timeMatchedMsgs = [];
+
+        allMsgs.forEach(el => {
+          const time = el.querySelector(".time");
+          if (time && time.textContent === currentTimeKey) {
+            timeMatchedMsgs.push(el);
+          }
+        });
+
+        // ✅ 첫 메시지 제외 모두 닉네임/프로필 제거
+        timeMatchedMsgs.slice(1).forEach(el => {
+          const nick = el.querySelector(".nickname");
+          const profile = el.querySelector(".profile");
+          if (nick) nick.remove();
+          if (profile) profile.remove();
+        });
+
+        // ✅ 메시지 그리기
+        const chatBox = document.getElementById("chatBox");
+
+        messages.forEach((msg, i) => {
+          const isMe = msg.senderId === senderId;
+          const msgDiv = document.createElement("div");
+          msgDiv.className = "msg" + (isMe ? " me" : "");
+
+          if (!isMe) {
+            msgDiv.innerHTML +=
+                    i === 0
+                            ? `<img class='profile' src='${msg.photo || "/img/default-pet.png"}'>`
+                            : `<div class='profile-placeholder'></div>`;
+          }
+
+          const wrap = document.createElement("div");
+          wrap.className = "bubble-wrap";
+
+          if (!isMe && i === 0) {
+            const nick = document.createElement("div");
+            nick.className = "nickname";
+            nick.textContent = msg.nickname;
+            wrap.appendChild(nick);
+          }
+
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+          bubble.textContent = msg.content;
+          wrap.appendChild(bubble);
+
+          if (i === messages.length - 1) {
+            const time = document.createElement("div");
+            time.className = "time";
+            time.textContent = formatTime(msg.sentAt);
+            wrap.appendChild(time);
+          }
+
+          msgDiv.appendChild(wrap);
+          chatBox.appendChild(msgDiv);
+        });
+
+        requestAnimationFrame(scrollToBottom);
+      }
+
+
+
+
+
+
+
+
+      function formatDateOnly(iso) {
+        const d = new Date(iso);
+        return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0");
+      }
+
+      function formatTime(iso) {
+        const d = new Date(iso);
+        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+      }
+
+      function scrollToBottom() {
+        const chatBox = document.getElementById("chatBox");
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function loadPreviousMessages() {
+        fetch("/usr/walkCrew/chat/api/" + crewId + "/messages")
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                  data.forEach(renderMessage);
+                  renderGroup(groupBuffer);
+                  groupBuffer = [];
+                  scrollToBottom();
+                });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("chatInput");
+
+        input.addEventListener("compositionstart", function () { isComposing = true; });
+        input.addEventListener("compositionend", function () { isComposing = false; });
+
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey && !isComposing) {
+            e.preventDefault();
+            if (!enterPressed) {
+              enterPressed = true;
+              sendMessage();
+            }
+          }
+        });
+
+        input.addEventListener("keyup", function (e) {
+          if (e.key === "Enter") enterPressed = false;
+        });
+
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+        connect();
+        loadPreviousMessages();
+      });
+    </script>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>수의사 인증서 상태</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 p-8">
+
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-yellow-600">수의사 인증서 상태</h1>
+
+        <!-- 인증서가 존재할 경우 -->
+        <div th:if="${cert != null}">
+            <div class="mb-4">
+                <p class="font-semibold mb-1">제출한 파일명:
+                    <a th:href="@{'/gen/file/download?path=vet_certificates/' + ${cert.filePath}}"
+                       target="_blank"
+                       class="text-blue-500 underline ml-2">[다운로드]</a>
+                </p>
+                <p><strong>업로드 날짜:</strong> <span th:text="${cert.uploadedAt}"></span></p>
+
+                <p class="mt-2"><strong>승인 상태:</strong>
+                    <span th:switch="${cert.approved}">
+                        <span th:case="1" class="text-green-600 font-semibold">✅ 승인됨</span>
+                        <span th:case="2" class="text-red-600 font-semibold">❌ 거절됨</span>
+                        <span th:case="*">⏳ 승인 대기 중</span>
+                    </span>
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <!-- 삭제 폼 -->
+                <form method="post" action="/usr/member/deleteVetCert"
+                      onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                    <button type="submit"
+                            class="w-full bg-red-500 text-white font-semibold py-2 rounded hover:bg-red-600 transition">
+                        ❌ 인증서 삭제
+                    </button>
+                </form>
+
+                <!-- 새 업로드 폼 -->
+                <form method="post" action="/usr/member/doVetCertUpload" enctype="multipart/form-data" class="flex flex-col gap-2">
+                    <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required
+                           class="border rounded px-4 py-2"/>
+                    <button type="submit"
+                            class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 rounded transition">
+                        🔄 새 인증서 업로드
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 인증서가 없을 경우 -->
+        <div th:if="${cert == null}">
+            <p class="mb-4">제출한 인증서가 없습니다.</p>
+
+            <form method="post" action="/usr/member/doVetCertUpload" enctype="multipart/form-data" class="flex flex-col gap-2">
+                <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required
+                       class="border rounded px-4 py-2"/>
+                <button type="submit"
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded transition">
+                    📤 인증서 업로드
+                </button>
+            </form>
+        </div>
+
+		<div class="mt-8 text-center">
+		  <button type="button"
+		          class="text-blue-600 hover:underline text-sm"
+		          onclick="history.back()">
+		    ← 이전 페이지로
+		  </button>
+		</div>
+
+    </div>
+
+</body>
+</html>

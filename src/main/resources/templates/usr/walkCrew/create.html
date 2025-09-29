@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<title>크루 등록</title>
+</head>
+
+<body class="min-h-screen h-auto">
+	<div class="h-[100%] w-full flex justify-center items-start p-6">
+		<!-- ✅ 크루 등록 폼 -->
+		<form class="w-full h-[200%] space-y-6 flex py-4 justify-between gap-5" method="post"
+			enctype="multipart/form-data" onsubmit="handleSubmit(event)">
+			<!-- ✅ JS로 등록 후 이동 처리 -->
+
+			<div class="w-full h-[100%] max-w-[600px]">
+				<!-- 제목 입력 -->
+				<div class="mb-3">
+					<label class="font-semibold block mb-4">크루 이름</label>
+					<input type="text" name="title" required
+						class="w-full rounded-md shadow-sm border border-yellow-100 p-2" />
+				</div>
+
+				<!-- 소개 입력 -->
+				<div class="mb-3">
+					<label class="font-semibold block mb-4">소개</label>
+					<textarea name="description" rows="5" required
+						class="w-full rounded-md shadow-sm border border-yellow-100 p-2"></textarea>
+				</div>
+
+				<!-- 지역(동네) 선택 -->
+				<div>
+					<label class="font-semibold block mb-2">지역</label>
+					<div class="mb-2 text-sm text-gray-600">
+						현재 위치:
+						<span id="currentLocation">확인 중...</span>
+					</div>
+
+					<!-- 동 선택 드롭다운 -->
+					<details class="relative w-[250px]" id="dongDropdown">
+						<summary class="px-4 py-2 border rounded cursor-pointer bg-white shadow" id="dongDropdownLabel">
+							동 선택 </summary>
+						<ul id="dongListContainer"
+							class="h-[140px] absolute z-10 w-full bg-white border rounded shadow mt-2 max-h-48 overflow-y-auto hidden divide-y divide-gray-100 text-sm">
+						</ul>
+					</details>
+
+					<!-- 선택된 동/구 ID 저장용 -->
+					<input type="hidden" name="selectedDong" id="selectedDong" />
+					<input type="hidden" name="districtId" id="districtIdInput" />
+				</div>
+
+				<!-- 등록 버튼 -->
+				<div class="text-right">
+					<button type="submit"
+						class="px-6 py-2 bg-gradient-to-r from-green-200 to-yellow-200 rounded-xl shadow">완료</button>
+				</div>
+			</div>
+
+			<!-- 이미지 미리보기 및 업로드 -->
+			<div class="flex h-[200%] flex-col items-center gap-2">
+				<!-- ✅ 노란 미리보기 박스 -->
+				<div class="w-[200px] h-[200px] bg-[#f6df85] rounded-xl overflow-hidden shadow-md relative">
+					<div class="absolute top-1 left-2 text-sm text-black z-10">사진미리보기</div>
+					<img id="preview" class="w-full h-full object-cover" style="display: none;" />
+				</div>
+
+				<!-- ✅ 업로드 버튼 -->
+				<label for="imageUpload" class="my-2 mr-1 flex items-center justify-center cursor-pointer">
+					<div class="px-4 py-1 bg-[#b4d6b4] rounded-full shadow">업로드</div>
+				</label>
+				<input type="file" name="imageFile" id="imageUpload" accept="image/*" class="hidden"
+					onchange="previewImageFile(event)" />
+			</div>
+		</form>
+	</div>
+
+	<!-- ✅ 동 리스트 불러오기 (로컬스토리지 위치 기반) -->
+	<script th:inline="javascript">
+		let city = localStorage.getItem("userCity");
+		let district = localStorage.getItem("userDistrict");
+		loadDongList(city, district);
+
+		if (city && district) {
+			document.getElementById("currentLocation").textContent = `${city} ${district}`;
+		} else {
+			document.getElementById("currentLocation").textContent = "위치 정보를 불러올 수 없습니다.";
+		}
+
+		// ✅ 시/구 기준으로 동 리스트 불러오기
+		function loadDongList(city, district) {
+			const url = "/usr/walkCrew/getDongs?city=" + encodeURIComponent(city) + "&district=" + encodeURIComponent(district);
+
+			fetch(url)
+				.then(response => response.json())
+				.then(result => {
+					const dongList = result?.data1?.dongs;
+					const container = document.getElementById("dongListContainer");
+					container.innerHTML = "";
+
+					if (!Array.isArray(dongList) || dongList.length === 0) {
+						container.innerText = "해당 지역의 동 정보가 없습니다.";
+						return;
+					}
+
+					dongList.forEach(dong => {
+						const li = document.createElement("li");
+						const btn = document.createElement("button");
+						btn.type = "button";
+						btn.innerText = dong;
+						btn.className = "w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-200";
+
+						btn.onclick = () => {
+							document.getElementById("selectedDong").value = dong;
+							document.getElementById("dongDropdownLabel").innerText = `${dong}`;
+							document.querySelector("details").open = false;
+
+							container.querySelectorAll("button").forEach(b => {
+								b.classList.remove("bg-gray-200", "font-bold");
+							});
+							btn.classList.add("bg-gray-200", "font-bold");
+
+							// ✅ 해당 동네의 districtId 조회
+							fetch("/usr/walkCrew/getDistrictId"
+								+ "?city=" + encodeURIComponent(city)
+								+ "&district=" + encodeURIComponent(district)
+								+ "&dong=" + encodeURIComponent(dong))
+								.then(response => response.json())
+								.then(result => {
+									const districtId = result?.data1?.districtId;
+									document.getElementById("districtIdInput").value = districtId;
+								});
+						};
+
+						li.appendChild(btn);
+						container.appendChild(li);
+					});
+				})
+				.catch(err => {
+					document.getElementById("dongListContainer").innerText = "동 정보 로딩 실패";
+					console.error("Error loading dongs:", err);
+				});
+		}
+
+		// ✅ 동 선택 유효성 검사
+		function validateForm() {
+			const districtId = document.getElementById("districtIdInput").value;
+			if (!districtId || isNaN(districtId)) {
+				alert("동을 선택해주세요.");
+				return false;
+			}
+			return true;
+		}
+	</script>
+
+	<!-- ✅ 드롭다운 열기/닫기 -->
+	<script>
+		document.querySelector("details").addEventListener("toggle", function () {
+			const list = this.querySelector("#dongListContainer");
+			list.classList.toggle("hidden", !this.open);
+		});
+	</script>
+
+	<!-- ✅ 이미지 미리보기 -->
+	<script>
+		function previewImageFile(event) {
+			const file = event.target.files[0];
+			if (file) {
+				const reader = new FileReader();
+				reader.onload = function (e) {
+					const previewImg = document.getElementById("preview");
+					previewImg.src = e.target.result;
+					previewImg.style.display = "block";
+				};
+				reader.readAsDataURL(file);
+			}
+		}
+	</script>
+
+	<!-- ✅ 크루 등록 후 JSON 응답 처리 및 카페홈 이동 -->
+	<script>
+		function handleSubmit(e) {
+			e.preventDefault(); // ✅ 기본 form 제출 막고 fetch 사용
+
+			if (!validateForm()) return;
+
+			const form = e.target;
+			const formData = new FormData(form);
+
+			fetch("/usr/walkCrew/doCreate", {
+				method: "POST",
+				body: formData
+			})
+				.then(response => response.json())
+				.then(result => {
+					if (result.resultCode === "S-1") {
+						const crewId = result.data1?.crewId;
+						if (crewId) {
+							// ✅ ✅ ✅ 여기 수정됨: 크루 카페 홈으로 이동
+							window.parent.closeModal();
+							window.parent.location.href = `/usr/crewCafe/cafeHome?crewId=${crewId}`;
+						}
+					} else {
+						alert("❌ 등록 실패: " + result.msg);
+					}
+				})
+				.catch(error => {
+					console.error("크루 등록 실패:", error);
+					alert("❌ 네트워크 오류로 등록 실패");
+				});
+		}
+	</script>
+</body>
+
+</html>

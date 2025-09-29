@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.WalkCrewRepository">
+
+	<!-- 크루 등록 (SET 방식) -->
+	<insert id="insert">
+		INSERT INTO walk_crew
+		SET title = #{title},
+		descriptoin = #{descriptoin},
+		city = #{city},
+		district = #{district},
+		dong = #{dong},
+		leaderId = #{leaderId},
+		createdAt = NOW()
+	</insert>
+
+
+	<!-- 크루 단건 조회 -->
+	<select id="findById" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT * FROM walk_crew WHERE
+		id = #{id}
+	</select>
+
+	<!-- 지역별 크루 리스트 -->
+	<select id="findByArea" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT * FROM walk_crew WHERE
+		area = #{area}
+	</select>
+
+	<!-- 전체 크루 리스트 -->
+	<select id="findAll" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT * FROM walk_crew
+	</select>
+
+	<!-- 크루 수정 -->
+	<update id="update">
+		UPDATE walk_crew
+		SET title = #{title},
+		descriptoin =
+		#{descriptoin},
+		area = #{area},
+		leaderId = #{leaderId}
+		WHERE id = #{id}
+	</update>
+
+	<!-- 크루 삭제 -->
+	<delete id="deleteById">
+		DELETE FROM walk_crew WHERE id = #{id}
+	</delete>
+
+</mapper>

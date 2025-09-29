@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- ✅ Font Awesome CDN 추가 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+<!-- HEAD 태그 내부에 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+<title>크루 모집 목록</title>
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+
+	<div class="flex h-screen w-full">
+		<!-- Sidebar -->
+		<div th:replace="common :: siteHeader"></div>
+
+		<!-- Main content -->
+		<main class="main_page h-full overflow-y-auto min-h-dvh box-border flex-1 p-3 flex contect-around min-w-content">
+
+
+			<!-- 왼쪽: 정보 섹션 -->
+			<aside class="w-1/4 space-y-1 p-3 grid grid-rows-12 h-[100%] min-w-[300px]">
+				<div class="row-span-6">
+					<a href="/usr/walkCrew/list" class="back-link">← 목록으로 돌아가기</a>
+					<div class="flex space-y-2 items-center gap-3 mt-2">
+						<div class="w-14 h-14 bg-yellow-300 rounded-xl overflow-hidden relative">
+							<img th:if="${crew.imageUrl != null}" th:src="${crew.imageUrl}" alt="크루 이미지"
+								class="w-full h-full object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+
+							<img th:if="${crew.imageUrl == null}" th:src="@{/img/default-pet.png}" alt="기본 이미지"
+								class="w-full h-full object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%]" />
+						</div>
+						<div class="p-3">
+							<h2 class="text-xl font-semibold" th:text="${crew.title}">크루원들 모여라</h2>
+							<div id="memberSize"></div>
+						</div>
+					</div>
+
+					<div class="text-sm text-gray-700 mt-4" th:text="${crew.description}">Lorem ipsum dolor, sit amet consectetur
+						adipisicing elit...</div>
+
+					<!-- ✅ 소개글 수정 버튼 (리더만 보이게) -->
+					<div th:if="${isLeader}" class="mt-2">
+						<button onclick="showEditDescriptionModal()" class="text-sm text-blue-600 underline hover:text-blue-800">소개글
+							수정</button>
+					</div>
+
+				</div>
+
+				<div class="row-span-1 flex justify-center h-[70%] self-end">
+					<!-- 가입된 크루가 아닐경우 크루신청이미지가 보이도 -->
+					<!-- ✅ 채팅방 입장 (멤버 또는 리더) -->
+					<div th:if="${isLeader}"
+						class="w-[50%] m-1 flex justify-center items-center rounded-xl shadow font-semibold text-gray-700 bg-gradient-to-r from-[#e4f0b9] to-[#fcdca9] hover:brightness-105 transition duration-300 cursor-pointer">
+						<a th:href="@{/api/chat/room(crewId=${crew.id})}">
+							<i class="fa-solid fa-comment-dots"></i>
+							채팅방 입장
+						</a>
+					</div>
+
+					<div th:if="${isJoined and !isLeader}"
+						class="w-[100%] m-1 flex justify-center items-center rounded-xl shadow font-semibold text-gray-700 bg-gradient-to-r from-[#e4f0b9] to-[#fcdca9] hover:brightness-105 transition duration-300 cursor-pointer">
+						<a th:href="@{/api/chat/room(crewId=${crew.id})}">
+							<i class="fa-solid fa-comment-dots"></i>
+							채팅방 입장
+						</a>
+					</div>
+
+					<!-- ✅ 신청 대기 중인 경우 (리더는 제외) -->
+
+					<div th:if="${not isLeader and not isJoined and isPending == true}"
+						class="w-[100%] p-2 m-1 flex justify-center text-center rounded-xl shadow font-semibold text-gray-700 bg-gradient-to-r from-[#e4f0b9] to-[#fcdca9] hover:brightness-105 transition duration-300 cursor-pointer">
+
+						<!-- 상태 표시 -->
+						<div class="flex gap-2 items-center">
+							<button disabled class="flex items-center gap-1">
+								<i class="fa-solid fa-clock-rotate-left"></i>
+								신청 대기중
+							</button>
+							<!-- ✅ 신청 취소 버튼 (서버 렌더링에서도 표시되도록 추가) -->
+							<button th:onclick="|cancelJoin(${crew.id}, this)|" class="text-red-600 hover:underline text-sm">신청 취소</button>
+						</div>
+
+					</div>
+
+
+					<!-- ✅ 아직 신청하지 않은 경우 (리더는 제외) -->
+					<div th:if="${!isLeader and !isJoined and !isPending}"
+						class="w-[100%] m-1 flex justify-center text-center rounded-xl shadow font-semibold text-gray-700 bg-gradient-to-r from-[#e4f0b9] to-[#fcdca9] hover:brightness-105 transition duration-300 cursor-pointer">
+						<!-- ⛳ crewJoin 함수에 this 전달 -->
+						<button th:onclick="|crewJoin(this, ${crew.id})|">
+							<i class="fa-solid fa-dog"></i>
+							크루 신청
+						</button>
+					</div>
+
+					<!-- ✅ 리더 전용 -->
+					<div th:if="${isLeader}"
+						class="w-[50%] m-1 flex justify-center text-center rounded-xl shadow font-semibold text-gray-700 bg-gradient-to-r from-[#e4f0b9] to-[#fcdca9] hover:brightness-105 transition duration-300 cursor-pointer">
+						<button onclick="handleCrewMember()">
+							<i class="fa-solid fa-gear"></i>
+							크루 관리
+						</button>
+					</div>
+				</div>
+
+
+				<div class="space-y-1 shadow row-span-6 overflow-hidden">
+					<div class="mx-3 pb-3 pt-2 border-b border-1 border-black flex justify-between">
+						공지사항
+						<div th:if="${isLeader}">
+							<div onclick="noti_btn()" class="cursor-pointer">＋</div>
+						</div>
+					</div>
+					<div class="h-full overflow-x-auto pb-10">
+						<div th:each="article : ${noticeArticles}" class="p-4 border-b">
+							<a th:href="@{'/usr/article/detail'(id=${article.id}, crewId=${crew.id})}" class="block">
+								<div class="text-sm text-gray-500" th:text="'작성자 ID: ' + ${article.memberId}"></div>
+								<div class="text-[15px] font-bold text-gray-800" th:text="${article.title}">제목</div>
+								<div class="text-[10px] text-gray-700 mt-1" th:text="${article.body}">내용</div>
+							</a>
+						</div>
+
+					</div>
+				</div>
+			</aside>
+
+			<!-- 오른쪽: 콘텐츠 섹션 -->
+			<div class="flex-1 w-3/4 space-y-3 h-[100%] grid grid-rows-12 p-2 gap-2">
+				<!-- 앨범 -->
+				<div class="row-span-4 flex flex-col shadow overflow-x-auto h-full w-full">
+					<div class="flex justify-between items-center mb-2 px-5">
+						<h3 class="font-bold text-lg">앨범</h3>
+					</div>
+					<div th:if="${galleryArticles.isEmpty()}" class="h-full text-center text-gray-500 px-5 py-10">사진이 없습니다.</div>
+					<div class="gap-1 h-[80%] aspect-[4/1] flex overflow-x-auto">
+						<div th:each="photo : ${galleryArticles}"
+							class="aspect-square ml-5 span-row-1 bg-gray-300 rounded-lg cursor-pointer" th:attr="data-url=${photo.imageUrl}"
+							onclick="photoModal(this)">
+							<img th:src="${photo.imageUrl}" alt="사진" class="object-cover w-full h-full rounded-lg" />
+						</div>
+					</div>
+				</div>
+				<!-- 게시글 -->
+				<div class="row-span-4 shadow relative w-full h-full">
+
+					<div class="flex justify-between px-5 items-center mb-1">
+						<h3 class="font-bold">게시글</h3>
+						<div th:if="${isJoined or isLeader}">
+							<button onclick="crewArtAdd()" class="p-1 shadow text-gray-600 hover:text-black">추가 ＋</button>
+						</div>
+					</div>
+					<div th:if="${freeArticles == null or freeArticles.isEmpty()}" class="text-center text-gray-500 px-5 py-10">
+						게시글 없습니다.</div>
+					<div th:if="${freeArticles != null and !freeArticles.isEmpty()}" class="h-full p-1 overflow-x-auto">
+						<div class="gap-2 h-[80%] aspect-[4/1] flex">
+							<div th:each="free : ${freeArticles}"
+								th:attr="data-title=${free.title}, 
+						         data-body=${free.body},
+								 data-memberid=${free.memberId},
+						         data-image-url=${free.imageUrl},
+						         data-writer=${free.extra__writer},
+								 data-id=${free.id},
+								 data-boardid=${free.boardId},
+						         data-reg-date=${free.regDate}"
+								onclick="detailModal(this)" class="h-full min-w-[150px] bg-white rounded shadow p-2 mb-1 overflow-x-auto">
+								<div class="h-3/4 rounded over-cover">
+									<img th:src="${free.imageUrl ?: '/img/default-pet.png'}" alt="사진" class="h-full w-full over-cover" />
+								</div>
+								<div class="font-semibold flex h-1/4 justify-between items-center overflow-hidden">
+									<div th:text="${free.title}" class="overflow-hidden">게시글 제목</div>
+									<div th:onclick="|event.stopPropagation(); doGoodReaction(${free.id})|" class="text-sm z-10"
+										th:attr="id='heart-' + ${free.id}">🤍️</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- 멤버 -->
+				<div class="row-span-2 shadow w-full flex flex-col flex-justify overflow-x-auto h-full">
+					<div class="flex justify-between items-center mb-1 px-5">
+						<h3 class="font-bold text-lg">멤버</h3>
+					</div>
+					<div id="crewMemberList" class="flex gap-4 overflow-x-auto px-5 flex-1"></div>
+				</div>
+
+				<!-- 일정 -->
+				<div class="row-span-2 shadow w-full overflow-x-auto">
+					<div class="flex justify-between items-center mb-1 px-5">
+						<h3 class="font-bold text-lg">일정</h3>
+						<div th:if="${isJoined or isLeader}">
+							<button onclick="scAdd()" class="p-1 shadow text-gray-600 hover:text-black">추가 ＋</button>
+						</div>
+					</div>
+					<div th:if="${scheduleArticles.isEmpty()}" class="text-center text-gray-500 px-5 py-3">일정 없습니다.</div>
+					<div th:if="${scheduleArticles != null and !scheduleArticles.isEmpty()}"
+						class="flex gap-5 overflow-x-auto px-4 pb-1">
+
+						<div th:each="schedule : ${scheduleArticles}"
+							th:attr="data-schedule-id=${schedule.id},
+                                     data-title=${schedule.title}, 
+                                    data-body=${schedule.body},
+                                    data-scheduleDate=${schedule.scheduleDate},
+                                    data-writer=${schedule.extra__writer},
+                                    data-reg-date=${schedule.regDate}"
+							onclick="scModal(this)" class="w-12 text-center p-1 px-3 shadow">
+							<div th:text="${#dates.format(schedule.scheduleDate, 'MM')}" class="text-sm font-bold"></div>
+							<div th:text="${#dates.format(schedule.scheduleDate, 'dd')}" class="text-xs text-gray-500"></div>
+
+							<div class="text-xs text-gray-500">모임</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+			<div class="w-10 flex justify-end">
+				<button class="hamburger" onclick="modal_btn()" aria-label="메뉴 열기">
+					<span class="bar"></span>
+					<span class="bar"></span>
+					<span class="bar"></span>
+				</button>
+			</div>
+		</main>
+	</div>
+	<!--기본팝업창-->
+	<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="relative w-[90%] max-w-[1000px] h-[700px] bg-transparent flex rounded-2xl overflow-hidden shadow-2xl">
+			<div class="w-full h-full flex bg-gradient-to-b from-[#FCE9A3] to-[#E0C878]">
+				<div class="w-[5%] text-center">
+					<button onclick="closeModal()" class="text-3xl font-light text-gray-600 hover:text-black">&times;</button>
+				</div>
+				<div id="modalContent" class="relative flex-1 bg-white rounded-l-3xl"></div>
+			</div>
+		</div>
+	</div>
+	<!-- ✅ 그냥 팝업 (기존 유지) -->
+	<div id="comModal"></div>
+
+	<div id="comNobgModal"></div>
+	<!-- ✅ 사이드팝업창 -->
+	<div id="sideModal"
+		class="bg-white fixed top-0 right-0 h-full w-[400px] shadow-lg z-50 transform translate-x-full transition-transform duration-300 ease-in-out">
+		<!-- ✅ 이곳은 JS에서 Ajax 호출로 채워짐 -->
+	</div>
+
+
+	<script>
+	  const isLeader = [[${isLeader}]];
+	  const isJoined = [[${isJoined}]];
+	  const isPending = [[${isPending}]];
+	</script>
+
+	<!-- ✅ 소개글 수정 모달 -->
+	<div id="descriptionModal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center">
+		<div class="bg-white rounded-lg p-6 w-full max-w-md">
+			<h2 class="text-lg font-bold mb-2">소개글 수정</h2>
+			<textarea id="newDescriptionInput" rows="5" class="w-full border rounded p-2 mb-3" placeholder="새로운 소개글을 입력하세요..."></textarea>
+			<div class="flex justify-end gap-2">
+				<button onclick="document.getElementById('descriptionModal').classList.add('hidden')"
+					class="px-3 py-1 bg-gray-300 rounded">취소</button>
+				<button onclick="submitDescriptionEdit()" class="px-3 py-1 bg-blue-500 text-white rounded">수정</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- ✅ 역할 변경 및 멤버 목록 Ajax 렌더링 JS -->
+	<script>
+		function handleCrewMember() {
+			$.ajax({
+				type: "GET",
+				url: `/usr/walkCrewMember/usr/walkCrew/memberList`,
+				data: {crewId},
+				success: function (data) {
+					const members = data.data1;
+
+					let memberListHtml = members.map(member => {
+						return `
+						<div class="flex items-center justify-between p-2 border-b">
+							<div>
+								<div class="font-semibold">${member.crew_member_name}</div>
+								<div class="text-xs text-gray-500">${member.role}</div>
+							</div>
+							<!-- ✅ 역할 변경 드롭다운 (크루장 위임 포함) -->
+							<div class="flex gap-2 items-center">
+								<select onchange="changeRole(${member.id}, this.value)" class="border px-2 py-1 rounded">
+									<option value="member" ${member.role === 'member' ? 'selected' : ''}>멤버</option>
+									<option value="subleader" ${member.role === 'subleader' ? 'selected' : ''}>부크루장</option>
+									<option value="leader" ${member.role === 'leader' ? 'selected' : ''}>크루장</option>
+									<!-- ✅ 크루장 위임 시 이 옵션 선택 -->
+								</select>
+							</div>
+						</div>
+					`;
+					}).join('');
+
+					// ✅ 모달 내부에 렌더링
+					document.getElementById("sideModal").innerHTML = `
+					<div class="p-5 space-y-4">
+						<h2 class="text-lg font-bold">크루원 역할 관리</h2>
+						${memberListHtml}
+					</div>
+				`;
+
+					// ✅ 모달 열기
+					document.getElementById("sideModal").classList.remove("translate-x-full");
+				},
+				error: function (err) {
+					console.error("크루 멤버 목록 가져오기 실패", err);
+				}
+			});
+		}
+	</script>
+
+
+
+
+	<!-- ✅ 크루 ID 설정 (Thymeleaf에서 전달됨) -->
+	<script>
+		var crewId = [[${crew.id}]];
+		console.log(crewId); // 디버깅용
+	</script>
+
+	<!-- ✅ 날짜 포맷 변경 함수 (YYYY-MM-DD → MM-DD) -->
+	<script>
+		function formatDate(dateStr) {
+			if (!dateStr || dateStr === "0000-00-00") return null;
+
+			const [year, month, day] = dateStr.split("-");
+			return `${month}-${day}`;
+		}
+	</script>
+
+	<!-- ✅ jQuery & 외부 JS 불러오기 -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script th:src="@{/resource/js/crew.js}"></script>
+
+	<!-- ✅ 멤버 섹션 렌더링 함수 (메인 우측 '멤버' 목록에 출력) -->
+	<script>
+		function renderCrewMemberSection() {
+			$.ajax({
+				type: "GET",
+				url: `/usr/walkCrewMember/usr/walkCrew/memberList`,
+				data: {crewId},
+				success: function (data) {
+					const members = data.data1;
+					const container = document.getElementById("crewMemberList");
+
+					if (!container) return;
+
+					// 📌 멤버 리스트 동적 생성
+					container.innerHTML = members.map(m => `
+					<div onclick="memberModal(this)"
+					    data-photo="${m.crew_member_photo || ''}"
+					    data-name="${m.crew_member_name || ''}" class="bg-white h-full flex flex-col px-3 justify-center">
+						<div class="w-12 h-12 bg-yellow-300 rounded-full overflow-hidden flex w-full justify-center">
+							<img src="${m.crew_member_photo ? m.crew_member_photo : '/img/default-pet.png'}"
+								alt="프로필" class="w-full h-full object-cover" />
+						</div>
+						<div class="py-1 w-40% text-sm break-words text-center whitespace-pre-line">${m.crew_member_name}</div>
+					</div>
+				`).join('');
+				},
+				error: function (err) {
+					console.error("멤버 섹션 렌더링 실패:", err);
+				}
+			});
+		}
+
+		// 페이지 로드 후 멤버 섹션 자동 호출
+		window.addEventListener('DOMContentLoaded', () => {
+			renderCrewMemberSection();
+		});
+	</script>
+
+	<!-- ✅ 역할 변경 처리 함수 (크루장 위임 포함) -->
+	<script>
+		/*
+		 * 멤버 역할 변경 처리
+		 * - leader: 크루장 위임 (confirm 후 서버로 POST)
+		 * - subLeader/member: 일반 역할 변경
+		 */
+		function changeRole(memberId, newRole) {
+			if (newRole === "leader") {
+				const confirmed = confirm("정말 이 멤버에게 크루장 권한을 위임하시겠습니까?");
+				if (!confirmed) return;
+
+				// 🔄 크루장 위임 API 호출
+				$.post("/usr/walkCrewMember/transferLeadership", {
+					crewId: crewId,
+					newLeaderId: memberId
+				}, function (res) {
+					if (res.success) {
+						alert("크루장 권한이 성공적으로 위임되었습니다.");
+						location.reload(); // 성공 후 페이지 새로고침
+					} else {
+						alert(res.msg);
+					}
+				});
+			} else {
+				// 🔄 일반 역할 변경 요청 함수 호출 (ex. subLeader, member)
+				sendRoleChange(memberId, newRole);
+			}
+		}
+	</script>
+
+	<script>
+		function detailModal(e) {
+			const memberId = localStorage.getItem("loginedMember"); // 로그인한 사용자 ID (string)
+			articleId = e.dataset.id;
+			boardId = e.dataset.boardid;
+
+			const free = {
+				memberId: e.dataset.memberid, // 게시글 작성자 ID
+				title: e.dataset.title,
+				body: e.dataset.body,
+				imageUrl: e.dataset.imageUrl,
+				writer: e.dataset.writer,
+				regDate: e.dataset.regDate
+			};
+
+			// ✅ 수정/삭제 버튼 조건부 생성
+			let ownerControls = "";
+			if (memberId === free.memberId) {
+				ownerControls = `
+					<span class="underline text-blue-600 cursor-pointer mr-2"
+						  onclick="openModifyModal(${articleId}, ${crewId}, 3, \`${free.title}\`, \`${free.body}\`, \`${free.imageUrl}\`)">수정</span>
+					<span class="underline text-red-500 cursor-pointer"
+						  onclick="deleteArticle(${articleId}, crewId)">삭제</span>
+				`;
+			}
+
+			const html = `
+				<div class="flex h-full">
+					<div class="w-1/2 bg-gray-100">
+						<img src="${free.imageUrl}" alt="product" class="object-cover w-full h-full" />
+					</div>
+					<div class="w-1/2 p-6 flex flex-col justify-between text-gray-800 space-y-4 relative">
+						<div class="flex-1 flex flex-col shadow p-4 overflow-auto">
+							<div class="flex-1 overflow-y-auto h-[300px] text-sm leading-relaxed ">${free.body}</div>
+							<div class="flex justify-between text-xs text-gray-500 mt-2">
+								<span class="font-bold">${free.writer}</span>
+								<span>${free.regDate}</span>
+							</div>
+							<div class=" text-xs w-full text-end">${ownerControls}</div>
+						</div>
+
+						<div class="shadow w-full p-4 text-sm rounded cursor-pointer hover:bg-gray-100"
+							 onclick="openCommentModal(); loadReplies(${articleId});">
+							<p class="flex text-gray-500">여기누르기기</p>
+						</div>
+
+						<div id="commentModal"
+							 class="absolute bottom-0 left-0 w-full bg-white ease-in-out shadow-[0_-4px_10px_rgba(0,0,0,0.1)] rounded-t-2xl p-4 z-50 transform translate-y-full transition-transform duration-300 ease-in-out">
+							<div class="flex justify-between items-center mb-2">
+								<h2 class="text-lg font-semibold text-green-700">댓글</h2>
+								<button onclick="closeCommentModal()" class="text-gray-500 hover:text-black text-sm">닫기 ✕</button>
+							</div>
+							<div class="overflow-y-auto max-h-60 space-y-2" id="replyList"></div>
+							<div class="mt-4 flex gap-2">
+								<input type="text" id="replyInput" placeholder="댓글 입력..." class="flex-1 border px-3 py-2 rounded-md text-sm" />
+								<button onclick="submitReply(${crewId}, ${boardId})" class="bg-green-200 px-4 py-2 rounded-md text-sm">작성</button>
+							</div>
+							<div class="text-gray-500 text-sm mt-2" id="noReplies" style="display:none;">댓글이 없습니다.</div>
+						</div>
+					</div>
+				</div>
+			`;
+
+			openModal(html);
+		}
+
+	</script>
+
+	<!-- ✅ crewJoin 함수 -->
+	<script>
+		function crewJoin(btnElement, crewId) {
+			$.ajax({
+				type: "POST",
+				url: `/usr/walkCrewMember/doJoin`,
+				data: {crewId},
+				success: function (data) {
+					console.log(data.msg);
+
+					const parent = btnElement.parentElement;
+					parent.innerHTML = `
+          <div class="flex gap-2">
+            <button disabled class="flex items-center gap-1">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              신청 대기중
+            </button>
+            <button onclick="cancelJoin(${crewId}, this)" class="text-red-600 hover:underline text-sm">
+              신청 취소
+            </button>
+          </div>
+        `;
+
+					renderCrewMemberSection();
+				},
+				error: function (err) {
+					console.error("참가등록실패", err);
+				}
+			});
+		}
+	</script>
+
+	<!-- ✅ cancelJoin 함수 (항상 전역에 있어야 함) -->
+	<script>
+		function cancelJoin(crewId, btnElement) {
+			if (!confirm("정말 신청을 취소하시겠습니까?")) return;
+
+			$.ajax({
+				type: "POST",
+				url: `/usr/walkCrewMember/cancelJoin`,
+				data: {crewId},
+				success: function (res) {
+					if (res.success) {
+						alert("신청이 취소되었습니다.");
+
+						const parent = btnElement.closest('.flex');
+						parent.innerHTML = `
+            <button onclick="crewJoin(this, ${crewId})" class="flex items-center gap-1">
+              <i class="fa-solid fa-dog"></i>
+              크루 신청
+            </button>
+          `;
+
+						renderCrewMemberSection();
+					} else {
+						alert(res.msg);
+					}
+				},
+				error: function (err) {
+					console.error("신청 취소 실패", err);
+				}
+			});
+		}
+	</script>
+
+	<!-- ✅ 소개글 수정 모달 관련 함수 -->
+	<script>
+  function showEditDescriptionModal() {
+    document.getElementById('descriptionModal').classList.remove('hidden');
+    const currentDesc = document.querySelector('[th\\:text="${crew.description}"]')?.textContent || '';
+    document.getElementById('newDescriptionInput').value = currentDesc;
+  }
+
+  function submitDescriptionEdit() {
+    const newDesc = document.getElementById('newDescriptionInput').value.trim();
+    if (newDesc === '') {
+      Toast.fire({ icon: 'warning', title: '소개글을 입력해주세요.' });
+      return;
+    }
+    modifyDescription(crewId, newDesc);
+  }
+</script>
+
+	<script>
+		// 모달 외부 클릭 시 닫기
+		document.addEventListener('DOMContentLoaded', () => {
+			const modal = document.getElementById('modal');
+			const content = document.getElementById('modalContent');
+
+			if (modal && content) {
+				modal.addEventListener('click', function (event) {
+					if (!content.contains(event.target)) {
+						closeModal();
+					}
+				});
+
+				content.addEventListener('click', function (event) {
+					event.stopPropagation(); // 내부 클릭 시 모달 닫힘 방지
+				});
+			}
+		});
+	</script>
+
+	<script>
+		const Toast = Swal.mixin({
+			toast: true,
+			position: "top-end",
+			showConfirmButton: true,
+			timer: 2500,
+			timerProgressBar: true,
+			didOpen: (toast) => {
+				toast.onmouseenter = Swal.stopTimer;
+				toast.onmouseleave = Swal.resumeTimer;
+			}
+		});
+	</script>
+
+	<script>
+  // ✅ 소개글 수정 요청 함수
+  function modifyDescription(crewId, newDescription) {
+    $.post('/usr/walkCrew/doModifyDescription', {
+        crewId: crewId,
+        newDescription: newDescription
+    }).done(function(res) {
+        if (res.resultCode === 'S-1') {
+            Toast.fire({
+                icon: 'success',
+                title: '소개글이 수정되었습니다.'
+            });
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            Toast.fire({
+                icon: 'error',
+                title: res.msg
+            });
+        }
+    }).fail(function() {
+        Toast.fire({
+            icon: 'error',
+            title: '서버 오류가 발생했습니다.'
+        });
+    });
+  }
+</script>
+
+
+
+
+</body>
+
+</html>

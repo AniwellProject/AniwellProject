@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetVaccinationRepository">
+
+    <!-- 펫 ID로 접종 이력 조회 -->
+    <select id="getVaccinationByPetId" parameterType="int" resultType="com.example.RSW.vo.PetVaccination">
+        SELECT
+            pv.id,
+            pv.petId,
+            pv.vaccineName,
+            pv.injectionDate,
+            pv.nextDueDate,
+            pv.vetName,
+            pv.notes
+        FROM pet_vaccination pv
+        WHERE pv.petId = #{petId}
+        ORDER BY pv.injectionDate DESC
+    </select>
+
+    <!-- 백신 삭제 -->
+    <delete id="deletePetVaccination" parameterType="int">
+        DELETE FROM pet_vaccination WHERE id = #{id}
+    </delete>
+
+    <!-- 백신 등록 -->
+    <insert id="insertVaccination" parameterType="map">
+        INSERT INTO pet_vaccination (petId, vaccineName, injectionDate)
+        VALUES (#{petId}, #{vaccineName}, #{injectionDate})
+    </insert>
+
+    <insert id="insertPetVaccinationWithNotes" parameterType="map">
+        INSERT INTO pet_vaccination (petId, vaccineName, injectionDate,notes)
+        VALUES (#{petId}, #{vaccineName}, #{injectionDate}, #{notes})
+    </insert>
+
+    <!-- 백신 수정 -->
+    <update id="updatePetVaccination" parameterType="map">
+        UPDATE pet_vaccination
+        SET vaccineName = #{vaccineName}, injectionDate = #{injectionDate}
+        WHERE id = #{vaccinationId}
+    </update>
+
+    <update id="updatePetVaccinationWithNotes" parameterType="map">
+        UPDATE pet_vaccination
+        SET vaccineName = #{vaccineName}, injectionDate = #{injectionDate}, notes = #{notes}
+        WHERE id = #{vaccinationId}
+    </update>
+
+    <!-- 백신 ID로 조회 -->
+    <select id="getVaccinationById" parameterType="int" resultType="com.example.RSW.vo.PetVaccination">
+        SELECT
+            pv.id,
+            pv.petId,
+            pv.vaccineName,
+            pv.injectionDate,
+            pv.nextDueDate,
+            pv.vetName,
+            pv.notes
+        FROM pet_vaccination pv
+        WHERE pv.id = #{vaccinationId}
+    </select>
+
+    <select id="getPetIdById" parameterType="int" resultType="int">
+        SELECT petId
+        FROM pet_vaccination
+        WHERE id = #{vaccinationId}
+    </select>
+
+    <update id="invalidateNextDueDates">
+        UPDATE pet_vaccination
+        SET nextDueDate = NULL
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+    </update>
+
+</mapper>

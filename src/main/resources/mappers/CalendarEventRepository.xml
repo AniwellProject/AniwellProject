@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.RSW.repository.CalendarEventRepository">
+
+    <insert id="insert">
+        INSERT INTO calendar_event
+            (memberId, eventDate, title, petId, content, createdAt)
+        VALUES (#{memberId}, #{eventDate}, #{title}, #{petId}, #{content}, NOW())
+    </insert>
+
+    <select id="getEventsByDateAndPetId" resultType="com.example.RSW.vo.CalendarEvent">
+        SELECT *
+        FROM calendar_event
+        WHERE eventDate = #{eventDate}
+          AND petId = #{petId}
+        ORDER BY createdAt ASC
+    </select>
+
+    <select id="getEventsById" resultType="com.example.RSW.vo.CalendarEvent">
+        SELECT * FROM calendar_event WHERE id = #{id}
+    </select>
+
+    <update id="update" >
+        UPDATE calendar_event
+        SET eventDate = #{eventDate},
+            title = #{title},
+            content = #{content}
+        WHERE id = #{id}
+
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM calendar_event WHERE id = #{id}
+    </delete>
+
+    <select id="findByMemberId" parameterType="int" resultType="CalendarEvent">
+        SELECT * FROM calendar_event
+        WHERE memberId = #{memberId}
+        ORDER BY eventDate ASC
+    </select>
+
+    <select id="findByPetId" parameterType="int" resultType="CalendarEvent">
+        SELECT * FROM calendar_event
+        WHERE petId = #{petId}
+        ORDER BY eventDate ASC
+    </select>
+
+    <select id="findById" parameterType="int" resultType="CalendarEvent">
+        SELECT * FROM calendar_event
+        WHERE id = #{id}
+        ORDER BY eventDate ASC
+    </select>
+
+</mapper>

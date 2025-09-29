@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.DistrictRepository">
+
+	<!-- ✅ 전체 행정동 목록 -->
+	<select id="getAllDistricts"
+		resultType="com.example.RSW.vo.District">
+		SELECT * FROM district
+	</select>
+
+	<!-- ✅ 시도(city) 목록 -->
+	<select id="getDistinctCities" resultType="string">
+		SELECT DISTINCT city
+		FROM district
+	</select>
+
+	<!-- ✅ 시군구 목록 (특정 시도 기준) -->
+	<select id="getDistrictsByCity" parameterType="string"
+		resultType="string">
+		SELECT DISTINCT district
+		FROM district
+		WHERE city = #{city}
+	</select>
+
+	<!-- ✅ 동 목록 (특정 구 기준) -->
+	<select id="getDongsByDistrict" parameterType="string"
+		resultType="string">
+		SELECT DISTINCT dong
+		FROM district
+		WHERE district =
+		#{district}
+	</select>
+
+	<!-- ✅ 특정 시/도 + 시군구에 해당하는 동 목록 조회 (컨트롤러에서 호출됨) -->
+	<select id="findDongsByCityAndDistrict" resultType="string">
+		SELECT dong
+		FROM district
+		WHERE city = #{city}
+		AND district = #{district}
+	</select>
+
+	<!-- ✅ 단건 삽입 -->
+	<insert id="insertDistrict"
+		parameterType="com.example.RSW.vo.District">
+		INSERT INTO district
+		SET city = #{sido},
+		district =
+		#{sigungu},
+		dong = #{dong}
+	</insert>
+
+	<select id="findByDong" parameterType="string"
+		resultType="com.example.RSW.vo.District">
+		SELECT *
+		FROM district
+		WHERE dong = #{dong}
+		LIMIT 1
+	</select>
+
+
+	<!-- ✅ districtId 기준으로 단건 조회 -->
+	<select id="getDistrictById" parameterType="int"
+		resultType="com.example.RSW.vo.District">
+		SELECT
+		id,
+		city AS sido,
+		district AS sigungu,
+		dong
+		FROM district
+		WHERE id = #{id}
+	</select>
+
+	<select id="getDistrictIdByFullAddress" parameterType="map"
+		resultType="int">
+		SELECT id
+		FROM district
+		WHERE city = #{city}
+		AND district =
+		#{district}
+		AND dong = #{dong}
+	</select>
+
+
+	
+
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+        namespace="com.example.RSW.repository.ReactionPointRepository">
+
+    <insert id="addGoodReactionPoint">
+        INSERT INTO reactionPoint
+        SET
+            regDate = NOW(),
+		updateDate = NOW(),
+		memberId = #{memberId},
+            relTypeCode =
+            #{relTypeCode},
+            relId = #{relId},
+            `point` = 1;
+    </insert>
+
+    <insert id="addBadReactionPoint">
+        INSERT INTO reactionPoint
+        SET
+            regDate = NOW(),
+		updateDate = NOW(),
+		memberId = #{memberId},
+            relTypeCode =
+            #{relTypeCode},
+            relId = #{relId},
+            `point` = -1;
+    </insert>
+
+    <select id="getSumReactionPoint">
+        SELECT IFNULL(SUM(RP.point),0)
+        FROM reactionPoint AS
+                 RP
+        WHERE RP.relTypeCode = #{relTypeCode}
+          AND RP.relId = #{relId}
+          AND
+            RP.memberId = #{memberId};
+    </select>
+
+    <delete id="deleteReactionPoint">
+        DELETE FROM reactionPoint
+        WHERE memberId = #{memberId}
+          AND relTypeCode = #{relTypeCode}
+          AND relId = #{relId}
+    </delete>
+
+</mapper>

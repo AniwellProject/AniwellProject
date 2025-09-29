@@ -1,0 +1,125 @@
+name: deploy
+
+on:
+  push:
+    branches: [ main ]  # 브랜치 주의
+    paths:
+      - '.github/workflows/**'
+      - 'src/**'
+      - 'build.gradle'
+      - 'Dockerfile'
+      - 'README.md'
+      - 'readme.md'
+      - 'infraScript/**'
+  workflow_dispatch: {}   # 수동 실행
+
+# GHCR 푸시/릴리스용 권한
+permissions:
+  contents: write
+  packages: write
+
+# 공통 ENV (리포지토리 Settings → Variables에 설정 권장)
+# - vars.IMAGE_NAME: 컨테이너 이미지명(예: aniwell)
+# - secrets.APPLICATION_SECRET_YML: application-secret.yml 내용
+# - secrets.AWS_REGION, secrets.AWS_ACCESS_KEY_ID, secrets.AWS_SECRET_ACCESS_KEY
+# - secrets.EC2_INSTANCE_ID: 배포 대상 인스턴스 ID (i-xxxxxxxxxxxx)
+env:
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+
+jobs:
+  # ───────────── sanity: self-hosted 러너 점검 ─────────────
+  sanity:
+    if: github.event_name == 'workflow_dispatch'   # 수동 실행에서만
+    runs-on: [self-hosted, linux, ec2-prod, x64]
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Runner OK on $RUNNER_NAME" && uname -a
+
+  # ───────────── 태그/릴리스 ─────────────
+  makeTagAndRelease:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.create_tag.outputs.new_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Tag
+        id: create_tag
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.create_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.create_tag.outputs.new_tag }}
+          body: ${{ steps.create_tag.outputs.changelog }}
+          draft: false
+          prerelease: false
+
+  # ───────────── 도커 이미지 빌드/푸시 ─────────────
+  buildImageAndPush:
+    name: Build & Push Docker Image
+    needs: makeTagAndRelease
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase owner name
+        run: echo "OWNER_LC=${OWNER,,}" >> "$GITHUB_ENV"
+        env:
+          OWNER: "${{ github.repository_owner }}"
+
+      - name: Generate application-secret.yml
+        env:
+          APPLICATION_SECRET: ${{ secrets.APPLICATION_SECRET_YML }}
+        run: |
+          mkdir -p src/main/resources
+          printf "%s" "$APPLICATION_SECRET" > src/main/resources/application-secret.yml
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ needs.makeTagAndRelease.outputs.tag_name }}
+            ghcr.io/${{ env.OWNER_LC }}/${{ env.IMAGE_NAME }}:latest
+
+
+  # ───────────── EC2 배포 (SSM) ─────────────
+  deploy:
+    name: Deploy to EC2 via SSM
+    needs: [ buildImageAndPush ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: AWS SSM Send-Command
+        uses: peterkimzz/aws-ssm-send-command@master
+        id: ssm
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          instance-ids: "i-0cd7a1d64ad7b9e29"
+          working-directory: /
+          comment: Deploy
+          command: |
+            set -euo pipefail
+            mkdir -p /dockerProjects/aniwell
+            curl -fsSL -o /dockerProjects/aniwell/zero_downtime_deploy.py \
+              https://raw.githubusercontent.com/doomdex84/AniwellProject/main/infraScript/zero_downtime_deploy.py
+            chmod +x /dockerProjects/aniwell/zero_downtime_deploy.py
+            # python3가 확실하지 않으면 설치 확인 필요(AMZ Linux 2023)
+            command -v python3 >/dev/null 2>&1 || sudo dnf install -y python3
+            python3 /dockerProjects/aniwell/zero_downtime_deploy.py

@@ -1,0 +1,265 @@
+.swiper {
+	z-index: 1;
+}
+
+.swiper-slide {
+	transform-origin: center;
+	transition: transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease;
+	z-index: 1;
+	/* 기본 */
+}
+
+.swiper-slide-active {
+	transform: scale(1);
+	filter: none;
+	z-index: 1;
+}
+
+.swiper-slide-prev,
+.swiper-slide-next {
+	transform: scale(0.9);
+	filter: blur(2px) brightness(0.9);
+	z-index: 2;
+}
+
+.swiper-slide::after {
+	padding-bottom: 3%;
+	position: absolute;
+	inset: 0;
+	border-radius: 0.75rem;
+	background: rgba(0, 0, 0, 0.1);
+	filter: blur(8px);
+	opacity: 1;
+	transition: filter 0.5s ease, opacity 0.5s ease;
+	z-index: -1;
+}
+
+.swiper-slide-active::after {
+	opacity: 0;
+	filter: blur(0);
+}
+
+.swiper-slide.is-distant {
+	transform: scale(0.85);
+	filter: blur(3px) brightness(0.7);
+	opacity: 0.2;
+	z-index: 1;
+}
+
+/* 제거 중인 상태 - 트랜지션 유도 */
+.swiper-slide.is-distant-leaving {
+	transform: scale(0.9);
+	filter: blur(2px) brightness(0.9);
+	opacity: 1;
+	z-index: 5;
+}
+
+
+.line {
+	z-index: 5;
+	border-bottom: 1px solid #efefef;
+	width: 100%;
+}
+
+.is-distant {
+	filter: blur(3px);
+	opacity: 0.5;
+	transform: scale(0.95);
+	transition: all 0.3s ease;
+}
+
+.is-distant-leaving {
+	filter: none;
+	opacity: 1;
+	transform: scale(1);
+	transition: all 0.3s ease;
+}
+
+.swiper-slide.centered {
+	transform: scale(1.05);
+	filter: none;
+	opacity: 1;
+	z-index: 20;
+	/* 가장 위로 */
+}
+
+.swiper-slide {
+	transform-origin: center;
+}
+
+
+
+
+/* 흐림 효과 카드 */
+.swiper-slide.is-distant {
+	opacity: 0.2;
+	filter: blur(3px);
+	transform: scale(0.95);
+	transition: all 0.3s ease;
+	z-index: 0;
+}
+
+/* 중앙 카드 강조 */
+.swiper-slide.centered {
+	opacity: 1;
+	filter: none;
+	transform: scale(1.05);
+	transition: all 0.3s ease;
+}
+
+/* 처음에 남아있던 흔적 제거 */
+.swiper-slide.is-distant-leaving {
+	opacity: 1;
+	filter: none;
+}
+
+.ani-card {
+	position: relative;
+
+}
+
+
+/* 래퍼: 배율만 담당 (고정 좌표 위에 scale 적용) */
+.pet-card-wrap {
+  --s: 1;                     /* 외부에서 덮어쓰기 */
+  width: clamp(280px, 70vw, 540px);
+  position: relative;
+  transform: scale(var(--s));
+  transform-origin: top center;
+}
+
+/* 실제 카드(디자인 고정 크기) */
+.pet-card {
+  position: relative;
+  width: 540px;               /* 디자인 기준 너비 */
+  aspect-ratio: 86 / 54;      /* 카드 비율 유지 */
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+/* 그림자(카드 바깥) */
+.pet-card__shadow {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 80px;
+  height: 160px;
+  border-radius: 24px;
+  background: rgba(0, 0, 0, 0.1);
+  filter: blur(32px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 배경 이미지 + 색 틴트 + 하단 밴드 */
+.pet-card__bg,
+.pet-card__tint,
+.pet-card__band {
+  position: absolute;
+  inset: 0;
+}
+.pet-card__bg {
+  background-size: cover;
+  background-position: center;
+}
+.pet-card__tint {
+  background: #F3DF85;
+}
+.pet-card__band {
+  bottom: 0;
+  height: 80px;
+  background: #fff;
+}
+
+/* 로고 */
+.pet-card__logo {
+  position: absolute;
+  left: 40px;
+  top: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+  z-index: 2;
+}
+
+/* 아바타 */
+.pet-card__avatar {
+  position: absolute;
+  right: 32px;
+  top: 80px;
+  width: 208px;
+  height: 208px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.2);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.15);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.7);
+}
+.pet-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pet-card__avatar--placeholder {
+  color: rgba(255,255,255,.8);
+}
+
+/* 내용 영역 */
+.pet-card__body {
+  position: relative;
+  height: 100%;
+  padding: 112px 40px 32px 40px;  /* pt-28 px-10 pb-8 */
+  color: #fff;
+  z-index: 1;
+}
+
+/* 카드 번호 */
+.pet-card__id {
+  font-size: 34px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25);
+  padding-right: 240px; /* 아바타와 겹치지 않게 우측 여유 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 섹션 */
+.pet-card__section { margin-top: 28px; padding-right: 240px; }
+.pet-card__label   { font-size: 14px; opacity: .75; letter-spacing: .02em; }
+.pet-card__name    { margin-top: 4px; font-size: 24px; font-weight: 800; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+.pet-card__gender  { margin-left: 6px; opacity: .85; }
+
+/* 메타 토큰들 */
+.pet-card__meta { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.pet-card__chip { white-space: nowrap; opacity: .95; }
+.pet-card__chip--dim { opacity: .85; }
+
+/* 테두리 링 */
+.pet-card__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+  pointer-events: none;
+}
+
+
+.cardlist ::before {
+	z-index: 100;
+	left: 0;
+	background: linear-gradient(to right, white, transparent);
+}
+
+.cardlist ::after {
+	z-index: 100;
+	right: 0;
+	background: linear-gradient(to left, white, transparent);
+}

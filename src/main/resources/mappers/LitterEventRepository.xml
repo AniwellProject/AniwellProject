@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.LitterEventRepository">
+    <insert id="insert" parameterType="com.example.RSW.vo.LitterEvent"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO litter_event
+        (petId, detectedAt, type, confidence,
+         visualSignals, anomalies, notes, sourceVideo, logId)
+        VALUES
+            (#{petId},
+             #{detectedAt},
+             #{type},
+             #{confidence},
+             CAST(#{visualSignalsJson} AS JSON),
+             CAST(#{anomaliesJson} AS JSON),
+             #{notes},
+             #{sourceVideo},
+             #{logId})
+    </insert>
+
+    <select id="findRecentByPet"
+            parameterType="map"
+            resultType="com.example.RSW.vo.LitterEvent">
+        SELECT
+            id, petId, detectedAt, type, confidence,
+            CAST(visualSignals AS CHAR) AS visualSignalsJson,
+            CAST(anomalies AS CHAR)     AS anomaliesJson,
+            notes, sourceVideo, logId
+        FROM litter_event
+        WHERE petId = #{petId}
+        ORDER BY detectedAt DESC, id DESC
+            LIMIT #{limit}
+    </select>
+
+    <!-- 하루치 이벤트 리스트 -->
+    <select id="findByPetAndDate"
+            parameterType="map"
+            resultType="com.example.RSW.vo.LitterEvent">
+  <![CDATA[
+        SELECT
+            id, petId, detectedAt, type, confidence,
+            CAST(visualSignals AS CHAR) AS visualSignalsJson,
+            CAST(anomalies AS CHAR)     AS anomaliesJson,
+            notes, sourceVideo, logId
+        FROM litter_event
+        WHERE petId = #{petId}
+          AND detectedAt >= #{from}
+          AND detectedAt <  #{to}
+        ORDER BY detectedAt ASC, id ASC
+        ]]>
+</select>
+
+    <select id="countByPetAndDateGroupByType"
+            parameterType="map"
+            resultType="map">
+  <![CDATA[
+        SELECT type, COUNT(*) AS cnt
+        FROM litter_event
+        WHERE petId = #{petId}
+          AND detectedAt >= #{from}
+          AND detectedAt <  #{to}
+        GROUP BY type
+        ]]>
+</select>
+
+
+
+</mapper>

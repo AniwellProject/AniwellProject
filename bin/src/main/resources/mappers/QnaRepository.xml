@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.example.RSW.repository.QnaRepository">
+
+    <resultMap id="qnaResultMap" type="com.example.RSW.vo.Qna">
+        <result property="id" column="id"/>
+        <result property="memberId" column="memberId"/>
+        <result property="title" column="title"/>
+        <result property="body" column="body"/>
+        <result property="secret" column="isSecret"/>
+        <result property="isFromUser" column="isFromUser"/>
+        <result property="isAnswered" column="isAnswered"/>
+        <result property="orderNo" column="orderNo"/>
+        <result property="regDate" column="regDate"/>
+        <result property="updateDate" column="updateDate"/>
+        <result property="isActive" column="isActive"/>
+        <result property="isFaq" column="isFaq"/>
+    </resultMap>
+
+    <insert id="saveUserQna" parameterType="com.example.RSW.vo.Qna">
+        INSERT INTO Qna
+        (memberId, title, `body`, isSecret, isFromUser, isAnswered, isActive, regDate, updateDate)
+        VALUES (#{memberId}, #{title}, #{body}, #{secret}, #{isFromUser}, #{isAnswered}, #{isActive}, NOW(), NOW());
+    </insert>
+
+
+    <select id="getFaqList" resultMap="qnaResultMap">
+        SELECT *
+        FROM Qna
+        WHERE isFromUser = FALSE
+          AND isActive = TRUE
+        ORDER BY orderNo ASC
+    </select>
+
+    <select id="getUserQnaByMemberId" resultMap="qnaResultMap">
+        SELECT *
+        FROM Qna
+        WHERE isFromUser = TRUE
+          AND isActive = TRUE
+          AND memberId = #{memberId}
+        ORDER BY regDate DESC
+    </select>
+
+    <select id="getQnaById" parameterType="int" resultMap="qnaResultMap">
+        SELECT *
+        FROM Qna
+        WHERE id = #{id}
+    </select>
+
+
+    <update id="markQnaAsDeleted" parameterType="int">
+        UPDATE Qna
+        SET isActive   = FALSE,
+            updateDate = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateQna" parameterType="map">
+        UPDATE Qna
+        SET title      = #{title},
+            body       = #{body},
+            isSecret   = #{isSecret},
+            updateDate = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateIsAnswered" parameterType="map">
+        UPDATE Qna
+        SET isAnswered = #{isAnswered},
+            updateDate = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="findAll" resultMap="qnaResultMap">
+        SELECT q.id,
+               q.title,
+               q.body,
+               q.memberId,
+               q.isSecret,
+               q.isFromUser,
+               q.isAnswered,
+               q.orderNo,
+               q.regDate,
+               q.updateDate,
+               q.isActive,
+               q.isFaq,
+               m.name                                                     AS memberName,
+               EXISTS(SELECT 1 FROM vet_answer va WHERE va.qna_id = q.id) AS hasAnswer
+        FROM Qna q
+                 JOIN member m ON q.memberId = m.id
+        WHERE q.isActive = 1
+        ORDER BY q.regDate DESC
+    </select>
+
+
+    <select id="findById" parameterType="int" resultMap="qnaResultMap">
+        SELECT q.id,
+               q.title,
+               q.body,
+               q.memberId,
+               q.isSecret,
+               q.isFromUser,
+               q.isAnswered,
+               q.orderNo,
+               q.regDate,
+               q.updateDate,
+               q.isActive,
+               q.isFaq,
+               m.name AS memberName
+        FROM Qna q
+                 JOIN member m ON q.memberId = m.id
+        WHERE q.id = #{id}
+    </select>
+
+
+    <update id="update">
+        UPDATE Qna
+        SET title = #{title},
+            body  = #{body}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM Qna
+        WHERE id = #{id}
+    </delete>
+
+
+
+    <update id="modify">
+        UPDATE Qna
+        SET title      = #{title},
+            body       = #{body},
+            updateDate = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insert" parameterType="map">
+        INSERT INTO Qna
+        (memberId, title, body, isSecret, isFaq, regDate, updateDate, isAnswered)
+        VALUES (#{memberId}, #{title}, #{body}, #{isSecret}, #{isFaq}, NOW(), NOW(), 0)
+    </insert>
+
+
+
+</mapper>

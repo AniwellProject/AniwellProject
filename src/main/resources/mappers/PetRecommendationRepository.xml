@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetRecommendationRepository">
+
+    <select id="selectPlaceNamesByMemberId" resultType="com.example.RSW.vo.PetRecommendation">
+        SELECT * FROM pet_recommendation WHERE memberId = #{memberId}
+    </select>
+
+    <select id="countByMemberAndName" resultType="int">
+        SELECT COUNT(*) FROM pet_recommendation WHERE memberId = #{memberId} AND name = #{name}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO pet_recommendation(memberId, type, name, address, phone, mapUrl)
+        VALUES(#{memberId}, #{type}, #{name}, #{address}, #{phone}, #{mapUrl})
+    </insert>
+
+    <delete id="deleteByMemberAndName">
+        DELETE FROM pet_recommendation WHERE memberId = #{memberId} AND name = #{name}
+    </delete>
+
+    <select id="getFavoriteNamesOnly" resultType="string">
+        SELECT name
+        FROM pet_recommendation
+        WHERE memberId = #{memberId}
+    </select>
+
+</mapper>

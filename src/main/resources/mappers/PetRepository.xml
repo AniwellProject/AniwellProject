@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetRepository">
+
+	<!-- 펫 목록 조회 -->
+	<select id="getPetsByMemberId" parameterType="int"
+
+		resultType="com.example.RSW.vo.Pet">
+		SELECT
+			p.*,
+			pf.brand       AS brand,
+			pf.productName AS productName,
+			pf.flavor      AS flavor,
+			pf.foodType    AS foodType
+		FROM pet p
+				 LEFT JOIN pet_food pf
+						   ON pf.petId = p.id
+							   AND pf.endedAt IS NULL
+		WHERE p.memberId = #{memberId}
+		ORDER BY p.id ASC
+	</select>
+
+	<!-- 펫 삭제 -->
+	<delete id="deletePet" parameterType="int">
+		DELETE FROM pet WHERE id =
+							  #{id}
+	</delete>
+
+	<!-- 펫 등록 -->
+	<insert id="insertPet" parameterType="com.example.RSW.vo.Pet">
+		INSERT INTO pet
+		(memberId,
+		 name, species, breed,
+		 gender, birthDate, weight, photo)
+		VALUES
+			(#{memberId}, #{name},
+			 #{species}, #{breed}, #{gender}, #{birthDate},
+			 #{weight},
+			 #{photo})
+	</insert>
+
+	<!-- 마지막 삽입된 ID 조회 -->
+	<select id="getLastInsertId" resultType="int">
+		SELECT LAST_INSERT_ID();
+	</select>
+
+	<!-- 펫 수정 (사진 없이) -->
+	<update id="updatePetWithoutPhoto" parameterType="map">
+		UPDATE pet
+		SET
+			name = #{name}, species = #{species}, breed = #{breed},
+			gender =
+				#{gender}, birthDate = #{birthDate}, weight = #{weight}
+		WHERE id =
+			  #{petId}
+	</update>
+
+	<!-- 펫 수정 (사진 포함) -->
+	<update id="updatePet" parameterType="com.example.RSW.vo.Pet">
+		UPDATE pet
+		SET name =
+				#{name}, species = #{species}, breed = #{breed},
+			gender = #{gender},
+			birthDate = #{birthDate}, weight = #{weight}, photo =
+				#{photo}
+		WHERE id
+				  = #{id}
+	</update>
+
+	<!-- 펫 ID로 조회 -->
+	<select id="getPetsById" parameterType="int"
+			resultType="com.example.RSW.vo.Pet">
+		SELECT
+			p.*,
+			pf.brand       AS brand,
+			pf.productName AS productName,
+			pf.flavor      AS flavor,
+			pf.foodType    AS foodType
+		FROM pet p
+				 LEFT JOIN pet_food pf
+						   ON pf.petId = p.id
+							   AND pf.endedAt IS NULL
+		WHERE p.id = #{petId}
+		ORDER BY p.id DESC
+	</select>
+
+	<select id="findPetsWithBirthdayInDays"
+			resultType="com.example.RSW.vo.Pet">
+		SELECT *
+		FROM pet
+		WHERE DATE_FORMAT(birthDate, '%m-%d') IN (
+												  DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 0 DAY), '%m-%d'),
+												  DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 3 DAY), '%m-%d'),
+												  DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 7 DAY), '%m-%d')
+			)
+	</select>
+
+	<!-- [추가] 현재 저장된 펫의 weight 조회 -->
+	<select id="getPetWeightById" parameterType="int"
+			resultType="double">
+		SELECT weight
+		FROM pet
+		WHERE id = #{petId}
+			LIMIT 1
+	</select>
+
+	<!-- [추가] 해당 펫의 체중 로그 존재 여부(0이면 로그 없음) -->
+	<select id="countWeightLogsByPetId" parameterType="int"
+			resultType="int">
+		SELECT COUNT(*)
+		FROM pet_weight_log
+		WHERE petId = #{petId}
+	</select>
+
+	<!-- ✅ 가장 최근 체중 1건 조회 -->
+	<select id="findLastWeightByPetId" parameterType="int"
+			resultType="double">
+		SELECT weightKg
+		FROM pet_weight_log
+		WHERE petId = #{petId}
+		ORDER BY measuredAt DESC
+			LIMIT 1
+	</select>
+
+	<!-- ✅ 체중 로그 INSERT -->
+	<insert id="insertWeightLog">
+		INSERT INTO pet_weight_log
+		SET petId = #{petId},
+			measuredAt = NOW(),
+			weightKg = #{weightKg},
+			source = #{source},
+			note =
+			#{note}
+	</insert>
+
+	<!-- ✅ 펫 현재 체중 업데이트 ※ pet 테이블의 실제 컬럼명이 'weight'임을 기존 매퍼에서 확인했습니다. ※ 별도의
+		updatedAt/weightUpdatedAt 컬럼이 없으면 아래 두 줄만 두세요. -->
+	<update id="updatePetWeight">
+		UPDATE pet
+		SET weight = #{weightKg}
+		WHERE id = #{petId}
+	</update>
+
+	<!-- ✅ 최근 등록된 펫 ID 조회 (동명이인 대비: memberId + name) -->
+	<select id="findNewestPetIdByMemberAndName" resultType="int">
+		SELECT id
+		FROM pet
+		WHERE memberId = #{memberId}
+		  AND name = #{name}
+		ORDER BY id DESC
+			LIMIT 1
+	</select>
+
+	<!-- 진행중 기본 사료 1건 조회 (원하면 productName도 함께 가져오기) -->
+	<select id="findActivePrimaryFood" resultType="map">
+		SELECT brand,
+			   foodType AS feedType,
+			   productName,
+			   flavor
+		FROM pet_food
+		WHERE petId = #{petId}
+		  AND endedAt IS NULL
+			LIMIT 1
+	</select>
+
+	<!-- 새 기본 사료 시작: productName, flavor 추가 -->
+	<insert id="insertPrimaryFood">
+		INSERT INTO pet_food
+		SET petId      = #{petId},
+		brand      = #{brand},
+		foodType   = #{feedType},
+		productName= #{productName},   <!-- ★ 추가 -->
+		flavor     = #{flavor},        <!-- ★ 필요 시 추가(컬럼이 있으면) -->
+		isPrimary  = 1,
+		startedAt  = CURRENT_DATE(),
+		endedAt    = NULL,
+		regDate    = NOW(),
+		updateDate = NOW()
+	</insert>
+
+
+	<!-- ✅ 진행중 기본 사료 종료 -->
+	<update id="closeActivePrimaryFood">
+		UPDATE pet_food
+		SET endedAt = NOW()
+		WHERE petId =
+			  #{petId}
+		  AND endedAt IS NULL
+	</update>
+
+
+</mapper>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Aniwell Dashboard</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/petPage.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/petlist.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<!-- 🟦 HEAD에 추가 -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+	<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+	<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+	<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+	<script th:src="@{/resource/js/petPage.js}"></script>
+	<!-- HEAD 태그 내부에 추가 -->
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+
+
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+	<!-- 🔻 BODY 끝에 추가 -->
+	<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+	<div class="flex h-screen">
+		<!-- Sidebar -->
+		<div th:replace="common :: siteHeader"></div>
+
+		<!-- Main content -->
+		<main class="main_page h-full overflow-y-auto min-h-dvh box-border flex-1 p-1 grid grid-rows-10 gap-2 overflow-hidden">
+
+			<div class="row-span-5 line ">
+				<div class="mx-auto py-">
+					<div class="flex justify-center" id="root"></div>
+				</div>
+				<div class="p-6 text-center">
+					<a onclick="addPet()"
+						class="bg-yellow-200 hover:bg-yellow-300 text-black px-4  rounded-md shadow inline-block text-center">
+						등록하기 </a>
+				</div>
+			</div>
+			<div class="privat_page row-span-5 w-full p-1 content-top">
+				<!-- 오른쪽 콘텐츠 영역 (3열) -->
+				<section class="bg-white p-2">
+					<!-- 동적으로 바뀌는 콘텐츠 영역 -->
+					<div id="contentArea" class="p-1">
+						<iframe src="http://localhost:3001/my-page" width="100%" height="380" frameborder="0"></iframe>
+					</div>
+				</section>
+			</div>
+		</main>
+
+		<div id="comModal"></div>
+
+
+		<script th:inline="javascript">
+			const petData = /*[[${pet}]]*/ null;   // 값이 없으면 null로 주입
+		</script>
+
+		<!-- 원하는 곳에 한번만 포함 -->
+		<style>
+			.pet-card-wrap {
+				width: 420px;
+				margin: 0 auto;
+			}
+
+			.pet-card {
+				position: relative;
+				width: 420px;
+				height: 264px;
+				border-radius: 12px;
+				overflow: hidden;
+				background: #F3DF85;
+				box-shadow: 0 14px 29px -7px rgba(0, 0, 0, .45);
+			}
+
+			.pet-card__bg {
+				position: absolute;
+				inset: 0;
+				background-size: cover;
+				background-position: center;
+				opacity: .12;
+			}
+
+			.pet-card__top {
+				position: absolute;
+				left: 0;
+				top: 0;
+				right: 0;
+				height: 41px;
+				background: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .86));
+			}
+
+			.pet-card__logo {
+				position: absolute;
+				left: 17px;
+				top: 10px;
+				height: 19px;
+				object-fit: contain;
+				filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .06));
+			}
+
+			.pet-card__avatar {
+				position: absolute;
+				right: 31px;
+				top: 65px;
+				width: 154px;
+				height: 154px;
+				border-radius: 50%;
+				background: rgba(255, 255, 255, .18);
+				border: 2px solid rgba(255, 255, 255, .75);
+				box-shadow: 0 9px 17px rgba(0, 0, 0, .25), inset 0 0 0 1px rgba(255, 255, 255, .25);
+				display: grid;
+				place-items: center;
+				overflow: hidden;
+			}
+
+			.pet-card__avatar img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+			}
+
+			.pet-card__id {
+				position: absolute;
+				left: 33px;
+				top: 102px;
+				color: #fff;
+				font-weight: 800;
+				font-size: 24px;
+				letter-spacing: .28em;
+				text-shadow: 0 2px 0 rgba(0, 0, 0, .06);
+			}
+
+			.pet-card__label {
+				position: absolute;
+				left: 33px;
+				top: 138px;
+				font-size: 9px;
+				color: rgba(255, 255, 255, .85);
+			}
+
+			.pet-card__name {
+				position: absolute;
+				left: 33px;
+				top: 155px;
+				font-size: 17px;
+				font-weight: 900;
+				color: #fff;
+			}
+
+			.pet-card__gender {
+				margin-left: 4px;
+				opacity: .85;
+			}
+
+			.pet-card__meta {
+				position: absolute;
+				left: 33px;
+				top: 183px;
+				display: flex;
+				gap: 12px;
+				font-size: 10px;
+				color: #fff;
+				flex-wrap: wrap;
+			}
+
+			.pet-card__ring {
+				position: absolute;
+				inset: 0;
+				border-radius: 12px;
+				box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15);
+				pointer-events: none;
+			}
+
+			.pet-card__shadow {
+				width: 420px;
+				height: 17px;
+				margin: 12px auto 0;
+				border-radius: 999px;
+				background: radial-gradient(50% 100% at 50% 0%, rgba(0, 0, 0, .35), rgba(0, 0, 0, 0) 70%);
+				filter: blur(6px);
+			}
+		</style>
+
+
+		<script type="text/babel" th:inline="none">
+			// ----- helpers (순수 JS) -----
+			function formatId(id) {
+				const s = String(id).padStart(6, "0");
+				return `${s.slice(0, 3)} ${s.slice(3)}`;
+			}
+			function formatDate(d) {
+				if (!d) return "";
+				const date = typeof d === "string" ? new Date(d) : d;
+				const y = date.getFullYear();
+				const m = String(date.getMonth() + 1).padStart(2, "0");
+				const dd = String(date.getDate()).padStart(2, "0");
+				return `${y}-${m}-${dd}`;
+			}
+			function calcAge(b) {
+				if (!b) return "";
+				const birth = typeof b === "string" ? new Date(b) : b;
+				const now = new Date();
+				let y = now.getFullYear() - birth.getFullYear();
+				const mDiff = now.getMonth() - birth.getMonth() || 0;
+				if (mDiff < 0 || (mDiff === 0 && now.getDate() < birth.getDate())) y--;
+				return `${y}y`;
+			}
+
+			// ----- 고정 레이아웃 카드 -----
+			function PetIdCardLite({pet, bgImage, logo, className, onClick}) {
+				const numberLike = formatId(pet.id);
+				const birth = formatDate(pet.birthDate);
+				const age = calcAge(pet.birthDate);
+				const gender = (pet.gender || "").toUpperCase();
+				const genderMark = gender.startsWith("F") ? "♀" : (gender.startsWith("M") ? "♂" : "");
+
+				const _bg = bgImage || "https://imgur.com/OJI4yzC.png";
+				const _logo = logo || "https://imgur.com/rcOcaL6.png";
+
+				// 👉 클릭 시 실행할 함수
+				const handleClick = () => {
+					if (typeof window.modifyPet === "function") {
+						window.modifyPet(pet);
+					} else {
+						console.warn("window.modifyPet 함수가 정의되지 않았습니다.");
+					}
+				};
+				return (
+					<div className={`pet-card-wrap ${className || ""}`}>
+						<article className="pet-card" onClick={handleClick}>
+							<div className="pet-card__bg" style={{backgroundImage: `url(${_bg})`}} />
+							<div className="pet-card__top"></div>
+
+							<img className="pet-card__logo" src={_logo} alt="brand" />
+
+							{pet.photo ? (
+								<figure className="pet-card__avatar">
+									<img src={pet.photo} alt={pet.name || "Unknown"} />
+								</figure>
+							) : (
+								<div className="pet-card__avatar" aria-hidden>
+									<svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+										<circle cx="12" cy="8" r="3" stroke="white" strokeWidth="1.5" />
+										<path d="M5 19c1.5-3 4.5-5 7-5s5.5 2 7 5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+									</svg>
+								</div>
+							)}
+
+							<div className="pet-card__id">{numberLike}</div>
+							<div className="pet-card__label">Name</div>
+							<div className="pet-card__name">
+								{pet.name}
+								{genderMark && <span className="pet-card__gender">{genderMark}</span>}
+							</div>
+
+							<div className="pet-card__meta">
+								<span className="uppercase">{pet.species || "PET"}</span>
+								{pet.breed && <span>{pet.breed}</span>}
+								{birth && <span>Born {birth}{age ? ` (${age})` : ""}</span>}
+								{Number.isFinite(pet.weight) && <span>{pet.weight} kg</span>}
+							</div>
+
+							<div className="pet-card__ring"></div>
+						</article>
+
+						<div className="pet-card__shadow"></div>
+					</div>
+				);
+			}
+
+			// 필요 시 모달로 띄우는 헬퍼(선택)
+			window.openPetCard = (pet) => {
+				if (!window.Swal) return;
+				Swal.fire({
+					width: 'auto',
+					padding: 0,
+					background: 'transparent',
+					showConfirmButton: false,
+					customClass: {popup: '!p-0 !bg-transparent !shadow-none'},
+					html: '<div id="cardMount"></div>',
+					didOpen: () => {
+						const el = document.getElementById('cardMount');
+						ReactDOM.createRoot(el).render(<PetIdCardLite pet={pet} />);
+					}
+				});
+			};
+		</script>
+
+
+
+		<script type="text/babel" th:inline="none">
+			function App() {
+				const [pets, setPets] = React.useState([]);
+				const [loginedMember, setLoginedMember] = React.useState(null);
+
+				// 로그인 정보 로드
+				React.useEffect(() => {
+					fetch('/api/member/myPage')
+						.then(res => res.json())
+						.then((data) => {
+							console.log(data);
+							setLoginedMember(data);
+							try {
+								localStorage.setItem('loginedMember', String(data.id));
+							} catch (e) {
+								console.warn('localStorage 저장 실패(loginedMember):', e);
+							}
+						});
+				}, []);
+
+				// 회원의 펫 목록 로드
+				React.useEffect(() => {
+					if (loginedMember && loginedMember.id) {
+						fetch(`/api/pet/list?memberId=${loginedMember.id}`)
+							.then(res => res.json())
+							.then((data) => {
+								console.log('petlist: ', data.pets);
+								setPets(data.pets || []);
+							});
+					}
+				}, [loginedMember]);
+
+				const TOTAL_CARD_COUNT = 3;
+				const petList = pets.length >= TOTAL_CARD_COUNT
+					? pets
+					: [...pets, ...Array(TOTAL_CARD_COUNT - pets.length).fill(null)];
+
+				// 중앙 카드 선택 저장
+				function saveSelected(sw) {
+					const el = sw.slides[sw.activeIndex];                      // 중앙 = activeIndex
+					const pid = el ? el.getAttribute('data-pet-id') : null;     // placeholder면 null
+
+					if (pid) {
+						try {
+							localStorage.setItem('selectedPetId', String(pid));
+							console.log('selectedPetId 저장됨 =', localStorage.getItem('selectedPetId'));
+						} catch (e) {
+							console.warn('localStorage 저장 실패(selectedPetId):', e);
+						}
+					} else {
+						localStorage.removeItem('selectedPetId');
+						console.log('선택 없음 → selectedPetId 삭제');
+					}
+
+					// 중앙 강조 클래스 업데이트(선택사항)
+					const slidesArr = Array.from(sw.slides);
+					slidesArr.forEach((sl, idx) => {
+						if (idx === sw.activeIndex) sl.classList.add('centered');
+						else sl.classList.remove('centered');
+					});
+				}
+
+				React.useEffect(() => {
+					const swiper = new Swiper('.mySwiper', {
+						slidesPerView: 'auto',
+						centeredSlides: true,
+						spaceBetween: -30,
+						loop: false,
+						grabCursor: true,
+						effect: 'slide',              // ✅ 하나만 사용 (fade 제거)
+						speed: 1000,
+						on: {
+							init(sw) {
+								// 저장된 선택 복원
+								const saved = localStorage.getItem('selectedPetId');
+								if (saved) {
+									const slidesArr = Array.from(sw.slides);
+									const idx = slidesArr.findIndex(el => el.getAttribute('data-pet-id') === saved);
+									if (idx >= 0) sw.slideTo(idx, 0);
+								}
+								saveSelected(sw);
+							},
+							progress(sw) {
+								sw.slides.forEach(slide => {
+									const p = slide.progress;
+									const scale = 1 - Math.abs(p) * 0.1;
+									const blur = Math.min(Math.abs(p) * 5, 5);
+									const op = 1 - Math.abs(p) * 0.5;
+									slide.style.transform = `scale(${scale})`;
+									slide.style.filter = `blur(${blur}px) brightness(${1 - Math.abs(p) * 0.2})`;
+									slide.style.opacity = op;
+									slide.style.zIndex = `${100 - Math.floor(Math.abs(p) * 100)}`;
+								});
+							},
+							slideChangeTransitionEnd(sw) {
+								saveSelected(sw);
+							}
+						}
+					});
+
+					// 레이아웃 지연 보정
+					requestAnimationFrame(() => swiper.emit('slideChangeTransitionEnd'));
+
+					return () => swiper.destroy();
+				}, [pets]);
+
+				return (
+					<div className=" cardlist w-full flex justify-center overflow-visible mt-6">
+						<div className="swiper mySwiper max-w-[800px] overflow-visible">
+							<div className="swiper-wrapper">
+								{petList.map((pet, idx) =>
+									pet ? (
+										<div
+											className="swiper-slide w-[420px]"
+											key={pet.id}
+											data-pet-id={pet.id}
+										>
+											<PetIdCardLite pet={pet} />
+										</div>
+									) : (
+										<div
+											className="swiper-slide w-[420px] opacity-30 flex justify-center"
+											key={`empty-${idx}`}
+										>
+											<div className="ani-card bg-gray-100 w-[400px] rounded-xl shadow flex items-center justify-center text-gray-500">
+												<img
+													src="/img/default-card.png"
+													alt="등록된 펫 없음"
+													className="w-full h-full opacity-60"
+													loading="lazy"
+												/>
+											</div>
+										</div>
+									)
+								)}
+							</div>
+						</div>
+					</div>
+				);
+			}
+
+			const root = ReactDOM.createRoot(document.getElementById("root"));
+			root.render(<App />);
+		</script>
+
+
+		<script>
+			window.addEventListener('message', function (event) {
+				if (event.data.type === 'CREW_CLICKED') {
+					const crewId = event.data.data.crewId;
+					location.href = `/usr/crewCafe/cafeHome?crewId=${crewId}`;
+				}
+			});	
+		</script>
+
+		<!-- Toast 먼저 정의 -->
+		<script>
+			const Toast = Swal.mixin({
+				toast: true,
+				position: "top-end",
+				showConfirmButton: false,
+				timer: 2500,
+				timerProgressBar: true,
+				didOpen: (toast) => {
+					toast.onmouseenter = Swal.stopTimer;
+					toast.onmouseleave = Swal.resumeTimer;
+				}
+			});
+		</script>
+</body>
+
+</html>

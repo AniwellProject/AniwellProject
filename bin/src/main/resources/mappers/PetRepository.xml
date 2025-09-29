@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetRepository">
+
+    <!-- 펫 목록 조회 -->
+    <select id="getPetsByMemberId" parameterType="int" resultType="com.example.RSW.vo.Pet">
+        SELECT
+            p.id,
+            p.memberId,
+            p.name,
+            p.species,
+            p.breed,
+            p.gender,
+            p.birthDate,
+            p.weight
+        FROM pet p
+        WHERE p.memberId = #{memberId}
+    </select>
+
+    <!-- 펫 삭제 -->
+    <delete id="deletePet" parameterType="int">
+        DELETE FROM pet WHERE id = #{id}
+    </delete>
+
+    <!-- 펫 등록 -->
+    <insert id="insertPet">
+        INSERT INTO pet
+        (memberId, name, species, breed, gender, birthDate, weight, photo)
+        VALUES
+            (#{memberId}, #{name}, #{species}, #{breed}, #{gender}, #{birthDate}, #{weight}, #{photo})
+    </insert>
+
+    <!-- 마지막 삽입된 ID 조회 -->
+    <select id="getLastInsertId" resultType="int">
+        SELECT LAST_INSERT_ID();
+    </select>
+
+    <!-- 펫 수정 (사진 없이) -->
+    <update id="updatePetWithoutPhoto" parameterType="map">
+        UPDATE pet
+        SET name = #{name}, species = #{species}, breed = #{breed},
+            gender = #{gender}, birthDate = #{birthDate}, weight = #{weight}
+        WHERE id = #{petId}
+    </update>
+
+    <!-- 펫 수정 (사진 포함) -->
+    <update id="updatePet" parameterType="map">
+        UPDATE pet
+        SET name = #{name}, species = #{species}, breed = #{breed},
+            gender = #{gender}, birthDate = #{birthDate}, weight = #{weight}, photo = #{photo}
+        WHERE id = #{petId}
+    </update>
+
+    <!-- 펫 ID로 조회 -->
+    <select id="getPetsById" parameterType="int" resultType="com.example.RSW.vo.Pet">
+        SELECT
+            p.id,
+            p.memberId,
+            p.name,
+            p.species,
+            p.breed,
+            p.gender,
+            p.birthDate,
+            p.weight
+        FROM pet p
+        WHERE p.id = #{petId}
+    </select>
+
+</mapper>

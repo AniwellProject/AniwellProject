@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.ReplyRepository">
+
+    <select id="getForPrintReplies"
+            resultType="com.example.RSW.vo.Reply">
+        SELECT R.*, M.nickname AS extra__writer
+        FROM reply AS R
+                 INNER JOIN `member` AS M
+                            ON R.memberId = M.id
+        WHERE relTypeCode =
+              #{relTypeCode}
+          AND relId = #{relId}
+        ORDER BY R.id ASC;
+    </select>
+
+    <insert id="writeReply">
+        INSERT INTO reply
+        SET regDate = NOW(),
+		updateDate =
+		NOW(),
+		memberId = #{loginedMemberId},
+            relTypeCode = #{relTypeCode},
+            relId = #{relId},
+            `body` = #{body}
+    </insert>
+
+    <select id="getLastInsertId" parameterType="int">
+        SELECT
+            LAST_INSERT_ID()
+    </select>
+
+    <select id="getReply" parameterType="int">
+        SELECT R.*
+        FROM reply AS R
+        WHERE R.id = #{id}
+    </select>
+
+    <update id="modifyReply">
+        UPDATE reply
+        SET `body` = #{body},
+            updateDate = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteReply">
+        DELETE FROM reply
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -1,0 +1,809 @@
+<!-- templates/usr/pet/ocr.html -->
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="utf-8" />
+	<title>병원 방문 이력 등록</title>
+
+	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+
+	<!-- Spring Security CSRF (있을 때만 렌더) -->
+	<th:block th:with="csrf=${#request.getAttribute('org.springframework.security.web.csrf.CsrfToken')}" th:if="${csrf != null}">
+		<meta name="_csrf" th:content="${csrf.token}" />
+		<meta name="_csrf_header" th:content="${csrf.headerName}" />
+	</th:block>
+
+	<style>
+		:root { --grad1:#e4f0b9; --grad2:#fcdca9; --ink:#0f172a; --mut:#64748b; --line:#ececec; }
+
+		/* ===== OCR 전용 스코프 ===== */
+		#ocr * { box-sizing: border-box; }
+		#ocr h2 { margin: 0 0 12px; font-weight:800; letter-spacing:-.2px; }
+		#ocr .small { font-size: 12px; color:#666; }
+
+		/* 버튼 */
+		#ocr .btn { display:inline-flex; align-items:center; gap:6px; padding: 10px 16px; border:1px solid rgba(0,0,0,.06); border-radius:999px; background:#fff; color:var(--ink); cursor:pointer; box-shadow:0 2px 0 rgba(0,0,0,.05); white-space:nowrap; line-height:1; transition: transform .15s ease, box-shadow .2s ease, filter .2s ease; }
+		#ocr .btn:hover { filter: brightness(0.985); }
+		#ocr .btn:active { transform: translateY(0); box-shadow:0 1px 0 rgba(0,0,0,.05); }
+		#ocr .btn:disabled { opacity:.6; cursor:not-allowed; }
+		#ocr .btn.primary { background: linear-gradient(135deg, var(--grad1) 0%, var(--grad2) 100%); color:#0f172a; box-shadow: 0 2px 0 rgba(0,0,0,.04), 0 10px 20px rgba(252,220,169,.35); }
+		#ocr .btn.primary:hover { filter: brightness(0.98); transform: translateY(-1px); }
+		#ocr .btn.primary:active { filter: brightness(0.97); transform: translateY(0); box-shadow:0 1px 0 rgba(0,0,0,.04), 0 6px 14px rgba(252,220,169,.30); }
+		#ocr .btn.ghost { background:transparent; border-color:#e9e9e9; color:#555; };
+
+		#ocr .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:12px 0 16px; }
+
+		/* ★ OCR 내부 2열 레이아웃 */
+		#ocr .ocr-grid { display:grid; gap:18px; align-items:start; grid-template-columns: 1fr; }
+		@media (min-width:1024px){
+			#ocr .ocr-grid { grid-template-columns: minmax(320px, 420px) 1fr; }
+		}
+
+		/* 카드 */
+		#ocr .card { background:#fff; border:1px solid #eee; border-radius:16px; padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.06); height:70vh; overflow:auto;}
+		#ocr .card h3 { margin:0 0 10px; font-size:16px; }
+
+		/* 미리보기 */
+		#ocr .preview-wrap { position:relative; background: radial-gradient(120% 120% at 10% 0%, #fff4a3 0%, #fcdca9 40%, #ffe066 100%); border-radius:14px; padding:16px; overflow:hidden; border:1px solid #f2e6a0; }
+		#ocr .preview-img { width:100%; max-height:520px; object-fit:contain; display:block; border-radius:12px; background:#fff7cf; }
+		#ocr .badge { position:absolute; top:12px; left:12px; background:#000; color:#fff; font-size:12px; padding:6px 10px; border-radius:999px; opacity:.82; }
+
+		/* 메타/그룹/행 */
+		#ocr .meta { display:grid; grid-template-columns: 100px 1fr; gap:6px 10px; font-size:13px; margin-top:10px; }
+		#ocr .meta b { color:#666; }
+
+		#ocr .group { border:1px solid #eee; border-radius:12px; margin:10px 0; overflow:hidden; }
+		#ocr .group > summary { cursor:pointer; padding:12px; font-weight:700; background:#fffdf0; border-bottom:1px solid #eee; }
+		#ocr .group .inner { padding:12px; }
+		#ocr .row { display:flex; gap:8px; align-items:center; margin:6px 0; }
+		#ocr .row input[type="date"] { height:36px; padding:6px 10px; border:1px solid #ddd; border-radius:10px; }
+		#ocr .row .spacer { flex:1; }
+
+		/* 테이블: OCR 영역에만 적용 */
+		#ocr table { width:100%; border-collapse:collapse; border-radius:10px; overflow:hidden; margin-top:6px; }
+		#ocr thead th { background:#faf7e0; font-size:12px; color:#555; padding:8px; text-align:left; border-bottom:1px solid #eee; }
+		#ocr td { border-bottom:1px solid #f3f3f3; padding:6px; }
+		#ocr td input, #ocr td select, #ocr td textarea { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:10px; font-size:13px; background:#fff; }
+		#ocr td textarea { min-height:36px; resize:vertical; }
+
+		#ocr tfoot td { background:#fcfcfc; }
+		#ocr .row-actions { white-space:nowrap; }
+		#ocr .footer-bar { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+		#ocr .section-title { margin-top:8px; font-weight:700; font-size:14px; }
+		#ocr .center { text-align:center; }
+
+		/* 폼 가독성(다크모드에서도 검정 글자) */
+		#ocr input, #ocr select, #ocr textarea, #ocr button { color:#111; background:#fff; }
+		#ocr table input, #ocr table select, #ocr table textarea { color:#111; background:#fff; }
+		#ocr input, #ocr select, #ocr textarea { -webkit-text-fill-color:#111; caret-color:#111; }
+		#ocr input::placeholder, #ocr textarea::placeholder { color:#999; opacity:1; }
+	</style>
+</head>
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+<div class="flex h-screen">
+	<!-- Sidebar -->
+	<div th:replace="common :: siteHeader"></div>
+
+	<!-- Main content -->
+	<main class="main_page h-full overflow-y-auto min-h-dvh box-border flex-1 p-6 grid grid-cols-12 gap-4">
+		<!-- ▼ 메인 그리드에서 전체 폭 차지 -->
+		<div id="ocr" class="col-span-12 w-full">
+			<h2>병원 방문 이력 등록</h2>
+
+			<div class="toolbar">
+				<input id="file" type="file" accept="image/*" />
+				<button id="run" type="button" class="btn primary">OCR 실행</button>
+				<span class="small">이미지 업로드 → OCR → 우측에서 값 확인/수정 → 저장</span>
+			</div>
+
+			<div class="toolbar">
+				<label for="docType"><b>문서 유형</b></label>
+				<select id="docType" class="btn">
+					<option value="auto" selected>자동 (추천)</option>
+					<option value="lab">검사결과 (lab)</option>
+					<option value="receipt">영수증 (receipt)</option>
+					<option value="diagnosis">진단서 (diagnosis)</option>
+				</select>
+				<label class="btn"><input type="checkbox" id="saveAllGroups"> 모든 그룹 저장</label>
+				<button id="btnSaveOcr" type="button" class="btn primary">저장</button>
+			</div>
+
+			<!-- ★ OCR 내부 레이아웃 -->
+			<div class="ocr-grid">
+				<!-- 좌: 이미지 & 메타 -->
+				<section class="card">
+					<h3>미리보기</h3>
+					<div class="preview-wrap">
+						<span id="docTypeBadge" class="badge">-</span>
+						<img id="imgPreview" class="preview-img" alt="preview" />
+					</div>
+					<div class="meta">
+						<b>문서유형</b><span id="metaDocType">-</span>
+						<b>그룹 수</b><span id="metaGroups">-</span>
+						<b>엔진</b><span id="metaEngine">-</span>
+						<b>등록일시</b><span id="metaCreatedAt">-</span>
+						<b>파일</b><span id="metaFileUrl" class="small">-</span>
+					</div>
+				</section>
+
+				<!-- 우: 편집기 -->
+				<section class="card">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+						<h3>데이터 편집</h3>
+						<div class="small">문서 유형에 맞는 컬럼으로 편집합니다.</div>
+					</div>
+					<div id="editor"></div>
+					<div class="footer-bar">
+						<button id="btnAddGroup" class="btn">+ 그룹 추가</button>
+						<span class="spacer" style="flex:1"></span>
+						<button id="btnSaveOcr2" class="btn primary">저장</button>
+					</div>
+				</section>
+			</div>
+
+			<!-- diagnosis key 힌트 -->
+			<datalist id="dx-key-hints">
+				<option value="hospital"></option>
+				<option value="address"></option>
+				<option value="doctor"></option>
+				<option value="diagnosis"></option>
+				<option value="symptoms"></option>
+				<option value="therapy"></option>
+				<option value="prognosis"></option>
+				<option value="notes"></option>
+			</datalist>
+		</div>
+		<!-- ▲ OCR 블록 끝 -->
+	</main>
+</div>
+
+<script>
+	// ===== 상태 =====
+	let __rawParsedData = null;
+	let __uploadedFileUrl = null;
+	let __normalized = null;
+	let __userTouchedDocType = false;
+
+	// ===== DOM =====
+	const $file   = document.getElementById('file');
+	const $run    = document.getElementById('run');
+	const $save   = document.getElementById('btnSaveOcr');
+	const $save2  = document.getElementById('btnSaveOcr2');
+	const $addGrp = document.getElementById('btnAddGroup');
+	const $docSel = document.getElementById('docType');
+	const $editor = document.getElementById('editor');
+	const $img    = document.getElementById('imgPreview');
+	const $badge  = document.getElementById('docTypeBadge');
+
+	$docSel.addEventListener('change', () => {
+		__userTouchedDocType = true;
+		if (__rawParsedData) {
+			__normalized = normalizeParsed(__rawParsedData, getSelectedDocType());
+			renderMetaAndPreview(__normalized, {data:__rawParsedData});
+			renderEditor(__normalized);
+		}
+	});
+
+	// ===== 유틸 =====
+	function getCsrf(){
+		const t=document.querySelector('meta[name="_csrf"]');
+		const h=document.querySelector('meta[name="_csrf_header"]');
+		return (t && h && t.content && h.content) ? {header:h.content, token:t.content} : null;
+	}
+	function getQueryParam(name){ return new URLSearchParams(location.search).get(name); }
+	function parseNumOrNull(v){ if(v==null) return null; const s=String(v).trim(); if(!s) return null; const n=Number(s); return Number.isFinite(n)?n:null; }
+	function toggleBusy(b){ $run.disabled=b; $save.disabled=b; $save2.disabled=b; }
+	function pickData(json){ return json?.data ?? json?.data1 ?? json?.data2 ?? json?.data3 ?? null; }
+	function toYYYYMMDD(s){
+		if(!s) return null;
+		const m = String(s).match(/(\d{4})[.\-\/\s년]?\s*(\d{1,2})[.\-\/\s월]?\s*(\d{1,2})/);
+		if(!m) return null;
+		return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+	}
+	function numOrNull(x){
+		if (x==null || x==='') return null;
+		const c = String(x).replace(/[^0-9.\-]/g,'');
+		if (!c || c==='.' || c==='-' || c==='-.') return null;
+		const n = Number(c); return Number.isFinite(n) ? n : null;
+	}
+	function numOrRaw(x){
+		if (x==null || x==='') return null;
+		const c = String(x).replace(/[^0-9.\-]/g,'');
+		if (!c || c==='.' || c==='-' || c==='-.') return String(x);
+		const n = Number(c); return Number.isFinite(n) ? n : String(x);
+	}
+	function safeStr(v){ return (v === null || v === undefined) ? '' : String(v); }
+
+	// ===== docType =====
+	function getSelectedDocType(data){
+		const sel = $docSel?.value || 'auto';
+		if (sel !== 'auto') return sel;
+		return data?.docType || data?.suggestedDocType || 'lab';
+	}
+
+	// ---- LAB ----
+	function canonicalTestName(s){
+		if (!s) return null;
+		let t = String(s).trim();
+		t = t.replace(/\bPH\b/g, 'pH')
+				.replace(/\bPO2\b/g, 'pO2')
+				.replace(/\bPCO2\b/g, 'pCO2')
+				.replace(/\bS0?2\b/gi, 'SO2');
+		return t;
+	}
+	function parseRefRange(r){
+		if(!r) return {};
+		const s = String(r).replace(/[,()]/g,' ').replace(/\s+/g,' ');
+		const m = s.match(/(-?\d+(?:\.\d+)?)\s*(?:~|to|[-–])\s*(-?\d+(?:\.\d+)?)/i);
+		return m ? { low: Number(m[1]), high: Number(m[2]) } : {};
+	}
+	function normalizeFlag(v){
+		if (v == null) return null;
+		const s = String(v).trim().toLowerCase();
+		if (s === 'h' || /high|상승|▲|↑/.test(s)) return 'H';
+		if (s === 'l' || /low|저하|▼|↓/.test(s))  return 'L';
+		if (!s) return null;
+		return 'N';
+	}
+	function normalizeLabItem(it){
+		const testName    = canonicalTestName(it.testName ?? it.name ?? it.item ?? it.test ?? it.label ?? null);
+		let   resultValue = it.resultValue ?? it.value ?? it.result ?? it.val ?? null;
+		const unit        = it.unit ?? it.u ?? null;
+
+		let refLow  = it.refLow  ?? it.ref_low  ?? it.low    ?? it.refMin ?? null;
+		let refHigh = it.refHigh ?? it.ref_high ?? it.high   ?? it.refMax ?? null;
+		if ((refLow == null || refHigh == null) && it.refRange) {
+			const rr = parseRefRange(it.refRange);
+			refLow  = refLow  ?? rr.low  ?? null;
+			refHigh = refHigh ?? rr.high ?? null;
+		}
+		let flag  = normalizeFlag(it.flag ?? it.status ?? it.judge ?? it.mark ?? null);
+		const notes = it.notes ?? it.note ?? it.remark ?? it.comment ?? null;
+
+		resultValue = numOrRaw(resultValue);
+		if (refLow  != null)  refLow  = numOrRaw(refLow);
+		if (refHigh != null)  refHigh = numOrRaw(refHigh);
+
+		return { testName, resultValue, unit, refLow, refHigh, flag, notes };
+	}
+
+	// ---- DIAGNOSIS ----
+	function normalizeDxItem(it){
+		const key = it.key ?? it.name ?? null;
+		const value = (it.value ?? it.val ?? it.text ?? null);
+		return { key, value };
+	}
+
+	// ---- RECEIPT ----
+	function splitReceiptItems(items){
+		const meta=[], lines=[], summary=[];
+		(items||[]).forEach(it => {
+			if (it?.type === 'line' || (it?.item && (it?.unitPrice!=null || it?.qty!=null || it?.total!=null))) {
+				lines.push({
+					item: it.item ?? null,
+					unitPrice: numOrNull(it.unitPrice),
+					qty: numOrNull(it.qty),
+					total: numOrNull(it.total)
+				});
+			} else if (it?.type === 'summary' || (it?.key && /total|합계|총액/i.test(String(it.key)))) {
+				summary.push({ key: it.key ?? 'total', value: numOrRaw(it.value) });
+			} else if (it?.key) {
+				meta.push({ key: it.key, value: it.value ?? null });
+			}
+		});
+		return { meta, lines, summary };
+	}
+
+	/* ✅ 영수증에서 '방문 사유'로 보일 만한 값을 추정 (있으면 자동 채움) */
+	function guessVisitReason(group){
+		if (!group) return '';
+		if (group.reason) return String(group.reason);
+		const items = group.items || [];
+		const candidates = [
+			'reason','visit_reason','visitReason','chief complaint','complaint','cc',
+			'증상','방문사유','내원사유','주호소'
+		];
+		for (const it of items){
+			const k = (it?.key || '').toString().toLowerCase();
+			if (!k) continue;
+			if (candidates.some(c => k.includes(c.toLowerCase()))) {
+				return String(it?.value ?? '');
+			}
+		}
+		return '';
+	}
+
+	// 전체 데이터 → 선택된 docType 정규화
+	function normalizeParsed(data, docType){
+		const dt = docType || data?.docType || data?.suggestedDocType || 'lab';
+		const groups = (data?.groups || []).map(g => {
+			const date = toYYYYMMDD(g.date) || g.date || null;
+			let items;
+			if (dt === 'lab') items = (g.items || []).map(normalizeLabItem);
+			else if (dt === 'diagnosis') items = (g.items || []).map(normalizeDxItem);
+			else items = Array.isArray(g.items) ? g.items : []; // receipt 포함
+			return { ...g, date, items };
+		});
+		return { ...data, docType: dt, groups };
+	}
+
+	// ===== 편집기 렌더 =====
+	function renderEditor(data){
+		const dt = getSelectedDocType(data);
+		$editor.innerHTML = '';
+		const groups = Array.isArray(data?.groups) ? data.groups : [];
+
+		if (dt === 'lab') {
+			const defs = [
+				{ key:'testName',    label:'검사항목' },
+				{ key:'resultValue', label:'결과값' },
+				{ key:'unit',        label:'단위' },
+				{ key:'refLow',      label:'참고하한' },
+				{ key:'refHigh',     label:'참고상한' },
+				{ key:'flag',        label:'판정 (L/N/H)' },
+				{ key:'notes',       label:'비고' },
+			];
+			(groups.length ? groups : [{date: new Date().toISOString().slice(0,10), items:[{}]}]).forEach((g, gi) => {
+				$editor.appendChild(renderLabGroupCard(g, gi, defs));
+			});
+			return;
+		}
+
+		if (dt === 'diagnosis') {
+			(groups.length ? groups : [{date: new Date().toISOString().slice(0,10), items:[{key:'diagnosis', value:''}]}]).forEach((g, gi) => {
+				$editor.appendChild(renderDiagnosisGroupCard(g, gi));
+			});
+			return;
+		}
+
+		if (dt === 'receipt') {
+			(groups.length ? groups : [{date: new Date().toISOString().slice(0,10), items:[]}]).forEach((g, gi) => {
+				$editor.appendChild(renderReceiptGroupCard(g, gi));
+			});
+			return;
+		}
+
+		$editor.textContent = '지원되지 않는 문서 유형입니다.';
+	}
+
+	// ---- LAB 그룹 카드 ----
+	function isNumberKey(key){ return /(value|low|high|days)$/i.test(key); }
+	function isTextareaKey(key){ return /notes?|comment/i.test(key); }
+
+	function renderLabGroupCard(group, gi, defs){
+		const $details = document.createElement('details');
+		$details.className = 'group group-lab';
+		$details.open = (gi === 0);
+
+		const $summary = document.createElement('summary');
+		const count = Array.isArray(group?.items) ? group.items.length : 0;
+		$summary.textContent = `그룹 #${gi+1} · ${group?.date || '(날짜 없음)'} · ${count}개 항목`;
+		$details.appendChild($summary);
+
+		const $inner = document.createElement('div');
+		$inner.className = 'inner';
+
+		const $row = document.createElement('div');
+		$row.className = 'row';
+		const $date = document.createElement('input'); $date.type='date'; $date.value = toYYYYMMDD(group?.date) || ''; $date.dataset.role='group-date';
+		const $del = document.createElement('button'); $del.className='btn ghost'; $del.textContent='그룹 삭제';
+		$del.onclick = ()=>{ $details.remove(); renumberGroups(); };
+		$row.appendChild($date); const sp=document.createElement('span'); sp.className='spacer'; $row.appendChild(sp); $row.appendChild($del);
+		$inner.appendChild($row);
+
+		const $table = document.createElement('table'); $table.dataset.keys = JSON.stringify(defs.map(d=>d.key));
+		const $thead = document.createElement('thead'); const trh=document.createElement('tr');
+		defs.forEach(d=>{ const th=document.createElement('th'); th.textContent=d.label; trh.appendChild(th); });
+		const thAct = document.createElement('th'); thAct.textContent='작업'; trh.appendChild(thAct); $thead.appendChild(trh); $table.appendChild($thead);
+
+		const $tbody = document.createElement('tbody');
+		(group?.items || [{}]).forEach(item => {
+			const tr = document.createElement('tr');
+			defs.forEach(d => {
+				const td = document.createElement('td');
+				let el;
+				if (d.key==='flag'){
+					el=document.createElement('select'); ['','L','N','H'].forEach(v=>{const o=document.createElement('option'); o.value=v; o.textContent=v||'-'; if(safeStr(item[d.key])===v)o.selected=true; el.appendChild(o);});
+				} else if (isTextareaKey(d.key)){
+					el=document.createElement('textarea'); el.value=safeStr(item[d.key]);
+				} else {
+					el=document.createElement('input'); el.type=isNumberKey(d.key)?'number':'text'; if(isNumberKey(d.key)) el.step='any'; el.value=safeStr(item[d.key]);
+				}
+				el.dataset.key=d.key; td.appendChild(el); tr.appendChild(td);
+			});
+			const tdAct=document.createElement('td'); tdAct.className='row-actions center';
+			const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove();
+			tdAct.appendChild(del); tr.appendChild(tdAct); $tbody.appendChild(tr);
+		});
+		$table.appendChild($tbody);
+		const $tfoot=document.createElement('tfoot'); const trf=document.createElement('tr'); const tdf=document.createElement('td'); tdf.colSpan=defs.length+1;
+		const addBtn=document.createElement('button'); addBtn.className='btn'; addBtn.textContent='+ 항목 추가'; addBtn.onclick=()=>{
+			const tr=document.createElement('tr');
+			defs.forEach(d=>{ const td=document.createElement('td'); let el=document.createElement(isTextareaKey(d.key)?'textarea':'input'); if(!isTextareaKey(d.key)){el.type=isNumberKey(d.key)?'number':'text'; if(isNumberKey(d.key)) el.step='any';} el.dataset.key=d.key; td.appendChild(el); tr.appendChild(td); });
+			const tdAct=document.createElement('td'); tdAct.className='row-actions center';
+			const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdAct.appendChild(del); tr.appendChild(tdAct);
+			$tbody.appendChild(tr);
+		};
+		tdf.appendChild(addBtn); trf.appendChild(tdf); $tfoot.appendChild(trf); $table.appendChild($tfoot);
+
+		$inner.appendChild($table);
+		$details.appendChild($inner);
+		return $details;
+	}
+
+	// ---- DIAGNOSIS ----
+	function renderDiagnosisGroupCard(group, gi){
+		const $details=document.createElement('details');
+		$details.className='group group-dx'; $details.open=(gi===0);
+
+		const $summary=document.createElement('summary');
+		const count = Array.isArray(group?.items) ? group.items.length : 0;
+		$summary.textContent=`그룹 #${gi+1} · ${group?.date || '(날짜 없음)'} · ${count}개 필드`;
+		$details.appendChild($summary);
+
+		const $inner=document.createElement('div'); $inner.className='inner';
+
+		const $row=document.createElement('div'); $row.className='row';
+		const $date=document.createElement('input'); $date.type='date'; $date.value=toYYYYMMDD(group?.date)||''; $date.dataset.role='group-date';
+		const $del=document.createElement('button'); $del.className='btn ghost'; $del.textContent='그룹 삭제'; $del.onclick=()=>{$details.remove(); renumberGroups();};
+		$row.appendChild($date); const sp=document.createElement('span'); sp.className='spacer'; $row.appendChild(sp); $row.appendChild($del);
+		$inner.appendChild($row);
+
+		const $table=document.createElement('table'); $table.dataset.kind='dx';
+		const $thead=document.createElement('thead'); const trh=document.createElement('tr');
+		['항목키','값','작업'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); }); $thead.appendChild(trh); $table.appendChild($thead);
+
+		const $tbody=document.createElement('tbody');
+		(group?.items||[{key:'diagnosis', value:''}]).forEach(it=>{
+			const tr=document.createElement('tr');
+			const tdKey=document.createElement('td'); const inKey=document.createElement('input'); inKey.setAttribute('list','dx-key-hints'); inKey.value=safeStr(it.key); inKey.dataset.role='dx-key'; tdKey.appendChild(inKey); tr.appendChild(tdKey);
+			const tdVal=document.createElement('td'); const inVal=document.createElement('textarea'); inVal.value=safeStr(it.value); inVal.dataset.role='dx-value'; tdVal.appendChild(inVal); tr.appendChild(tdVal);
+			const tdAct=document.createElement('td'); tdAct.className='row-actions center'; const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdAct.appendChild(del); tr.appendChild(tdAct);
+			$tbody.appendChild(tr);
+		});
+		$table.appendChild($tbody);
+
+		const $tfoot=document.createElement('tfoot'); const trf=document.createElement('tr'); const tdf=document.createElement('td'); tdf.colSpan=3;
+		const addBtn=document.createElement('button'); addBtn.className='btn'; addBtn.textContent='+ 필드 추가'; addBtn.onclick=()=>{
+			const tr=document.createElement('tr');
+			const tdKey=document.createElement('td'); const inKey=document.createElement('input'); inKey.setAttribute('list','dx-key-hints'); inKey.dataset.role='dx-key'; tdKey.appendChild(inKey); tr.appendChild(tdKey);
+			const tdVal=document.createElement('td'); const inVal=document.createElement('textarea'); inVal.dataset.role='dx-value'; tdVal.appendChild(inVal); tr.appendChild(tdVal);
+			const tdAct=document.createElement('td'); tdAct.className='row-actions center'; const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdAct.appendChild(del); tr.appendChild(tdAct);
+			$tbody.appendChild(tr);
+		};
+		tdf.appendChild(addBtn); trf.appendChild(tdf); $tfoot.appendChild(trf); $table.appendChild($tfoot);
+
+		$inner.appendChild($table); $details.appendChild($inner); return $details;
+	}
+
+	// ---- RECEIPT ----
+	function renderReceiptGroupCard(group, gi){
+		const $details=document.createElement('details');
+		$details.className='group group-rcpt'; $details.open=(gi===0);
+
+		const $summary=document.createElement('summary');
+		const {meta, lines, summary} = splitReceiptItems(group?.items||[]);
+		const totalRows = meta.length + lines.length + summary.length;
+		const reasonPreview = (guessVisitReason(group) || '').slice(0, 18);
+		$summary.textContent=`그룹 #${gi+1} · ${group?.date || '(날짜 없음)'} · ${totalRows}개 항목`
+				+ (reasonPreview ? ` · 사유: ${reasonPreview}${(guessVisitReason(group).length>18)?'…':''}` : '');
+		$details.appendChild($summary);
+
+		const $inner=document.createElement('div'); $inner.className='inner';
+
+		const $row=document.createElement('div'); $row.className='row';
+		const $date=document.createElement('input'); $date.type='date'; $date.value=toYYYYMMDD(group?.date)||''; $date.dataset.role='group-date';
+		const $del=document.createElement('button'); $del.className='btn ghost'; $del.textContent='그룹 삭제'; $del.onclick=()=>{$details.remove(); renumberGroups();};
+		$row.appendChild($date); const sp=document.createElement('span'); sp.className='spacer'; $row.appendChild(sp); $row.appendChild($del);
+		$inner.appendChild($row);
+
+		/* ✅ 보호자 입력: 방문 사유/증상 */
+		const $reasonTitle=document.createElement('div'); $reasonTitle.className='section-title'; $reasonTitle.textContent='방문 사유/증상 (보호자 입력)';
+		const $reason=document.createElement('textarea'); $reason.dataset.role='rcpt-reason';
+		$reason.placeholder='예: 토함, 설사, 식욕부진 등'; $reason.style.minHeight='64px';
+		$reason.value = group?.reason ?? guessVisitReason(group) ?? '';
+		$inner.appendChild($reasonTitle); $inner.appendChild($reason);
+
+		// META
+		const $metaTitle=document.createElement('div'); $metaTitle.className='section-title'; $metaTitle.textContent='메타 (key/value)';
+		const $metaTable=document.createElement('table'); $metaTable.dataset.part='meta';
+		$metaTable.innerHTML = `<thead><tr><th>Key</th><th>Value</th><th>작업</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="3"></td></tr></tfoot>`;
+		const $metaBody=$metaTable.querySelector('tbody'); const $metaFoot=$metaTable.querySelector('tfoot td');
+		(meta.length?meta:[{key:'store',value:''},{key:'total',value:''}]).forEach(m=>{
+			const tr=document.createElement('tr');
+			const tdK=document.createElement('td'); const inK=document.createElement('input'); inK.value=safeStr(m.key); inK.dataset.role='rcpt-meta-key'; tdK.appendChild(inK); tr.appendChild(tdK);
+			const tdV=document.createElement('td'); const inV=document.createElement('input'); inV.value=safeStr(m.value); inV.dataset.role='rcpt-meta-value'; tdV.appendChild(inV); tr.appendChild(tdV);
+			const tdA=document.createElement('td'); tdA.className='row-actions center'; const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdA.appendChild(del); tr.appendChild(tdA);
+			$metaBody.appendChild(tr);
+		});
+		const addMeta=document.createElement('button'); addMeta.className='btn'; addMeta.textContent='+ 메타 추가';
+		addMeta.onclick=()=>{ const tr=document.createElement('tr');
+			tr.innerHTML=`<td><input data-role="rcpt-meta-key"></td><td><input data-role="rcpt-meta-value"></td><td class="row-actions center"><button class="btn ghost">삭제</button></td>`;
+			tr.querySelector('button').onclick=()=>tr.remove(); $metaBody.appendChild(tr);
+		};
+		$metaFoot.appendChild(addMeta);
+
+		// LINES
+		const $lineTitle=document.createElement('div'); $lineTitle.className='section-title'; $lineTitle.textContent='라인아이템';
+		const $lineTable=document.createElement('table'); $lineTable.dataset.part='lines';
+		$lineTable.innerHTML = `<thead><tr><th>항목</th><th>단가</th><th>수량</th><th>합계</th><th>작업</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="5"></td></tr></tfoot>`;
+		const $lineBody=$lineTable.querySelector('tbody'); const $lineFoot=$lineTable.querySelector('tfoot td');
+		(lines.length?lines:[{item:'진료비',unitPrice:null,qty:null,total:null}]).forEach(li=>{
+			$lineBody.appendChild(makeLineRow(li));
+		});
+		const addLine=document.createElement('button'); addLine.className='btn'; addLine.textContent='+ 라인 추가';
+		addLine.onclick=()=>{ $lineBody.appendChild(makeLineRow({item:'',unitPrice:null,qty:null,total:null})); };
+		$lineFoot.appendChild(addLine);
+
+		// SUMMARY
+		const $sumTitle=document.createElement('div'); $sumTitle.className='section-title'; $sumTitle.textContent='요약 (summary)';
+		const $sumTable=document.createElement('table'); $sumTable.dataset.part='summary';
+		$sumTable.innerHTML = `<thead><tr><th>Key</th><th>Value</th><th>작업</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="3"></td></tr></tfoot>`;
+		const $sumBody=$sumTable.querySelector('tbody'); const $sumFoot=$sumTable.querySelector('tfoot td');
+		(summary.length?summary:[{key:'total', value:''}]).forEach(s=>{
+			const tr=document.createElement('tr');
+			const tdK=document.createElement('td'); const inK=document.createElement('input'); inK.value=safeStr(s.key); inK.dataset.role='rcpt-sum-key'; tdK.appendChild(inK); tr.appendChild(tdK);
+			const tdV=document.createElement('td'); const inV=document.createElement('input'); inV.value=safeStr(s.value); inV.dataset.role='rcpt-sum-value'; tdV.appendChild(inV); tr.appendChild(tdV);
+			const tdA=document.createElement('td'); tdA.className='row-actions center'; const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdA.appendChild(del); tr.appendChild(tdA);
+			$sumBody.appendChild(tr);
+		});
+		const addSum=document.createElement('button'); addSum.className='btn'; addSum.textContent='+ 요약 추가';
+		addSum.onclick=()=>{ const tr=document.createElement('tr');
+			tr.innerHTML=`<td><input data-role="rcpt-sum-key"></td><td><input data-role="rcpt-sum-value"></td><td class="row-actions center"><button class="btn ghost">삭제</button></td>`;
+			tr.querySelector('button').onclick=()=>tr.remove(); $sumBody.appendChild(tr);
+		};
+		$sumFoot.appendChild(addSum);
+
+		$inner.appendChild($metaTitle); $inner.appendChild($metaTable);
+		$inner.appendChild($lineTitle); $inner.appendChild($lineTable);
+		$inner.appendChild($sumTitle);  $inner.appendChild($sumTable);
+
+		$details.appendChild($inner);
+		return $details;
+	}
+
+	function makeLineRow(li){
+		const tr=document.createElement('tr');
+		const tdItem=document.createElement('td'); const inItem=document.createElement('input'); inItem.value=safeStr(li.item); inItem.dataset.role='rcpt-line-item'; tdItem.appendChild(inItem); tr.appendChild(tdItem);
+		const tdU=document.createElement('td'); const inU=document.createElement('input'); inU.type='number'; inU.step='any'; inU.value=li.unitPrice??''; inU.dataset.role='rcpt-line-unit'; tdU.appendChild(inU); tr.appendChild(tdU);
+		const tdQ=document.createElement('td'); const inQ=document.createElement('input'); inQ.type='number'; inQ.step='any'; inQ.value=li.qty??''; inQ.dataset.role='rcpt-line-qty'; tdQ.appendChild(inQ); tr.appendChild(tdQ);
+		const tdT=document.createElement('td'); const inT=document.createElement('input'); inT.type='number'; inT.step='any'; inT.value=li.total??''; inT.dataset.role='rcpt-line-total'; tdT.appendChild(inT); tr.appendChild(tdT);
+		const tdA=document.createElement('td'); tdA.className='row-actions center'; const del=document.createElement('button'); del.className='btn ghost'; del.textContent='삭제'; del.onclick=()=>tr.remove(); tdA.appendChild(del); tr.appendChild(tdA);
+		const recalc=()=>{ const u=numOrNull(inU.value); const q=numOrNull(inQ.value); if(u!=null && q!=null){ inT.value = String(u*q); } };
+		inU.addEventListener('input', recalc); inQ.addEventListener('input', recalc);
+		return tr;
+	}
+
+	function renumberGroups(){
+		document.querySelectorAll('#editor .group > summary').forEach((s, i) => {
+			const rest = (s.textContent||'').replace(/^그룹\s#\d+/, '').trim();
+			s.textContent = `그룹 #${i+1} ${rest ? '· '+rest : ''}`;
+		});
+	}
+
+	// ===== 수집 → groups =====
+	function collectGroupsFromDOM(){
+		const dt = getSelectedDocType(__normalized);
+		if (dt === 'lab')      return collectLabGroups();
+		if (dt === 'diagnosis')return collectDxGroups();
+		if (dt === 'receipt')  return collectReceiptGroups();
+		return [];
+	}
+
+	function collectLabGroups(){
+		const groups=[];
+		document.querySelectorAll('#editor .group-lab').forEach($g=>{
+			const date = ($g.querySelector('[data-role="group-date"]')?.value || '').trim() || null;
+			const items=[];
+			$g.querySelectorAll('tbody tr').forEach(tr=>{
+				const obj={};
+				tr.querySelectorAll('td [data-key]').forEach(input=>{
+					const k=input.dataset.key;
+					let v=(input.tagName==='SELECT'?input.value:input.value.trim());
+					if(v==='') v=null;
+					if(v!=null && /(value|low|high)$/i.test(k)){ const n=Number(v); v=Number.isFinite(n)?n:v; }
+					obj[k]=v;
+				});
+				if(Object.values(obj).some(v=>v!==null && v!=='')) items.push(obj);
+			});
+			if(date || items.length) groups.push({date, items});
+		});
+		return groups;
+	}
+
+	function collectDxGroups(){
+		const groups=[];
+		document.querySelectorAll('#editor .group-dx').forEach($g=>{
+			const date = ($g.querySelector('[data-role="group-date"]')?.value || '').trim() || null;
+			const items=[];
+			$g.querySelectorAll('tbody tr').forEach(tr=>{
+				const key = tr.querySelector('[data-role="dx-key"]')?.value?.trim() || null;
+				const value = tr.querySelector('[data-role="dx-value"]')?.value?.trim() || null;
+				if (key || value) items.push({ key, value });
+			});
+			if(date || items.length) groups.push({date, items});
+		});
+		return groups;
+	}
+
+	function collectReceiptGroups(){
+		const groups=[];
+		document.querySelectorAll('#editor .group-rcpt').forEach($g=>{
+			const date = ($g.querySelector('[data-role="group-date"]')?.value || '').trim() || null;
+
+			/* ✅ 방문 사유/증상 수집 */
+			const reason = $g.querySelector('[data-role="rcpt-reason"]')?.value?.trim() || null;
+
+			const items=[];
+			$g.querySelectorAll('[data-part="meta"] tbody tr').forEach(tr=>{
+				const key = tr.querySelector('[data-role="rcpt-meta-key"]')?.value?.trim() || null;
+				const value = tr.querySelector('[data-role="rcpt-meta-value"]')?.value?.trim() || null;
+				if (key || value) items.push({ key, value });
+			});
+			$g.querySelectorAll('[data-part="lines"] tbody tr').forEach(tr=>{
+				const item = tr.querySelector('[data-role="rcpt-line-item"]')?.value?.trim() || null;
+				const unitPrice = numOrNull(tr.querySelector('[data-role="rcpt-line-unit"]')?.value);
+				const qty       = numOrNull(tr.querySelector('[data-role="rcpt-line-qty"]')?.value);
+				const total     = numOrNull(tr.querySelector('[data-role="rcpt-line-total"]')?.value) ?? ((unitPrice!=null && qty!=null) ? unitPrice*qty : null);
+				if (item || unitPrice!=null || qty!=null || total!=null) items.push({ type:'line', item, unitPrice, qty, total });
+			});
+			$g.querySelectorAll('[data-part="summary"] tbody tr').forEach(tr=>{
+				const key = tr.querySelector('[data-role="rcpt-sum-key"]')?.value?.trim() || null;
+				const value = tr.querySelector('[data-role="rcpt-sum-value"]')?.value?.trim() || null;
+				if (key || value) items.push({ type:'summary', key, value: numOrRaw(value) });
+			});
+
+			if(date || items.length || reason) groups.push({date, items, reason}); // ✅ reason 포함
+		});
+		return groups;
+	}
+
+	// ===== 메타/미리보기 =====
+	function renderMetaAndPreview(data, rawJson) {
+		const docType = getSelectedDocType(data);
+		const groups  = Array.isArray(data?.groups) ? data.groups : [];
+		document.getElementById('metaDocType').textContent = docType || '-';
+		document.getElementById('metaGroups').textContent  = `${groups.length}개`;
+		document.getElementById('metaEngine').textContent  = data?.ocrMeta?.engine || '-';
+		document.getElementById('metaCreatedAt').textContent = data?.createdAt || '-';
+		document.getElementById('metaFileUrl').textContent = data?.fileUrl || '-';
+		$badge.textContent = (docType || '-').toUpperCase();
+
+		if (data?.fileUrl) { __uploadedFileUrl = data.fileUrl; $img.src = data.fileUrl; }
+		else if ($file.files?.[0]) { $img.src = URL.createObjectURL($file.files[0]); }
+		else { $img.removeAttribute('src'); }
+
+		if (!__userTouchedDocType) {
+			if (docType && $docSel.querySelector(`option[value="${docType}"]`)) $docSel.value = docType;
+		}
+	}
+
+	// ===== 저장 payload =====
+	function getBestGroup(groups = []) {
+		const safe = groups.filter(g => Array.isArray(g?.items));
+		if (!safe.length) return null;
+		const withDate = safe.filter(g=>g.date && g.items.length);
+		if (withDate.length) return withDate.sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+		return [...safe].sort((a,b)=> (b.items.length||0) - (a.items.length||0))[0];
+	}
+
+	function buildStructuredPayload(base = {}) {
+		const editedGroups = collectGroupsFromDOM();
+		const toSave = (document.getElementById('saveAllGroups')?.checked) ? editedGroups : [getBestGroup(editedGroups)].filter(Boolean);
+		return {
+			...base,
+			docType: getSelectedDocType(__normalized),
+			groups: toSave,
+			parseVersion: 'lab-v3.2'  // 텍스트는 더 이상 저장하지 않음
+		};
+	}
+
+	// ===== OCR 실행 =====
+	async function runOcr(){
+		const f = $file.files?.[0];
+		if (!f) { alert('이미지를 선택하세요.'); return; }
+
+		const form = new FormData(); form.append('file', f);
+		const headers = {}; const csrf=getCsrf(); if (csrf) headers[csrf.header]=csrf.token;
+
+		toggleBusy(true);
+		try {
+			const res = await fetch('/api/ocr/extract', { method:'POST', body:form, headers });
+			if (!res.ok) { const text = await res.text().catch(()=> ''); throw new Error(`HTTP ${res.status} ${res.statusText}${text? ' - '+text : ''}`); }
+			const json = await res.json();
+
+			__rawParsedData   = pickData(json) || {};
+			__uploadedFileUrl = __rawParsedData?.fileUrl ?? __uploadedFileUrl ?? null;
+
+			__normalized = normalizeParsed(__rawParsedData, getSelectedDocType(__rawParsedData));
+			renderMetaAndPreview(__normalized, json);
+			renderEditor(__normalized);
+		} catch (e) {
+			console.error(e); alert('요청 실패: ' + (e?.message || e));
+		} finally {
+			toggleBusy(false);
+		}
+	}
+	$run.onclick = runOcr;
+
+	// ===== 저장 =====
+	async function saveOcr() {
+		const editedGroups = collectGroupsFromDOM();
+		if (!editedGroups.length) { alert('저장할 그룹이 없습니다. 먼저 OCR을 실행하거나 수동으로 그룹/항목을 추가하세요.'); return; }
+
+		const petId   = parseNumOrNull(getQueryParam('petId'));
+		const visitId = parseNumOrNull(getQueryParam('visitId'));
+		const csrf = getCsrf();
+
+		toggleBusy(true);
+		try {
+			let json;
+			if (__uploadedFileUrl) {
+				const payload = buildStructuredPayload({ visitId: visitId || null, petId: visitId ? null : petId, fileUrl: __uploadedFileUrl });
+				const headers = { 'Content-Type': 'application/json' }; if (csrf) headers[csrf.header] = csrf.token;
+				const res = await fetch('/api/ocr/save', { method:'POST', headers, body: JSON.stringify(payload) });
+				json = await res.json();
+			} else {
+				const f = $file.files?.[0];
+				if (!f) { alert('파일이 없습니다. 먼저 이미지를 선택하고 OCR 실행을 해주세요.'); toggleBusy(false); return; }
+				const payload = buildStructuredPayload({});
+				const form = new FormData();
+				form.append('file', f);
+				form.append('docType', payload.docType);
+				form.append('groups', JSON.stringify(payload.groups));
+				form.append('parseVersion', payload.parseVersion);
+				if (visitId != null) form.append('visitId', String(visitId));
+				if (visitId == null && petId) form.append('petId', String(petId));
+				const headers = {}; if (csrf) headers[csrf.header] = csrf.token;
+				const res = await fetch('/api/ocr/save-with-file', { method:'POST', headers, body: form });
+				json = await res.json();
+			}
+
+			if (json?.resultCode?.startsWith('S-')) {
+				const out = json.data ?? json.data1 ?? json.data2 ?? json.data3 ?? {};
+				if (out.fileUrl && !__uploadedFileUrl) __uploadedFileUrl = out.fileUrl;
+			} else {
+				console.error('OCR 저장 실패:', json);
+				alert(`저장 실패: ${json?.msg || '서버 오류'}`);
+			}
+		} catch (e) {
+			console.error(e); alert('저장 중 오류가 발생했습니다.');
+		} finally {
+			toggleBusy(false);
+		}
+	}
+	document.getElementById('btnSaveOcr')?.addEventListener('click', saveOcr);
+	document.getElementById('btnSaveOcr2')?.addEventListener('click', saveOcr);
+
+	// 그룹 추가
+	$addGrp?.addEventListener('click', () => {
+		const dt = getSelectedDocType(__normalized || __rawParsedData || {});
+		let $g;
+		if (dt==='lab') $g = renderLabGroupCard({date: new Date().toISOString().slice(0,10), items:[{}]}, document.querySelectorAll('#editor .group').length, [
+			{ key:'testName',    label:'검사항목' },
+			{ key:'resultValue', label:'결과값' },
+			{ key:'unit',        label:'단위' },
+			{ key:'refLow',      label:'참고하한' },
+			{ key:'refHigh',     label:'참고상한' },
+			{ key:'flag',        label:'판정 (L/N/H)' },
+			{ key:'notes',       label:'비고' },
+		]);
+		else if (dt==='diagnosis') $g = renderDiagnosisGroupCard({date: new Date().toISOString().slice(0,10), items:[{key:'diagnosis', value:''}]}, document.querySelectorAll('#editor .group').length);
+		else if (dt==='receipt')   $g = renderReceiptGroupCard({date: new Date().toISOString().slice(0,10), items:[], reason:''}, document.querySelectorAll('#editor .group').length);
+		else                       $g = document.createTextNode('지원되지 않는 문서 유형');
+		if ($g && $g.nodeType!==3) { $editor.appendChild($g); $g.open = true; renumberGroups(); }
+	});
+
+	// 파일 선택 시: 미리보기 후 자동 OCR
+	$file?.addEventListener('change', () => {
+		if ($file.files?.[0]) {
+			$img.src = URL.createObjectURL($file.files[0]);
+			setTimeout(() => { if (!$run.disabled) runOcr(); }, 30);
+		}
+	});
+</script>
+</body>
+</html>

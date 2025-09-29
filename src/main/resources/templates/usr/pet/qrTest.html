@@ -1,0 +1,282 @@
+<!-- src/main/resources/templates/usr/pet/qr_button.html -->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>QR 만들기</title>
+
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+
+	<style>
+		/* --- 카드 & 레이아웃 --- */
+		.aw-card { background: #fff; border: 1px solid #ececec; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+		.aw-chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #e5e7eb; background:#f8fafc; color:#0f172a; }
+		.aw-divider { height:1px; background:linear-gradient(90deg,transparent,#eee,transparent); }
+
+		/* --- 버튼 --- */
+		.aw-btn { appearance:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid #e5e7eb; background:#111; color:#fff; border-radius:12px; padding:11px 16px; cursor:pointer; font-weight:600; }
+		.aw-btn:disabled { opacity:.6; cursor:not-allowed; }
+		.aw-btn-subtle { background:#fff; color:#111; }
+
+		/* --- QR 박스 & 스켈레톤 --- */
+		.qr-box { width: 260px; height: 260px; border: 1px solid #ececec; border-radius: 14px; overflow: hidden; display:flex; align-items:center; justify-content:center; background:#fff; }
+		.skeleton { position:relative; width:100%; height:100%; background:linear-gradient(90deg,#f4f4f5 25%, #e9ecef 37%, #f4f4f5 63%); background-size:400% 100%; animation:shimmer 1.2s infinite; }
+		@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+		/* --- 토스트 --- */
+		.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 14px; background: #111; color:#fff; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,.18); opacity:0; transform: translateY(8px); transition: .25s ease; pointer-events:none; }
+		.toast.show { opacity:1; transform: translateY(0); }
+		/* gradient buttons (match page bg) */
+		.aw-btn-gradient{
+			background: linear-gradient(135deg,#e4f0b9 0%,#fcdca9 100%);
+			color:#0f172a;
+			border:1px solid rgba(0,0,0,.06);
+			box-shadow: 0 2px 0 rgba(0,0,0,.04), 0 10px 20px rgba(252,220,169,.35);
+			transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+		}
+		.aw-btn-gradient:hover{ filter: brightness(0.98); transform: translateY(-1px); }
+		.aw-btn-gradient:active{ filter: brightness(0.97); transform: translateY(0); box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 6px 14px rgba(252,220,169,.30); }
+		.aw-btn-gradient:disabled{ opacity:.6; cursor:not-allowed; }
+		.aw-btn-gradient svg{ opacity:.9; }
+	</style>
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px] text-slate-900">
+<div class="flex h-screen w-full">
+	<!-- Sidebar (유지) -->
+	<div th:replace="common :: siteHeader"></div>
+
+	<!-- Main content (유지) -->
+	<main class="main_page h-full overflow-y-auto flex-1 min-h-dvh box-border">
+		<div class="mx-auto max-w-5xl px-6 pt-16 pb-16 md:pt-20 lg:pt-24 xl:pt-28">
+
+			<!-- 헤더 영역 -->
+			<header class="mb-6 flex items-center justify-between">
+				<div class="flex items-center gap-4">
+					<!-- QR 아이콘 -->
+					<svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z"/>
+						<path d="M14 14h3v3h-3zM18 14h3v7h-3zM14 18h3v3h-3z"/>
+					</svg>
+					<div>
+						<h1 class="text-2xl font-extrabold leading-tight">QR 생성</h1>
+						<p class="text-sm text-slate-600">반려병원 내원 시, QR만 보여주세요 🐾 한 장에 정리된 리포트로 문진 시간을 줄여요.</p>
+					</div>
+				</div>
+				<div class="aw-chip" id="statusChip">
+					<span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+					준비 완료
+				</div>
+			</header>
+
+			<!-- 콘텐츠 카드 -->
+			<section class="aw-card p-6">
+				<!-- 상단 컨트롤 바 -->
+				<div class="flex flex-wrap items-end gap-3">
+					<div class="flex flex-col">
+						<label class="text-xs text-slate-500 mb-1">Pet ID</label>
+						<input id="petIdInput" type="text" inputmode="numeric" placeholder="예: 1"
+							   class="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+					</div>
+					<div class="flex flex-col">
+						<label class="text-xs text-slate-500 mb-1">QR 크기</label>
+						<select id="sizeSelect" class="w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+							<option value="256">256 px</option>
+							<option value="384">384 px</option>
+							<option value="512" selected>512 px</option>
+							<option value="768">768 px</option>
+						</select>
+					</div>
+
+					<button id="btnMakeQr" class="aw-btn-gradient aw-btn ml-auto">
+						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+						QR 만들기
+					</button>
+				</div>
+
+				<div class="my-6 aw-divider"></div>
+
+				<!-- 미리보기 & 액션 -->
+				<div class="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-6 items-start">
+					<!-- QR 미리보기 카드 -->
+					<div class="flex flex-col items-center gap-3">
+						<div class="qr-box" id="qrBox">
+							<div id="skeleton" class="skeleton hidden" aria-hidden="true"></div>
+							<img id="qrImg" alt="QR" class="w-full h-full object-contain hidden" />
+						</div>
+						<p id="qrHint" class="text-xs text-slate-500">버튼을 눌러 QR 이미지를 생성하세요.</p>
+					</div>
+
+					<!-- 액션 패널 -->
+					<div class="flex flex-col gap-3">
+						<div class="flex flex-wrap gap-2">
+							<a id="qrDownload" class="aw-btn aw-btn-subtle" download="aniwell-qr.png" title="QR 다운로드">
+								<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
+								다운로드
+							</a>
+							<a id="qrOpen" class="aw-btn aw-btn-subtle" target="_blank" rel="noopener" title="새 창으로 열기">
+								<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 7h10v10H7z"/><path d="M14 7h3v3"/></svg>
+								새 창으로 열기
+							</a>
+							<button id="qrCopy" class="aw-btn aw-btn-subtle" title="링크 복사">
+								<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="2" y="2" width="13" height="13" rx="2"/></svg>
+								링크 복사
+							</button>
+						</div>
+
+						<ul class="mt-3 text-sm text-slate-600 list-disc pl-5">
+						</ul>
+					</div>
+				</div>
+			</section>
+		</div>
+	</main>
+</div>
+
+<!-- 서버에서 넘긴 값 주입 -->
+<script th:inline="javascript">
+	const PET_ID   = /*[[${petId}]]*/ null;
+	const VISIT_ID = /*[[${visitId}]]*/ null;
+</script>
+
+<script type="module">
+	// --- API BASE 결정: ?api=... 우선 적용 (뒷슬래시 제거) ---
+	const pageQS = new URLSearchParams(location.search);
+	const rawBase = (pageQS.get('api') || '').replace(/\/+$/, '');
+	const API_BASE = rawBase || '';
+
+	// base + path 안전 결합
+	const join = (base, path) => {
+		if (!base) return path;
+		const b = base.replace(/\/+$/, '');
+		const p = path.startsWith('/') ? path : `/${path}`;
+		return `${b}${p}`;
+	};
+
+	// 엘리먼트 바인딩
+	const btn = document.getElementById('btnMakeQr');
+	const img = document.getElementById('qrImg');
+	const box = document.getElementById('qrBox');
+	const skel = document.getElementById('skeleton');
+	const hint = document.getElementById('qrHint');
+	const dl  = document.getElementById('qrDownload');
+	const op  = document.getElementById('qrOpen');
+	const cp  = document.getElementById('qrCopy');
+	const sizeSel = document.getElementById('sizeSelect');
+	const petInput = document.getElementById('petIdInput');
+	const chip = document.getElementById('statusChip');
+
+	// 서버에서 petId 주입 시 입력창에 반영
+	if (typeof PET_ID !== 'undefined' && PET_ID !== null && String(PET_ID).trim() !== '') {
+		petInput.value = PET_ID;
+		petInput.disabled = true; // 서버에서 내려준 값이면 수정 불가
+	}
+
+	// 상태칩 업데이트
+	const setChip = (text, color='emerald') => {
+		chip.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-${color}-500"></span>${text}`;
+	};
+
+	// 크로스 도메인 다운로드 폴백(blob)
+	async function makeDownloadable(href) {
+		try {
+			const res = await fetch(href, { mode: 'cors' });
+			if (!res.ok) throw new Error('fetch failed');
+			const blob = await res.blob();
+			const url  = URL.createObjectURL(blob);
+			dl.href = url;
+			dl.download = 'aniwell-qr.png';
+			dl.dataset.blob = '1';
+		} catch {
+			dl.href = href; // 폴백 실패 시 원본 링크
+			dl.removeAttribute('data-blob');
+		}
+	}
+
+	// QR 생성
+	btn.addEventListener('click', async () => {
+		// petId 확보
+		let pid = (petInput.value || '').trim();
+		if (!pid && typeof PET_ID !== 'undefined' && PET_ID !== null) pid = String(PET_ID).trim();
+		if (!pid) {
+			petInput.focus();
+			petInput.classList.add('ring-2','ring-rose-400');
+			setTimeout(() => petInput.classList.remove('ring-2','ring-rose-400'), 1200);
+			return;
+		}
+
+		const size = (sizeSel.value || '512').trim();
+
+		btn.disabled = true;
+		setChip('생성 중…', 'amber');
+		hint.textContent = '잠시만 기다려주세요. 이미지를 생성하고 있어요.';
+
+		// 스켈레톤 on
+		skel.classList.remove('hidden');
+		img.classList.add('hidden');
+
+		// 쿼리 구성
+		const qs = new URLSearchParams({ petId: pid, size });
+		if (typeof VISIT_ID !== 'undefined' && VISIT_ID !== null && String(VISIT_ID).trim() !== '') {
+			qs.set('visitId', VISIT_ID);
+		}
+
+		const src = join(API_BASE, `/api/qr?${qs.toString()}`);
+
+		// 기존 blob URL 정리
+		if (dl.dataset.blob === '1' && dl.href.startsWith('blob:')) {
+			URL.revokeObjectURL(dl.href);
+			dl.removeAttribute('data-blob');
+		}
+
+		// 이미지 로딩
+		const done = () => { btn.disabled = false; };
+		img.onload = async () => {
+			skel.classList.add('hidden');
+			img.classList.remove('hidden');
+			hint.textContent = '생성이 완료됐어요. 아래 버튼으로 저장/공유할 수 있어요.';
+			setChip('준비 완료', 'emerald');
+			await makeDownloadable(src);
+			done();
+		};
+		img.onerror = () => {
+			skel.classList.add('hidden');
+			img.classList.add('hidden');
+			hint.textContent = 'QR 생성에 실패했습니다. 서버 응답을 확인해주세요.';
+			setChip('오류 발생', 'rose');
+			done();
+		};
+
+		op.href = src;
+		img.src = src;
+	});
+
+	// 링크 복사 + 토스트
+	const toast = document.createElement('div');
+	toast.className = 'toast';
+	toast.textContent = '링크가 복사되었습니다!';
+	document.body.appendChild(toast);
+
+	cp.addEventListener('click', async () => {
+		const href = op.href;
+		try {
+			await navigator.clipboard.writeText(href);
+			toast.classList.add('show');
+			setTimeout(() => toast.classList.remove('show'), 1200);
+		} catch { alert('복사에 실패했습니다.'); }
+	});
+
+	// 페이지 이탈 시 blob URL 해제
+	window.addEventListener('beforeunload', () => {
+		if (dl.dataset.blob === '1' && dl.href.startsWith('blob:')) {
+			URL.revokeObjectURL(dl.href);
+		}
+	});
+</script>
+
+</body>
+</html>

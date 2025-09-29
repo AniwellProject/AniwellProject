@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<title>감정일기</title>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+	<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" th:href="@{/resource/css/common.css}">
+	<link rel="stylesheet" th:href="@{/resource/css/global.css}">
+	<style>
+		body {
+			margin: 0;
+			background: #b7b7b7;
+			display: flex;
+			justify-content: end;
+			align-items: center;
+			height: 100vh;
+		}
+
+		.main-container {
+			display: flex;
+			background: white;
+			width: 90%;
+			height: 100%;
+			border-radius: 20px 0 0 20px;
+			box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
+			overflow: hidden;
+		}
+
+		.content-area {
+			flex-grow: 1;
+			padding: 30px;
+			display: flex;
+			flex-direction: column;
+			gap: 40px;
+			background: white;
+		}
+
+		/* 달력 전체 */
+		#calendar {
+			background: white;
+			border-radius: 20px;
+			padding: 10px;
+			box-shadow: none;
+			width: 100%;
+			border: none;
+		}
+
+		.fc .fc-daygrid-day-frame {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			height: 100%;
+		}
+
+		.fc .fc-button:focus {
+			outline: none !important;
+			box-shadow: none !important;
+			border: none !important;
+		}
+
+		/* 헤더: 2025년 7월 + 좌우 화살표 */
+		.fc-toolbar-title {
+			font-size: 18px;
+			font-weight: 600;
+			margin-bottom: 10px;
+		}
+
+		.fc .fc-button {
+			background: transparent;
+			border: none;
+			color: #d3cfc2;
+			font-size: 20px;
+			transition: 0.2s ease;
+		}
+
+		.fc .fc-button:hover {
+			color: #b4ae9c;
+			background: transparent;
+		}
+
+
+		/* 요일 (일~토) */
+		.fc-col-header-cell {
+			font-weight: bold;
+			font-size: 15px;
+			color: #333;
+			padding: 10px 0;
+			border: none !important;
+			background: none !important;
+		}
+
+		.fc {
+			background: transparent !important;
+			box-shadow: none !important;
+			border: none !important;
+		}
+
+
+
+		/* 날짜 셀 - 테두리 제거 + 숫자 크게 */
+		.fc-daygrid-day {
+			border: none !important;
+			background: none;
+			text-align: center;
+			font-size: 20px;
+			color: #333;
+			height: 50px;
+			vertical-align: middle;
+			padding: 0;
+			position: relative;
+		}
+
+		/* 지난달/다음달 날짜 흐리게 */
+		.fc-day-other {
+			color: #ccc !important;
+		}
+
+		/* 오늘 날짜 하이라이트 (동그란 배경) */
+		.fc-day-today {
+			background: #e3e8b7 !important;
+			border-radius: 50% !important;
+			font-weight: bold;
+		}
+
+		/* 격자 테두리 완전히 제거 */
+		.fc-scrollgrid,
+		.fc-scrollgrid-section,
+		.fc-scrollgrid-sync-table,
+		.fc-col-header,
+		.fc-daygrid-body {
+			border: none !important;
+		}
+
+		.fc-theme-standard td,
+		.fc-theme-standard th {
+			border: none !important;
+		}
+
+		.calendar-event {
+			position: absolute;
+			top: -30px;
+			left: 4px;
+			font-size: 18px;
+		}
+
+		.calendar-event-icon {
+			position: absolute;
+			top: 4px;
+			left: 30px;
+			width: 20px;
+			height: 20px;
+		}
+
+		.calendar-birthday-icon {
+			position: absolute;
+			top: -5px;
+			left: 30px;
+			width: 25px;
+			height: 25px;
+		}
+
+		.fc-daygrid-event {
+			background: transparent !important;
+			border: none !important;
+			padding: 0;
+		}
+
+		.diary-panel {
+			flex-grow: 1;
+			background: white;
+			border-radius: 15px;
+			padding: 20px;
+			overflow-y: auto;
+		}
+
+		.diary-container {
+			border-radius: 15px;
+			padding: 20px;
+			box-shadow: inset 0 0 5px rgba(232, 240, 193);
+			overflow-y: auto;
+			height: 90%;
+		}
+
+		.diary-panel h2 {
+			margin-top: 0;
+		}
+
+		.entry {
+			background: #e8f0c1;
+			padding: 15px 20px;
+			margin: 15px auto;
+			border-radius: 20px;
+			color: #333;
+			max-width: 80%;
+			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+		}
+
+		.entry-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.entry-title {
+			font-size: 16px;
+			font-weight: bold;
+			display: flex;
+			align-items: center;
+			gap: 4px;
+		}
+
+		.entry-date {
+			font-size: 13px;
+			color: #555;
+			border-bottom: 1px solid #aaa;
+			padding-top: 3px;
+		}
+
+		.entry-content {
+			font-size: 14px;
+			white-space: pre-wrap;
+		}
+
+
+		.btn-register {
+			padding: 10px 15px;
+			background: #e8f0c1;
+			border: none;
+			border-radius: 10px;
+			cursor: pointer;
+			font-weight: bold;
+			margin: 30px auto 10px auto;
+			max-width: 80%;
+
+		}
+
+		.modal {
+			display: none;
+			position: fixed;
+			z-index: 100;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.3);
+		}
+
+		/* 🌿 말랑한 모달 박스 */
+		.modal-content {
+			background: white;
+			width: 90%;
+			max-width: 460px;
+			margin: 15% auto;
+			padding: 30px;
+			border-radius: 25px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+			border: 4px double #e0f2c2;
+		}
+
+		/* 제목 */
+		.modal-content h3 {
+			text-align: center;
+			font-size: 22px;
+			color: #444;
+			margin-bottom: 25px;
+		}
+
+		/* 날짜 input */
+		.modal-content label {
+			font-size: 14px;
+			font-weight: bold;
+			color: #777;
+			display: block;
+			margin-bottom: 12px;
+		}
+
+		/* 감정 버튼 영역 */
+		.emotion-btn-group {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 12px;
+			margin-bottom: 20px;
+		}
+
+		/* 감정 버튼 - 연초록 테마 */
+		.emotion-btn {
+			font-size: 16px;
+			padding: 10px 18px;
+			background: #f0f9e8;
+			border: 2px solid #c7e9b0;
+			border-radius: 40px;
+			cursor: pointer;
+			transition: 0.2s ease;
+			font-weight: 500;
+			box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.05);
+		}
+
+		.emotion-btn:hover {
+			background: #e3f6c9;
+		}
+
+		.emotion-btn.selected {
+			background: #c5e6a6;
+			color: #2e2e2e;
+		}
+
+		/* 일기 입력창 */
+		textarea#editDiaryContent,
+		textarea#diaryContent {
+			width: 100%;
+			height: 100px;
+			padding: 12px 14px;
+			font-size: 14px;
+			border: 1.5px solid #d0e4c1;
+			border-radius: 15px;
+			background: #fcfff9;
+			resize: vertical;
+			margin-top: 5px;
+		}
+
+		/* 하단 버튼 */
+		.modal-footer {
+			margin-top: 20px;
+			display: flex;
+			justify-content: space-between;
+			gap: 10px;
+		}
+
+		.modal-footer button {
+			flex: 1;
+			padding: 10px 0;
+			border-radius: 15px;
+			border: none;
+			font-size: 15px;
+			font-weight: bold;
+			cursor: pointer;
+			transition: 0.2s;
+		}
+
+		.modal-footer button:first-child {
+			background: #e0f3c5;
+			color: #333;
+		}
+
+		.modal-footer button:last-child {
+			background: #f1f1f1;
+			color: #333;
+		}
+
+		.modal-footer button:hover {
+			opacity: 0.9;
+		}
+
+		.top_btn {
+			display: flex;
+			justify-content: space-evenly;
+		}
+	</style>
+</head>
+
+<body class="bg-gradient-to-b from-[#e4f0b9] to-[#fcdca9] h-screen min-h-dvh min-w-[1400px]">
+	<div class="flex h-screen w-full">
+
+		<div th:replace="common :: siteHeader"></div>
+
+		<!-- Main content -->
+		<main class="main_page h-full overflow-y-auto min-h-dvh box-border flex-1 p-6 grid grid-cols-12 gap-4">
+			<div class="content-area col-span-6">
+				<div class="top_btn">
+					<button class="btn-register" id="btnGallery">갤러리</button>
+					<button class="btn-register" onclick="openModal()">+ 등록</button>
+				</div>
+				<div id="calendar"></div>
+			</div>
+
+			<div class="diary-panel col-span-6">
+				<h2>📓 감정일기</h2>
+				<div class="diary-container">
+					<div th:each="e : ${events}" class="entry" th:attr="data-id=${e.id}"
+						th:onclick="'openViewModal(' + ${e.id} + ')'">
+						<div class="entry-header">
+							<span class="entry-title">
+								<span th:text="${e.title}"></span>
+								<span>🐱</span>
+							</span>
+							<span class="entry-date" th:text="${e.eventDate}"></span>
+						</div>
+						<div class="entry-content" th:text="${e.content}"></div>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<!-- 등록 모달 -->
+		<div id="diaryModal" class="modal">
+			<div class="modal-content">
+				<h3>오늘의 감정 일기</h3>
+				<label>날짜: <input type="date" id="diaryDate"></label>
+				<div>
+					<p>감정:</p>
+					<button class="emotion-btn" data-emotion="happy">😊 행복</button>
+					<button class="emotion-btn" data-emotion="surprised">😮 놀람</button>
+					<button class="emotion-btn" data-emotion="sad">🥲 슬픔</button>
+					<button class="emotion-btn" data-emotion="relaxed">😌 평온</button>
+				</div>
+				<textarea id="diaryContent" placeholder="일기 내용을 입력해주세요..."></textarea>
+				<div class="modal-footer">
+					<button onclick="saveDiary()">등록</button>
+					<button onclick="closeModal()">닫기</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- 상세 보기 모달 -->
+		<div id="viewModal" class="modal">
+			<div class="modal-content">
+				<h3>📘 상세보기</h3>
+				<div class="modal-body" id="diaryDetail"></div>
+				<div class="modal-footer">
+					<button onclick="startEditFromView()">✏️ 수정</button>
+					<button onclick="deleteDiaryFromView()">🗑 삭제</button>
+					<button onclick="$('#viewModal').hide();">닫기</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- 수정 모달 -->
+		<div id="editModal" class="modal">
+			<div class="modal-content">
+				<h3>✏️ 감정일기 수정</h3>
+				<input type="hidden" id="editEventId">
+				<label>날짜: <input type="date" id="editDiaryDate"></label>
+				<div>
+					<p>감정:</p>
+					<button class="emotion-btn" data-emotion="happy">😊 행복</button>
+					<button class="emotion-btn" data-emotion="surprised">😮 놀람</button>
+					<button class="emotion-btn" data-emotion="sad">😿 슬픔</button>
+					<button class="emotion-btn" data-emotion="relaxed">😌 평온</button>
+				</div>
+				<textarea id="editDiaryContent"></textarea>
+				<div class="modal-footer">
+					<button onclick="updateDiary()">수정 완료</button>
+					<button onclick="$('#editModal').hide();">닫기</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script th:inline="javascript">
+		const petId = /*[[${petId}]]*/ 0;
+		const petBirthDate = /*[[${petBirthDate}]]*/ null; // "2020-08-01"
+		const emotionIcons = {happy: '😊', surprised: '😮', sad: '😿', relaxed: '😌'};
+		let currentDiaryData = null;
+		let calendar = null;
+
+		document.addEventListener('DOMContentLoaded', function () {
+			const calendarEl = document.getElementById('calendar');
+
+			calendar = new FullCalendar.Calendar(calendarEl, {
+				initialView: 'dayGridMonth',
+				locale: 'ko',
+				headerToolbar: {
+					left: 'prev',
+					center: 'title',
+					right: 'next'
+				},
+				titleFormat: {month: 'long'},
+				dayMaxEventRows: true,
+				editable: true,
+				dayCellContent: function (arg) {
+					return {html: '<div>' + arg.date.getDate() + '</div>'};
+				},
+				eventContent: function (arg) {
+					const eventDateStr = arg.event.startStr;
+
+					// 생일인지 판별
+					const isBirthday = (() => {
+						if (!petBirthDate) return false;
+						const birth = new Date(petBirthDate);
+						const date = new Date(eventDateStr);
+						return birth.getMonth() === date.getMonth() && birth.getDate() === date.getDate();
+					})();
+
+					// 🎂 생일이면 케이크 이미지, 아니면 발바닥 이미지
+					if (isBirthday) {
+						return {
+							html: '<img src="/img/cake.png" class="calendar-birthday-icon" alt="생일">'
+						};
+					} else {
+						return {
+							html: '<img src="/img/paw_active.png" class="calendar-event-icon" alt="감정일기">'
+						};
+					}
+				},
+				dateClick: function (info) {
+					const dateStr = info.dateStr;
+					const eventsOnDate = calendar.getEvents().filter(function (event) {
+						return event.startStr === dateStr;
+					});
+
+					if (eventsOnDate.length > 0) {
+						openViewModal(eventsOnDate[0].id);
+					} else {
+						document.getElementById('diaryDate').value = dateStr;
+						document.getElementById('diaryModal').style.display = 'block';
+					}
+				},
+				events: function (fetchInfo, successCallback, failureCallback) {
+					$.ajax({
+						url: '/usr/pet/daily/list',   // 컨트롤러에서 JSON으로 리턴
+						method: 'GET',
+						data: {petId: petId},
+						success: function (res) {
+							successCallback(res);
+						},
+						error: function () {
+							failureCallback();
+						}
+					});
+				},
+				datesSet: function () {
+					updateDiaryListForCurrentMonth();
+				},
+				eventDrop: function (info) {
+					const event = info.event;
+					const id = event.id;
+					const newDate = event.startStr;
+					const content = event.extendedProps.content || '';
+					const emotion = event.title;
+
+					if (!content) {
+						alert('내용이 없어 날짜를 옮길 수 없습니다.');
+						info.revert();
+						return;
+					}
+
+					$.post('/usr/pet/daily/domodify', {
+						id: id,
+						eventDate: newDate,
+						title: emotion,
+						content: content
+					}, function (res) {
+						if (res.resultCode && res.resultCode.startsWith('S-')) {
+							location.reload();
+						} else {
+							alert('날짜 변경 실패: ' + res.msg);
+							info.revert();
+						}
+					});
+				}
+			});
+
+			$(document).on('click', '.entry', function () {
+				const id = $(this).data('id');
+				if (id) {
+					openViewModal(id);
+				}
+			});
+
+			calendar.render();
+		});
+
+		function openModal() {
+			$('#diaryModal').show();
+			$('#diaryDate').val(new Date().toISOString().split('T')[0]);
+		}
+
+		function closeModal() {
+			$('#diaryModal').hide();
+			$('.emotion-btn').removeClass('selected');
+			$('#diaryContent').val('');
+		}
+
+		$(document).on('click', '.emotion-btn', function () {
+			$(this).siblings().removeClass('selected');
+			$(this).addClass('selected');
+		});
+
+		function saveDiary() {
+			const date = $('#diaryDate').val();
+			const content = $('#diaryContent').val();
+			const emotion = $('#diaryModal .emotion-btn.selected').data('emotion');
+
+			if (!emotion || !date || !content) {
+				alert('모든 항목을 입력하세요.');
+				return;
+			}
+
+			const alreadyExists = calendar.getEvents().some(event => event.startStr === date);
+			if (alreadyExists) {
+				alert('해당 날짜에 이미 감정일기가 존재합니다.');
+				return;
+			}
+
+			$.post('/usr/pet/daily/write', {
+				petId: petId,
+				eventDate: date,
+				title: emotion,
+				content: content
+			}, function (data) {
+				if (data.resultCode && data.resultCode.startsWith('S-')) {
+					location.reload();
+				} else {
+					alert('등록 실패: ' + data.msg);
+				}
+			});
+		}
+
+		function openViewModal(id) {
+			$.get('/usr/pet/daily/detail', {id: id}, function (res) {
+				if (res.resultCode === 'S-1') {
+					const e = res.calendarEvent;
+					currentDiaryData = e;
+
+					const html =
+						"<div><b>" + emotionIcons[e.title] + " " + e.title + "</b></div>" +
+						"<div>" + e.content + "</div>" +
+						"<div>" + e.eventDate + "</div>";
+
+					$('#diaryDetail').html(html);
+					$('#viewModal').show();
+				} else {
+					alert('일기 정보를 불러오지 못했습니다.');
+				}
+			});
+		}
+
+		function deleteDiaryFromView() {
+			if (!confirm('정말 삭제하시겠습니까?')) return;
+
+			const id = currentDiaryData.id;
+			$.post('/usr/pet/daily/delete', {id: id}, function (data) {
+				if (data.resultCode && data.resultCode.startsWith('S-')) {
+					calendar.getEventById(id)?.remove();
+					$('#viewModal').hide();
+					location.reload();
+				} else {
+					alert('삭제 실패: ' + data.msg);
+				}
+			});
+		}
+
+		function startEditFromView() {
+			const e = currentDiaryData;
+			$('#editEventId').val(e.id);
+			$('#editDiaryDate')
+				.val(e.eventDate)
+				.data('original-date', e.eventDate); // ✅ 원래 날짜 저장 (수정 방지용)
+			$('#editDiaryContent').val(e.content);
+			$('#editModal .emotion-btn').removeClass('selected');
+			$('#editModal .emotion-btn[data-emotion="' + e.title + '"]').addClass('selected');
+			$('#viewModal').hide();
+			$('#editModal').show();
+		}
+
+
+		function updateDiary() {
+			const id = $('#editEventId').val();
+			const date = $('#editDiaryDate').val();
+			const content = $('#editDiaryContent').val();
+			const emotion = $('#editModal .emotion-btn.selected').data('emotion');
+			const originalDate = $('#editDiaryDate').data('original-date'); // 숨겨둔 원본 날짜
+
+			if (!id || !date || !content || !emotion) {
+				alert('모든 항목을 입력하세요.');
+				return;
+			}
+
+			if (date !== originalDate) {
+				alert('감정일기의 날짜는 수정할 수 없습니다.');
+				$('#editDiaryDate').val(originalDate); // 다시 원래 날짜로 되돌림 (선택사항)
+				return;
+			}
+
+			$.post('/usr/pet/daily/domodify', {
+				id: id,
+				eventDate: date,
+				title: emotion,
+				content: content
+			}, function (res) {
+				if (res.resultCode && res.resultCode.startsWith('S-')) {
+					location.reload();
+				} else {
+					alert('수정 실패: ' + res.msg);
+				}
+			});
+		}
+
+
+		function updateDiaryListForCurrentMonth() {
+			const container = $('.diary-container');
+			container.empty();
+
+			// 보정된 현재 월 계산
+			const viewDate = calendar.view.currentStart;
+			const currentYear = viewDate.getFullYear();
+			const currentMonth = (viewDate.getMonth() + 1).toString().padStart(2, '0');  // +1 필요!
+
+			const targetMonth = `${currentYear}-${currentMonth}`;  // 예: "2025-07"
+
+			$.ajax({
+				url: '/usr/pet/daily/list',
+				method: 'GET',
+				data: {petId: petId},
+				success: function (events) {
+					const filtered = events.filter(e => e.start.slice(0, 7) === targetMonth);
+
+					if (filtered.length === 0) {
+						container.append('<div class="entry">이 달에는 감정일기가 없습니다.</div>');
+						return;
+					}
+
+					filtered.sort((a, b) => a.start.localeCompare(b.start)).forEach(function (e) {
+						const emotion = emotionIcons[e.title] || '';
+						const content = e.extendedProps?.content || '';
+						const date = e.start;
+
+						const html =
+							'<div class="entry" data-id="' + e.id + '">' +
+							'<div class="entry-header">' +
+							'<span class="entry-title">' + emotion + ' <b>' + e.title + '</b></span>' +
+							'<span class="entry-date">' + date + '</span>' +
+							'</div>' +
+							'<div class="entry-content">' + content + '</div>' +
+							'</div>';
+
+						container.append(html);
+					});
+				},
+				error: function () {
+					container.append('<div class="entry">❌ 감정일기 로딩 실패</div>');
+				}
+			});
+		}
+
+
+
+		$(document).off('click', '.entry').on('click', '.entry', function () {
+			const id = $(this).data('id');
+			if (id) {
+				openViewModal(id);
+			}
+		});
+
+
+
+	</script>
+	
+	<script>
+	  document.getElementById('btnGallery').addEventListener('click', () => {
+	    const params = new URLSearchParams(location.search);
+	    const pramPetId = params.get('petId');
+	    if (!petId) return alert('petId가 없습니다.');
+	    location.href = `/usr/pet/gallery?petId=${encodeURIComponent(pramPetId)}`;
+	  });
+	</script>
+
+</body>
+
+</html>

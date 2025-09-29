@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper
+	namespace="com.example.RSW.repository.PrescriptionDetailRepository">
+	<!-- 공통 매핑 -->
+	<!-- [수정] VO 실제 경로로 교정: com.example.domain → com.example.RSW.vo -->
+	<resultMap id="PrescriptionDetailMap"
+		type="com.example.RSW.vo.PrescriptionDetail">
+		<id property="id" column="id" />
+		<result property="documentId" column="document_id" />
+		<result property="drugName" column="drug_name" />
+		<result property="doseValue" column="dose_value" />
+		<result property="doseUnit" column="dose_unit" />
+		<result property="freqPerDay" column="freq_per_day" />
+		<result property="durationDays" column="duration_days" />
+		<result property="notes" column="notes" />
+	</resultMap>
+
+	<!-- INSERT (단건) -->
+	<!-- [수정] parameterType 패키지 교정 -->
+	<insert id="insert"
+		parameterType="com.example.RSW.vo.PrescriptionDetail"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO prescription_detail
+		(document_id, drug_name, dose_value, dose_unit, freq_per_day, duration_days, notes)
+		VALUES
+		(#{documentId}, #{drugName}, #{doseValue}, #{doseUnit}, #{freqPerDay},
+		#{durationDays}, #{notes})
+	</insert>
+
+
+	<!-- INSERT (배치) -->
+	<!-- (배치는 collection=list 사용이므로 parameterType 생략 OK) -->
+	<insert id="insertBatch">
+		INSERT INTO prescription_detail
+		(document_id, drug_name, dose_value, dose_unit, freq_per_day, duration_days, notes)
+		VALUES
+		<foreach collection="list" item="r" separator=",">
+			(#{r.documentId}, #{r.drugName}, #{r.doseValue}, #{r.doseUnit},
+			#{r.freqPerDay}, #{r.durationDays}, #{r.notes})
+		</foreach>
+	</insert>
+
+
+	<!-- UPDATE -->
+	<!-- [수정] parameterType 패키지 교정 -->
+	<update id="update"
+		parameterType="com.example.RSW.vo.PrescriptionDetail">
+		UPDATE prescription_detail
+		<set>
+			<if test="documentId   != null">document_id = #{documentId},</if>
+			<if test="drugName     != null and drugName != ''">drug_name = #{drugName},</if>
+			<if test="doseValue    != null">dose_value = #{doseValue},</if>
+			<if test="doseUnit     != null and doseUnit  != ''">dose_unit = #{doseUnit},</if>
+			<if test="freqPerDay   != null">freq_per_day = #{freqPerDay},</if>
+			<if test="durationDays != null">duration_days = #{durationDays},</if>
+			<if test="notes        != null">notes = #{notes}</if>
+		</set>
+		WHERE id = #{id}
+	</update>
+
+
+	<!-- DELETE -->
+	<delete id="delete" parameterType="int">
+		DELETE FROM prescription_detail WHERE id = #{id}
+	</delete>
+
+	<!-- SELECT: 기본 -->
+	<select id="selectById" parameterType="int"
+		resultMap="PrescriptionDetailMap">
+		SELECT id, document_id, drug_name, dose_value, dose_unit, freq_per_day,
+		duration_days, notes
+		FROM prescription_detail
+		WHERE id = #{id}
+	</select>
+
+	<!-- SELECT: 문서ID로 (처방전 1장에 여러 항목) -->
+	<!-- ⚠ 단일 기본형 파라미터를 이름으로 참조하므로 Mapper 인터페이스에 @Param("documentId") 권장 -->
+	<select id="selectByDocumentId" parameterType="int"
+		resultMap="PrescriptionDetailMap">
+		SELECT id, document_id, drug_name, dose_value, dose_unit, freq_per_day,
+		duration_days, notes
+		FROM prescription_detail
+		WHERE document_id = #{documentId}
+		ORDER BY id ASC
+	</select>
+
+	<!-- SELECT: 방문ID로 (medical_document JOIN) -->
+	<!-- ⚠ Mapper 인터페이스에 @Param("visitId") 권장 -->
+	<select id="selectByVisitId" parameterType="int"
+		resultMap="PrescriptionDetailMap">
+		SELECT pd.id, pd.document_id, pd.drug_name, pd.dose_value, pd.dose_unit,
+		pd.freq_per_day, pd.duration_days, pd.notes
+		FROM prescription_detail pd
+		JOIN medical_document md ON md.id = pd.document_id
+		WHERE md.doc_type = 'prescription'
+		AND md.visit_id = #{visitId}
+		ORDER BY pd.id ASC
+	</select>
+
+	<!-- SELECT: 펫ID로 (visit JOIN) -->
+	<!-- ⚠ Mapper 인터페이스에 @Param("petId") 권장 -->
+	<select id="selectByPetId" parameterType="int"
+		resultMap="PrescriptionDetailMap">
+		SELECT pd.id, pd.document_id, pd.drug_name, pd.dose_value, pd.dose_unit,
+		pd.freq_per_day, pd.duration_days, pd.notes
+		FROM prescription_detail pd
+		JOIN medical_document md ON md.id = pd.document_id
+		JOIN visit v ON v.id = md.visit_id
+		WHERE md.doc_type = 'prescription'
+		AND v.pet_id = #{petId}
+		ORDER BY v.visit_date DESC, pd.id ASC
+	</select>
+</mapper>

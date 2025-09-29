@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.ArticleRepository">
+
+    <insert id="writeArticle" parameterType="map">
+        INSERT INTO article
+        SET
+            regDate = NOW(),
+		updateDate = NOW(),
+		memberId = #{memberId},
+            boardId =
+            #{boardId},
+            title =
+            #{title},
+            `body` = #{body}
+    </insert>
+
+    <delete id="deleteArticle" parameterType="int">
+        DELETE FROM article
+        WHERE id = #{id}
+    </delete>
+
+    <update id="modifyArticle" parameterType="map">
+        UPDATE article
+        <set>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="body != null and body != ''">`body` = #{body},</if>
+            updateDate = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="increaseHitCount" parameterType="int">
+        UPDATE article
+        SET
+            hitCount = hitCount + 1
+        WHERE id = #{id}
+    </update>
+
+    <update id="increaseGoodReactionPoint" parameterType="int">
+        UPDATE
+            article
+        SET
+            goodReactionPoint = goodReactionPoint + 1
+        WHERE id = #{relId}
+    </update>
+
+    <update id="decreaseGoodReactionPoint" parameterType="int">
+        UPDATE
+            article
+        SET goodReactionPoint = goodReactionPoint - 1
+        WHERE id =
+              #{relId}
+    </update>
+
+    <update id="increaseBadReactionPoint" parameterType="int">
+        UPDATE
+            article
+        SET badReactionPoint = badReactionPoint + 1
+        WHERE id = #{relId}
+    </update>
+
+    <update id="decreaseBadReactionPoint" parameterType="int">
+        UPDATE
+            article
+        SET badReactionPoint = badReactionPoint - 1
+        WHERE id = #{relId}
+    </update>
+
+    <select id="getArticleHitCount" parameterType="int">
+        SELECT hitCount
+        FROM article
+        WHERE id = #{id}
+    </select>
+
+    <select id="getArticleCount" parameterType="int">
+        SELECT COUNT(*) , M.nickname AS extra__writer
+        FROM article AS A
+        INNER
+        JOIN `member` AS M
+        ON A.memberId = M.id
+        WHERE 1
+        <if test="boardId != 0">
+            AND A.boardId = #{boardId}
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchKeywordTypeCode == 'title'">
+                    AND A.title LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchKeywordTypeCode == 'body'">
+                    AND A.`body` LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchKeywordTypeCode == 'nickname'">
+                    AND M.nickname LIKE CONCAT('%', #{searchKeyword},
+                    '%')
+                </when>
+                <otherwise>
+                    AND A.title LIKE CONCAT('%', #{searchKeyword}, '%')
+                    OR
+                    A.`body` LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="getLastInsertId" parameterType="int">
+        SELECT
+            LAST_INSERT_ID()
+    </select>
+
+
+    <select id="getForPrintArticle" parameterType="int"
+            resultType="com.example.RSW.vo.Article">
+        SELECT A.*, M.nickname AS extra__writer
+        FROM article AS A
+                 INNER JOIN `member` AS M
+                            ON A.memberId = M.id
+        WHERE A.id = #{id}
+    </select>
+
+    <select id="getArticleById" parameterType="int"
+            resultType="com.example.RSW.vo.Article">
+        SELECT *
+        FROM article
+        WHERE id =#{id}
+    </select>
+
+    <select id="getForPrintArticles"
+            resultType="com.example.RSW.vo.Article">
+        SELECT A.*, M.nickname AS extra__writer, IFNULL(COUNT(R.id),0) AS
+        extra__repliesCount
+        FROM article AS A
+        INNER JOIN
+        `member` AS M
+        ON
+        A.memberId = M.id
+        LEFT JOIN `reply` AS R
+        ON A.id = R.relId
+        WHERE 1
+        <if test="boardId != 0">
+            AND boardId = #{boardId}
+        </if>
+        <if test="searchKeyword != ''">
+            <choose>
+                <when test="searchKeywordTypeCode == 'title'">
+                    AND A.title LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchKeywordTypeCode == 'body'">
+                    AND A.`body` LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchKeywordTypeCode == 'nickname'">
+                    AND M.nickname LIKE CONCAT('%', #{searchKeyword},
+                    '%')
+                </when>
+                <otherwise>
+                    AND A.title LIKE CONCAT('%', #{searchKeyword}, '%')
+                    OR
+                    A.`body` LIKE CONCAT('%', #{searchKeyword}, '%')
+                </otherwise>
+            </choose>
+        </if>
+        GROUP BY A.id
+        ORDER BY A.id
+        DESC
+        <if test="limitFrom >= 0">
+            LIMIT #{limitFrom}, #{limitTake}
+        </if>
+    </select>
+
+    <select id="getArticles"
+            resultType="com.example.RSW.vo.Article">
+        SELECT A.*, M.nickname AS extra__writer
+        FROM article AS A
+                 INNER JOIN `member` AS M
+                            ON A.memberId = M.id
+        ORDER BY A.id
+                DESC
+    </select>
+
+    <select id="getGoodRP">SELECT goodReactionPoint
+                           FROM article
+                           WHERE id =
+                                 #{relId}
+    </select>
+    <select id="getBadRP">SELECT badReactionPoint
+                          FROM article
+                          WHERE id =
+                                #{relId}
+    </select>
+
+</mapper>

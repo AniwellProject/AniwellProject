@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.example.RSW.repository.NotificationRepository">
+
+	<select id="findByMemberIdOrderByRegDateDesc"
+		resultType="com.example.RSW.vo.Notification" parameterType="int">
+		SELECT *
+		FROM notification
+		WHERE memberId = #{memberId}
+		ORDER BY regDate DESC
+	</select>
+
+	<select id="existsByMemberIdAndTitleAndLink"
+		resultType="boolean">
+
+		SELECT COUNT(*) > 0
+		FROM notification
+		WHERE memberId = #{memberId}
+		AND link = #{link}
+		AND title = #{title}
+
+	</select>
+
+	<insert id="save"
+		parameterType="com.example.RSW.vo.Notification"
+		useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO notification (memberId, title, link, regDate, isRead)
+		VALUES (#{memberId}, #{title}, #{link}, #{regDate}, #{isRead})
+	</insert>
+
+	<select id="findById"
+		resultType="com.example.RSW.vo.Notification" parameterType="int">
+		SELECT *
+		FROM notification
+		WHERE id = #{notificationId}
+	</select>
+
+	<select id="findRecentByMemberId"
+		resultType="com.example.RSW.vo.Notification">
+		SELECT *
+		FROM notification
+		WHERE memberId = #{memberId}
+		ORDER BY regDate DESC
+		LIMIT #{limit}
+	</select>
+
+	<!-- 안 읽은 알림 개수 -->
+	<select id="countUnreadByMemberId" resultType="int"
+		parameterType="int">
+		SELECT COUNT(*)
+		FROM notification
+		WHERE memberId = #{memberId}
+		AND isRead = FALSE
+	</select>
+
+
+	<!-- 전체 읽음 처리 -->
+	<update id="updateAllAsReadByMemberId">
+		UPDATE notification
+		SET isRead = true
+		WHERE memberId = #{memberId}
+	</update>
+
+
+	<delete id="deleteById">
+		DELETE
+		FROM notification
+		WHERE id = #{id}
+		AND memberId = #{memberId}
+	</delete>
+
+	<update id="updateRead">
+		UPDATE notification
+		SET isRead = true
+		WHERE id = #{notificationId}
+		AND memberId = #{memberId}
+	</update>
+
+	<delete id="deleteByLinkAndTitle">
+		DELETE
+		FROM notification
+		WHERE memberId = #{memberId}
+		AND link = #{link}
+		AND title = #{title}
+	</delete>
+
+	<insert id="insert" parameterType="Notification">
+		INSERT INTO notification
+		(memberId, title, link, regDate, isRead, senderId)
+		VALUES
+		(#{memberId}, #{title}, #{link}, #{regDate}, #{read}, #{senderId})
+	</insert>
+
+	<delete id="deleteByIdOnlyId" parameterType="int">
+		DELETE FROM notification
+		WHERE id = #{id}
+	</delete>
+
+	<delete id="deleteByMemberId" parameterType="int">
+		DELETE FROM notification
+		WHERE memberId = #{memberId}
+	</delete>
+
+	<update id="update">
+		UPDATE notification
+		SET isRead = #{read}
+		WHERE id = #{id}
+	</update>
+
+	<delete id="deleteAllByMemberId">
+		DELETE FROM notification
+		WHERE memberId = #{memberId}
+	</delete>
+
+	<delete id="deleteByLink">
+		DELETE FROM notification
+		WHERE link = #{link}
+	</delete>
+</mapper>

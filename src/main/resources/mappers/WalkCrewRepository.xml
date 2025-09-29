@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.WalkCrewRepository">
+
+	<!-- 크루 등록 (SET 방식) -->
+	<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+		INSERT
+		INTO walk_crew
+		SET title = #{title},
+		description = #{description},
+		district_id = #{districtId},
+		leaderId =
+		#{leaderId},
+		imageUrl =
+		#{imageUrl},
+		createdAt = NOW()
+	</insert>
+
+
+	<!-- 크루 단건 조회 -->
+	<select id="findById" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT *
+		FROM walk_crew
+		WHERE id
+		=
+		#{id}
+	</select>
+
+
+	<!-- 지역별 크루 리스트 -->
+	<select id="findByArea" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT * FROM walk_crew WHERE
+		area = #{area}
+	</select>
+
+	<!-- 전체 크루 리스트 -->
+	<select id="findAll" resultType="com.example.RSW.vo.WalkCrew">
+		SELECT
+		wc.id,
+		wc.title,
+		wc.description,
+		wc.imageUrl AS imageUrl,
+		wc.district_id AS districtId,
+		wc.leaderId,
+		wc.createdAt,
+		m.nickname,
+		d.city,
+		d.district,
+		d.dong
+		FROM
+		walk_crew wc
+		LEFT JOIN member m
+		ON wc.leaderId = m.id
+		LEFT JOIN district
+		d ON wc.district_id = d.id
+		ORDER BY wc.createdAt DESC
+	</select>
+
+
+	<!-- 크루 수정 -->
+	<update id="update">
+		UPDATE walk_crew
+		SET title = #{title},
+		description =
+		#{description},
+		area = #{area},
+		leaderId = #{leaderId}
+		WHERE id = #{id}
+	</update>
+
+	<!-- 크루 삭제 -->
+	<delete id="deleteById">
+		DELETE FROM walk_crew WHERE id = #{id}
+	</delete>
+
+	<insert id="insertMemberToCrew">
+		INSERT INTO walk_crew_member
+		SET memberId =
+		#{memberId},
+		crewId = #{crewId},
+		joinedAt = NOW()
+	</insert>
+
+	<select id="getAllCrews"
+		resultType="com.example.RSW.vo.WalkCrew">
+		SELECT
+		wc.id,
+		wc.title,
+		wc.description,
+		wc.district_id AS
+		districtId,
+		wc.leaderId,
+		wc.imageUrl,
+		wc.createdAt,
+		m.nickname,
+		d.city,
+		d.district,
+		d.dong
+		FROM walk_crew wc
+		INNER JOIN member
+		m ON wc.leaderId =
+		m.id
+		INNER
+		JOIN
+		district d ON wc.district_id = d.id
+		ORDER BY wc.createdAt
+		DESC
+	</select>
+
+
+	<select id="getWalkCrews"
+		resultType="com.example.RSW.vo.WalkCrew">
+		SELECT * FROM walk_crew WHERE id = #{memberId}
+	</select>
+
+	<!-- ✅ 특정 멤버가 해당 크루에 이미 참가했는지 확인 -->
+	<select id="countByCrewIdAndMemberId" resultType="int">
+		SELECT COUNT(*)
+		FROM walk_crew_member
+		WHERE crewId = #{crewId} AND memberId =
+		#{memberId}
+	</select>
+
+	<!-- ✅ 크루에 멤버 등록 -->
+	<insert id="insertCrewMember">
+		INSERT INTO walk_crew_member (crewId, memberId,
+		joinedAt)
+		VALUES (#{crewId}, #{memberId}, NOW())
+	</insert>
+
+	<select id="getApplicantsByCrewId" resultType="map">
+		SELECT
+		m.id AS
+		memberId,
+		m.name AS memberName,
+		wcm.joinedAt AS joinedAt
+		FROM
+		walk_crew_member wcm
+		INNER JOIN member m ON wcm.memberId = m.id
+		WHERE
+		wcm.crewId = #{crewId}
+		AND wcm.status = 'pending' <!-- ✅ 이 조건 추가 -->
+	</select>
+
+
+
+	<select id="getApplicantDetail" resultType="map">
+		SELECT
+		m.id AS
+		memberId,
+		m.name AS memberName,
+		m.nickname AS memberNickname,
+		m.address
+		AS memberAddress,
+		m.authLevel,
+		wcm.joinedAt
+		FROM walk_crew_member wcm
+		INNER JOIN member m ON wcm.memberId = m.id
+		WHERE wcm.crewId = #{crewId}
+		AND wcm.memberId = #{memberId}
+	</select>
+
+	<select id="isApprovedMember" resultType="int">
+		SELECT COUNT(*) FROM
+		walk_crew_member
+		WHERE crewId = #{crewId}
+		AND memberId = #{memberId}
+		AND
+		status = 'approved'
+	</select>
+
+	<update id="updateMemberStatusToApproved">
+		UPDATE walk_crew_member
+		SET status = 'approved'
+		WHERE
+		crewId = #{crewId} AND memberId = #{memberId}
+	</update>
+
+	<select id="findByLeaderId"
+		resultType="com.example.RSW.vo.WalkCrew">
+		SELECT *
+		FROM walk_crew
+		WHERE leaderId = #{leaderId}
+		ORDER BY
+		createdAt DESC
+		LIMIT 1
+	</select>
+
+	<!-- ✅ 조건에 맞는 크루 리스트 조회 (검색 + 동 필터 + 페이징 포함) -->
+	<!-- WalkCrewRepository.xml -->
+	<select id="findPagedFilteredCrews" resultType="WalkCrew">
+		SELECT ...
+		FROM walk_crew
+		WHERE 1=1
+		<if test="searchKeyword != null and searchKeyword != ''">
+			AND ${searchKeywordTypeCode} LIKE CONCAT('%',
+			#{searchKeyword}, '%')
+		</if>
+		<if test="dong != null and dong != ''">
+			AND dong LIKE CONCAT('%', #{dong}, '%') <!-- 여기 -->
+		</if>
+		ORDER BY createdAt DESC
+		LIMIT #{pageSize} OFFSET #{offset}
+	</select>
+
+
+	<!-- ✅ 조건에 맞는 전체 크루 수 조회 (페이징 계산용) -->
+	<select id="countFilteredCrews" parameterType="map"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM walk_crew wc
+		LEFT JOIN member m ON wc.leaderId =
+		m.id
+		LEFT JOIN district d ON wc.district_id = d.id
+		WHERE 1 = 1
+		<if test="dong != null and dong != ''">
+			AND d.dong = #{dong}
+		</if>
+		<if test="searchKeyword != null and searchKeyword != ''">
+			<choose>
+				<when test="searchKeywordTypeCode == 'title'">
+					AND wc.title LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test="searchKeywordTypeCode == 'nickname'">
+					AND m.nickname LIKE CONCAT('%', #{searchKeyword},
+					'%')
+				</when>
+				<otherwise>
+					AND (
+					wc.title LIKE CONCAT('%', #{searchKeyword}, '%')
+					OR
+					m.nickname
+					LIKE CONCAT('%', #{searchKeyword}, '%')
+					)
+				</otherwise>
+			</choose>
+		</if>
+	</select>
+
+	<!-- walk_crew의 리더 변경 -->
+	<update id="updateCrewLeader">
+		UPDATE walk_crew
+		SET leaderId = #{newLeaderId}
+		WHERE id
+		= #{crewId}
+	</update>
+
+	<!-- 크루 소개글 수정하기 -->
+	<update id="updateDescriptionById">
+		UPDATE walk_crew
+		SET description = #{newDescription}
+		WHERE id = #{crewId}
+	</update>
+
+	<!-- 내가 리더로 있는 모든 크루 조회 -->
+	<select id="findCrewsByLeaderId" parameterType="int"
+		resultType="com.example.RSW.vo.WalkCrew">
+		SELECT *
+		FROM walk_crew
+		WHERE leaderId = #{memberId}
+	</select>
+
+	<select id="findJoinedCrewsByMemberId" resultType="WalkCrew">
+		SELECT C.*
+		FROM walk_crew_member M
+		JOIN walk_crew C ON M.crewId = C.id
+		WHERE
+		M.memberId = #{memberId}
+		AND M.status COLLATE utf8mb4_general_ci =
+		'approved'
+	</select>
+
+
+</mapper>

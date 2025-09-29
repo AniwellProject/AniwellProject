@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.MemberRepository">
+
+
+    <insert id="doJoin" parameterType="map">
+        INSERT INTO `member`
+        SET regDate = NOW(),
+		updateDate = NOW(),
+		loginId = #{loginId}, loginPw = #{loginPw}, `name` = #{name}, nickname = #{nickname}, cellphone = #{cellphone}, email = #{email}, address = #{address}, authName = #{authName}, authLevel = #{authLevel}
+    </insert>
+
+
+    <select id="getLastInsertId" parameterType="int">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <select id="getMemberByNameAndEmail" parameterType="string"
+            resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM `member`
+        WHERE `name` = #{name}
+          AND email = #{email}
+    </select>
+
+    <select id="getMemberByLoginId" parameterType="string"
+            resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM `member`
+        WHERE loginId = #{loginId}
+    </select>
+
+
+    <select id="getMemberById" parameterType="int"
+            resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM `member`
+        WHERE id = #{id}
+    </select>
+
+
+    <update id="modify">
+        UPDATE `member`
+        <set>
+            <if test="loginPw != null">
+                loginPw = #{loginPw},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="nickname != null">
+                nickname = #{nickname},
+            </if>
+            <if test="cellphone != null">
+                cellphone = #{cellphone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            updateDate = NOW()
+        </set>
+        WHERE id = #{loginedMemberId}
+    </update>
+
+    <update id="modifyWithoutPw">
+        UPDATE `member`
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="nickname != null">
+                nickname = #{nickname},
+            </if>
+            <if test="cellphone != null">
+                cellphone = #{cellphone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            updateDate = NOW()
+        </set>
+        WHERE id = #{loginedMemberId}
+    </update>
+
+    <delete id="withdraw">
+        DELETE
+        FROM member
+        WHERE id = #{id}
+    </delete>
+
+    <select id="findAll" resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM member
+        WHERE delStatus = 0
+        ORDER BY regDate DESC
+    </select>
+
+    <update id="updateAuthLevel">
+        UPDATE member
+        SET authLevel = #{authLevel}
+        WHERE id = #{memberId}
+    </update>
+
+    <select id="findAllWithVetCert" resultType="com.example.RSW.vo.Member">
+        SELECT m.*,
+               v.filePath AS vetCertUrl,
+               v.approved AS vetCertApproved
+        FROM member m
+                 LEFT JOIN vet_certificate v ON m.id = v.memberId
+    </select>
+
+    <select id="getForPrintMembers" resultType="com.example.RSW.vo.Member">
+        SELECT *
+        FROM member
+        WHERE 1 = 1
+        <if test="searchType != null and searchKeyword != null and searchKeyword != ''">
+            <choose>
+                <when test="searchType == 'authLevel'">
+                    AND authLevel = #{searchKeyword}
+                </when>
+                <when test="searchType == 'loginId'">
+                    AND loginId LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchType == 'name'">
+                    AND name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test="searchType == 'id'">
+                    AND id = #{searchKeyword}
+                </when>
+            </choose>
+        </if>
+        ORDER BY id DESC
+    </select>
+
+
+
+</mapper>

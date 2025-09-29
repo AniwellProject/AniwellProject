@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.PetVaccinationRepository">
+
+    <resultMap id="VaccinationWithPetNameMap" type="com.example.RSW.vo.PetVaccination">
+        <id property="id" column="id"/>
+        <result property="petId" column="petId"/>
+        <result property="vaccineName" column="vaccineName"/>
+        <result property="nextDueDate" column="nextDueDate"/>
+        <result property="memberId" column="memberId"/>
+        <result property="petName" column="petName"/>
+    </resultMap>
+
+    <!-- 펫 ID로 접종 이력 조회 -->
+    <select id="getVaccinationByPetId" parameterType="int" resultType="com.example.RSW.vo.PetVaccination">
+        SELECT
+            pv.id,
+            pv.petId,
+            pv.vaccineName,
+            pv.injectionDate,
+            pv.nextDueDate,
+            pv.vetName,
+            pv.notes
+        FROM pet_vaccination pv
+        WHERE pv.petId = #{petId}
+        ORDER BY pv.injectionDate DESC
+    </select>
+
+    <select id="findByPetIdAndMonth" resultType="PetVaccination">
+        SELECT *
+        FROM pet_vaccination
+        WHERE petId = #{petId}
+          AND DATE_FORMAT(injectionDate, '%Y-%m') = #{yearMonth}
+        ORDER BY injectionDate ASC
+    </select>
+
+    <!-- 백신 삭제 -->
+    <delete id="deletePetVaccination" parameterType="int">
+        DELETE FROM pet_vaccination WHERE id = #{id}
+    </delete>
+
+    <!-- 백신 등록 -->
+    <insert id="insertVaccination" parameterType="map">
+        INSERT INTO pet_vaccination (petId, vaccineName, injectionDate)
+        VALUES (#{petId}, #{vaccineName}, #{injectionDate})
+    </insert>
+
+    <insert id="insertPetVaccinationWithNotes" parameterType="map">
+        INSERT INTO pet_vaccination (petId, vaccineName, injectionDate,notes)
+        VALUES (#{petId}, #{vaccineName}, #{injectionDate}, #{notes})
+    </insert>
+
+    <!-- 백신 수정 -->
+    <update id="updatePetVaccination" parameterType="map">
+        UPDATE pet_vaccination
+        SET vaccineName = #{vaccineName}, injectionDate = #{injectionDate}
+        WHERE id = #{vaccinationId}
+    </update>
+
+    <update id="updatePetVaccinationWithNotes" parameterType="map">
+        UPDATE pet_vaccination
+        SET vaccineName = #{vaccineName}, injectionDate = #{injectionDate}, notes = #{notes}
+        WHERE id = #{vaccinationId}
+    </update>
+
+    <!-- 백신 ID로 조회 -->
+    <select id="getVaccinationById" parameterType="int" resultType="com.example.RSW.vo.PetVaccination">
+        SELECT
+            pv.id,
+            pv.petId,
+            pv.vaccineName,
+            pv.injectionDate,
+            pv.nextDueDate,
+            pv.vetName,
+            pv.notes
+        FROM pet_vaccination pv
+        WHERE pv.id = #{vaccinationId}
+    </select>
+
+    <select id="getPetIdById" parameterType="int" resultType="int">
+        SELECT petId
+        FROM pet_vaccination
+        WHERE id = #{vaccinationId}
+    </select>
+
+    <update id="invalidateNextDueDates">
+        UPDATE pet_vaccination
+        SET nextDueDate = NULL
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+    </update>
+
+    <!-- 1. 최신 접종일 조회 -->
+    <select id="findLatestInjectionDate" resultType="java.time.LocalDate">
+        SELECT MAX(injectionDate)
+        FROM pet_vaccination
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+    </select>
+
+    <!-- 2. 백신 주기 조회 -->
+    <select id="findIntervalMonthsByVaccine" resultType="int">
+        SELECT intervalMonths
+        FROM vaccine_schedule
+        WHERE vaccineName = #{vaccineName}
+            LIMIT 1
+    </select>
+
+    <!-- 최신 날짜만 업데이트 -->
+    <update id="updateNextDueDateByInjectionDate">
+        UPDATE pet_vaccination
+        SET nextDueDate = #{nextDueDate}
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+          AND injectionDate = #{latestInjectionDate}
+    </update>
+
+    <!-- 최신 날짜 아닌 애들은 NULL 처리 -->
+    <update id="invalidateOldNextDueDates">
+        UPDATE pet_vaccination
+        SET nextDueDate = NULL
+        WHERE petId = #{petId}
+          AND vaccineName = #{vaccineName}
+          AND injectionDate != #{latestInjectionDate}
+    </update>
+
+    <select id="findNextDueInDays" resultMap="VaccinationWithPetNameMap">
+        SELECT pv.*, p.name AS petName
+        FROM pet_vaccination pv
+                 JOIN pet p ON p.id = pv.petId
+        WHERE pv.nextDueDate IN (
+                                 CURDATE(),
+                                 DATE_ADD(CURDATE(), INTERVAL 3 DAY),
+                                 DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            )
+    </select>
+
+</mapper>

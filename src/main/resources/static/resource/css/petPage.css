@@ -1,0 +1,26 @@
+#myChart {
+	margin-top: 10px;
+}
+
+.pet_img {
+	margin-left: auto;
+	margin-top: 50px;
+}
+
+.createdAt {
+	border-top: 2px solid lemonchiffon;
+}
+
+.tD_ani {
+	min-height: 200px;
+}
+
+.pet_card {
+	aspect-ratio: 1.8/1;
+	width: auto;
+}
+
+.card_photo {
+	aspect-ratio: 1/1;
+	width: auto;
+}

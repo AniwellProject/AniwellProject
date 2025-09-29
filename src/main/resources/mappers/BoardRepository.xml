@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.BoardRepository">
+
+    <select id="getBoardById" parameterType="int"
+            resultType="com.example.RSW.vo.Board">
+        SELECT *
+        FROM board
+        WHERE id = #{id} AND delStatus = 0
+    </select>
+
+    <select id="getBoards" resultType="com.example.RSW.vo.Board">
+        SELECT *
+        FROM board
+        WHERE delStatus = 0
+    </select>
+
+
+</mapper>

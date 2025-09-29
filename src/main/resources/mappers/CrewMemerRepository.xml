@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.RSW.repository.CrewMemerRepository">
+    <!-- walk_crew_member 테이블에서 해당 멤버가 크루에 속해 있는지 확인 -->
+    <select id="isCrewMember" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM walk_crew_member
+        WHERE crewId = #{crewId}
+          AND memberId = #{memberId}
+    </select>
+
+    <select id="getCrewMemberById" parameterType="int" resultType="com.example.RSW.vo.WalkCrewMember">
+        SELECT *
+        FROM walk_crew_member
+        WHERE memberId = #{memberId}
+          AND crewId = #{crewId}
+    </select>
+
+</mapper>
+
+
