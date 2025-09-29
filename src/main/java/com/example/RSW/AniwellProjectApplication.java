@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
-@SpringBootApplication  // ← 이 애노테이션이 핵심입니다!
+@SpringBootApplication  
 public class AniwellProjectApplication {
 
 
