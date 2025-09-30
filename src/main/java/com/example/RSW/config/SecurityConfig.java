@@ -134,12 +134,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(
-                "https://aniwell.s3.ap-northeast-2.amazonaws.com",
-                "http://aniwell.s3-website.ap-northeast-2.amazonaws.com",
-                "http://localhost:3001",
-                "http://localhost:8080",
-                "http://api.www.dev.aniwell.io.kr"
+        cfg.setAllowedOriginPatterns(List.of(
+                "https://*.aniwell.io.kr",  // 모든 서브도메인 허용
+                "http://localhost:*"       // 로컬 개발 환경 허용
         ));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
@@ -150,6 +147,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", cfg);
         return source;
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
