@@ -138,8 +138,8 @@ public class SecurityConfig {
                 "https://aniwell.s3.ap-northeast-2.amazonaws.com",
                 "http://aniwell.s3-website.ap-northeast-2.amazonaws.com",
                 "http://localhost:3001",
-                "http://localhost:8080"
-                "http://api.www.dev.aniwelll.io.kr"
+                "http://localhost:8080",
+                "http://api.www.dev.aniwell.io.kr"
         ));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
