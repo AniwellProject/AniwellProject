@@ -36,7 +36,7 @@ build/
 *.env
 .env.*
 src/main/resources/application-secret.yml
-src/main/resources/aplication-secret.yml
+src/main/resources/application-secret.yml
 # (application.yml에 비밀이 있다면 이 줄 유지, 아니면 삭제)
 src/main/resources/application.yml
 

@@ -1,9 +1,12 @@
+// EmailVerificationService.java
 package com.example.RSW.service;
 
 import com.example.RSW.vo.ResultData;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
+
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -16,11 +19,11 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class EmailVerificationService {
 
-    private final RedisTemplate<String, String> redis; // 이미 프로젝트에서 쓰는 타입과 동일
-    private final MailService mailService;             // 기존 SendGrid 연동 MailService
+    private final @Qualifier("redisTemplate") RedisTemplate<String, String> redis;
+    private final MailService mailService;
 
-    private static final Duration CODE_TTL = Duration.ofMinutes(5);   // 코드 유효시간
-    private static final Duration COOLDOWN = Duration.ofSeconds(60);  // 재전송 쿨다운
+    private static final Duration CODE_TTL = Duration.ofMinutes(5);
+    private static final Duration COOLDOWN = Duration.ofSeconds(60);
 
     private String keyTx(String txId) { return "email:verify:tx:" + txId; }
     private String keyCooldown(String email) { return "email:verify:cooldown:" + normalize(email); }
@@ -38,19 +41,16 @@ public class EmailVerificationService {
                     "retryAfterSec", Math.max(1, ttl == null ? 0 : ttl));
         }
 
-        // 6자리 코드 & 트랜잭션 ID 생성
         String code = String.format("%06d", new Random().nextInt(1_000_000));
         String txId = UUID.randomUUID().toString().replace("-", "");
 
-        // 해시 저장(코드 원문은 저장하지 않음)
-        String hash = sha256(code + "|" + email + "|" + (purpose == null ? "join" : purpose));
-        String payload = email + "|" + (purpose == null ? "join" : purpose) + "|" + hash;
-        redis.opsForValue().set(keyTx(txId), payload, CODE_TTL.getSeconds(), TimeUnit.SECONDS);
+        String p = (purpose == null ? "join" : purpose);
+        String hash = sha256(code + "|" + email + "|" + p);
+        String payload = email + "|" + p + "|" + hash;
 
-        // 쿨다운 키 설정
+        redis.opsForValue().set(keyTx(txId), payload, CODE_TTL.getSeconds(), TimeUnit.SECONDS);
         redis.opsForValue().set(cdKey, "1", COOLDOWN.getSeconds(), TimeUnit.SECONDS);
 
-        // 메일 발송
         String subject = "[aniwell] 이메일 인증 코드: " + code + " (5분 유효)";
         String body = """
                 안녕하세요, aniwell 입니다.
@@ -66,7 +66,6 @@ public class EmailVerificationService {
 
         ResultData sendRd = mailService.send(email, subject, body);
         if (sendRd == null || sendRd.isFail()) {
-            // 전송 실패 시 트랜잭션 키 제거(재시도 가능하게)
             redis.delete(keyTx(txId));
             return ResultData.from(sendRd == null ? "F-SEND" : sendRd.getResultCode(),
                     sendRd == null ? "메일 전송 실패" : sendRd.getMsg());
@@ -85,7 +84,6 @@ public class EmailVerificationService {
         String payload = redis.opsForValue().get(keyTx(txId));
         if (payload == null) return ResultData.from("F-EXPIRED", "코드가 만료되었거나 잘못되었습니다.");
 
-        // payload: email|purpose|hash
         String[] parts = payload.split("\\|", 3);
         if (parts.length < 3) return ResultData.from("F-PAYLOAD", "저장된 코드 정보가 손상되었습니다.");
 
@@ -99,10 +97,8 @@ public class EmailVerificationService {
             return ResultData.from("F-NOPE", "코드가 일치하지 않습니다.");
         }
 
-        // 사용 후 즉시 삭제
         redis.delete(keyTx(txId));
 
-        // 세션에 "검증된 이메일" 기록 → 가입 시 서버에서 검증 가능
         Set<String> verified = (Set<String>) session.getAttribute("VERIFIED_EMAILS");
         if (verified == null) verified = new HashSet<>();
         verified.add(email);
